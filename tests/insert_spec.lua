@@ -44,7 +44,7 @@ local cases = {
     "i;;bimportant;;b and ;;ialso;;i this<Esc>",
     { "**important** and *also* this" },
   },
-  { "readme: link", { "" }, { 1, 0 }, "i;;lthe docs;;lhttps://x.io;;l<Esc>", { "[the docs](https://x.io)" } },
+  { "readme: link", { "" }, { 1, 0 }, "i;;kthe docs;;khttps://x.io;;k<Esc>", { "[the docs](https://x.io)" } },
   { "readme: nested", { "" }, { 1, 0 }, "i;;bbold ;;iboth;;i;;b<Esc>", { "**bold *both***" } },
 
   -- links
@@ -52,20 +52,20 @@ local cases = {
     "link without clipboard: text, url, out",
     { "" },
     { 1, 0 },
-    "i;;ldocs;;lhttps://x.io;;l ok<Esc>",
+    "i;;kdocs;;khttps://x.io;;k ok<Esc>",
     { "[docs](https://x.io) ok" },
   },
   {
     "link with clipboard URL skips the url stage",
     { "" },
     { 1, 0 },
-    "i;;ldocs;;l!<Esc>",
+    "i;;kdocs;;k!<Esc>",
     { "[docs](https://c.io)!" },
     setup = function()
       clip = "https://c.io"
     end,
   },
-  { "link jump by text shape", { "[t]()" }, { 1, 1 }, "a;;lu;;l.<Esc>", { "[t](u)." } },
+  { "link jump by text shape", { "[t]()" }, { 1, 1 }, "a;;ku;;k.<Esc>", { "[t](u)." } },
 
   -- anything else is typed as-is
   { "unknown key keeps ;; and the key", { "" }, { 1, 0 }, "i;;x<Esc>", { ";;x" } },

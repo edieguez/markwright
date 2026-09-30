@@ -18,7 +18,7 @@ M.defaults = {
     warn_in_code = true, -- notify when formatting inside code is skipped
   },
   insert = {
-    -- Insert mode: type the trigger, then i/b/s/c/h/l. Two or more characters
+    -- Insert mode: type the trigger, then i/b/s/c/h/k. Two or more characters
     -- (";;", "jj", ",,") or a key like "<C-g>". "" disables.
     trigger = ";;",
   },

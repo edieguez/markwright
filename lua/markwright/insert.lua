@@ -18,7 +18,7 @@ M.KEYS = {
   { key = "s", fmt = "strike", label = "strike" },
   { key = "c", fmt = "code", label = "code" },
   { key = "h", fmt = "highlight", label = "highlight" },
-  { key = "l", fmt = "link", label = "link" },
+  { key = "k", fmt = "link", label = "link" },
 }
 
 local function trigger()

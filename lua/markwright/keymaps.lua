@@ -38,8 +38,8 @@ function M.attach(buf)
   -- links
   local links = require("markwright.links")
   local lopts = config.options.links
-  map("n", P .. "l", links.expr_normal, "Link: create / convert URL / remove", { expr = true })
-  map("x", P .. "l", links.expr_visual, "Link: create / convert URL / remove", { expr = true })
+  map("n", P .. "k", links.expr_normal, "Link: create / convert URL / remove", { expr = true })
+  map("x", P .. "k", links.expr_visual, "Link: create / convert URL / remove", { expr = true })
   if lopts.smart_paste_normal then
     map("n", "p", function()
       return links.expr_paste(true)
