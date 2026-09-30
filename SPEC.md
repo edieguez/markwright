@@ -1,4 +1,4 @@
-# mdtools.nvim — Specification
+# markwright.nvim — Specification
 
 A Neovim plugin (LazyVim-friendly) for editing Markdown: inline formatting toggles, links, lists, headings, tables, code fences, footnotes, TOC, link diagnostics, image paste and formatting while typing.
 
@@ -12,7 +12,7 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 
 ### Implemented
 
-- [x] **Skeleton** — `setup()`, config + validation, buffer-local attach, `:Mdtools` with completion, `:checkhealth mdtools` (§3, §4)
+- [x] **Skeleton** — `setup()`, config + validation, buffer-local attach, `:Markwright` with completion, `:checkhealth markwright` (§3, §4)
 - [x] **Inline formatting** (§6)
   - [x] italic, bold, strikethrough, inline code, highlight toggles
   - [x] word under cursor, visual (char/line/block), operator + motion
@@ -38,7 +38,7 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 - [x] **Tables** — create, CSV/TSV → table, add/delete row/column, `<Tab>` cells, align on InsertLeave (§9.4)
 - [x] **Footnotes** — insert + jump (§9.5)
 - [x] **TOC** — markers, nested entries, refresh on save (§9.6)
-- [x] **Link diagnostics** — files, anchors, references, footnotes; on open/save; `:Mdtools check` (§10)
+- [x] **Link diagnostics** — files, anchors, references, footnotes; on open/save; `:Markwright check` (§10)
 - [x] **Image paste, macOS** — screenshots, Finder files, paths, URLs; `assets/`; alt text (§13.1)
 - [x] **Tests** — 302 headless cases feeding real keys (§11)
 - [x] **Verified on macOS + LazyVim** (2026-09-30): clipboard links, live titles, `gx`, image paste (screenshot / Finder / browser), `<CR>` with blink.cmp + mini.pairs, `<Tab>` in snippets/lists/tables, `;;` hint with noice, no duplicate diagnostics
@@ -47,9 +47,9 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 
 **Project / platform**
 - [ ] Image paste on Linux (Wayland/X11) and WSL (§14.1)
-- [ ] `:help mdtools` vimdoc (§14.2)
+- [ ] `:help markwright` vimdoc (§14.2)
 - [ ] CI: GitHub Actions on Neovim stable, nightly and 0.10 (§14.3)
-- [ ] Rename the plugin (§14.4)
+- [x] Rename the plugin to **markwright.nvim** (§14.4)
 
 **Small follow-ups**
 - [ ] Language completion in the code fence prompt (§14.5)
@@ -106,16 +106,16 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 | `curl` | Only for page-title fetching; feature degrades gracefully if missing |
 | System opener | `vim.ui.open` (xdg-open / open / wslview) for URLs and images |
 
-A `:checkhealth mdtools` module (`lua/mdtools/health.lua`) verifies parsers, `curl`, clipboard provider and opener.
+A `:checkhealth markwright` module (`lua/markwright/health.lua`) verifies parsers, `curl`, clipboard provider and opener.
 
 ---
 
 ## 3. Architecture
 
 ```
-mdtools.nvim/
-├── plugin/mdtools.lua          -- defines :Mdtools command, lazy entry point
-├── lua/mdtools/
+markwright.nvim/
+├── plugin/markwright.lua          -- defines :Markwright command, lazy entry point
+├── lua/markwright/
 │   ├── init.lua                -- setup(), attaches to markdown buffers (FileType autocmd)
 │   ├── config.lua              -- defaults + user merge + validation
 │   ├── keymaps.lua             -- buffer-local mappings from config
@@ -145,7 +145,7 @@ sections.lua, frontmatter.lua, stats.lua, completion.lua; images.lua gains linux
 
 **Attachment:** `setup()` registers a `FileType markdown` autocmd; each feature attaches buffer-local keymaps and autocmds only for that buffer. Nothing is global except the user command.
 
-**User command:** `:Mdtools <subcommand>` with completion (e.g. `:Mdtools toc`, `:Mdtools table create`, `:Mdtools check`).
+**User command:** `:Markwright <subcommand>` with completion (e.g. `:Markwright toc`, `:Markwright table create`, `:Markwright check`).
 
 **Repeat:** operators use `operatorfunc` (`g@`) so `.` works natively. Non-operator actions set `operatorfunc` too, or use `vim-repeat` if available.
 
@@ -154,7 +154,7 @@ sections.lua, frontmatter.lua, stats.lua, completion.lua; images.lua gains linux
 ## 4. Configuration (defaults)
 
 ```lua
-require("mdtools").setup({
+require("markwright").setup({
   filetypes = { "markdown" },
   keymaps = {
     enabled = true,
@@ -301,7 +301,7 @@ Formats are independent layers. Italic on `**word**` → `***word***`; removing 
 - Inside a code span, other formats are not applied (see 6.8).
 
 ### 6.8 Code context guard
-If the target is inside `code_span`, `fenced_code_block` or `indented_code_block`, do nothing and `vim.notify("mdtools: formatting skipped inside code", WARN)` (when `warn_in_code = true`). Toggling **code itself** off inside a code span is allowed.
+If the target is inside `code_span`, `fenced_code_block` or `indented_code_block`, do nothing and `vim.notify("markwright: formatting skipped inside code", WARN)` (when `warn_in_code = true`). Toggling **code itself** off inside a code span is allowed.
 
 ### 6.9 Edge cases to test
 - Word adjacent to punctuation: `hello,` → `*hello*,`.
@@ -404,7 +404,7 @@ GitHub style: lowercase, strip punctuation except `-` and `_`, spaces → `-`, k
 - Navigation via `gx` (section 8).
 
 ### 9.6 TOC (`toc.lua`)
-- `<P>T` / `:Mdtools toc`: insert TOC at cursor between `<!-- toc -->` and `<!-- tocstop -->`, or regenerate if markers exist.
+- `<P>T` / `:Markwright toc`: insert TOC at cursor between `<!-- toc -->` and `<!-- tocstop -->`, or regenerate if markers exist.
 - On `BufWritePre`, if markers exist and `update_on_save`, regenerate (no-op if unchanged, so the buffer isn't modified needlessly).
 - Nested `-` list of `[Heading](#slug)` entries, respecting `min_level`/`max_level`. Skip headings inside code blocks and the TOC itself.
 
@@ -412,7 +412,7 @@ GitHub style: lowercase, strip punctuation except `-` and `_`, spaces → `-`, k
 
 ## 10. Diagnostics (`diagnostics.lua`)
 
-On `BufWritePost` (and on attach), publish `vim.diagnostic` entries in namespace `mdtools` for:
+On `BufWritePost` (and on attach), publish `vim.diagnostic` entries in namespace `markwright` for:
 - Relative file links/images whose target doesn't exist.
 - `#anchor` links (local or `file.md#anchor`) with no matching heading.
 - Footnote references without definitions, and definitions never referenced.
@@ -435,7 +435,7 @@ Implementation note: the markdown grammar has no footnotes, and a `[ref]: url` l
 
 ## 12. Implementation order
 
-- [x] 1. Skeleton: `setup`, config, FileType attach, keymaps, `:Mdtools`, health.
+- [x] 1. Skeleton: `setup`, config, FileType attach, keymaps, `:Markwright`, health.
 - [x] 2. `ts.lua` + `format.lua` (engine, operators, repeat).
 - [x] 3. `links.lua` + `title.lua` + smart paste.
 - [x] 4. `follow.lua` + `slug.lua`.
@@ -444,11 +444,11 @@ Implementation note: the markdown grammar has no footnotes, and a `[ref]: url` l
 - [x] 7. `tables.lua`.
 - [x] 8. `toc.lua`, `diagnostics.lua`.
 - [x] 9. `images.lua` (macOS), `insert.lua`.
-- [ ] 10. Rename (§14.4) — do first, before docs and CI reference the name.
+- [x] 10. Rename to markwright.nvim (§14.4).
 - [ ] 11. Priority-1 features: text objects, heading navigation, rich-text paste (§14.8–14.10).
 - [ ] 12. Priority-2 features (§14.11–14.18).
 - [ ] 13. Linux/WSL image paste, image extras, fence completion (§14.1, §14.5, §14.6).
-- [ ] 14. Docs (`doc/mdtools.txt`) and CI (§14.2, §14.3).
+- [ ] 14. Docs (`doc/markwright.txt`) and CI (§14.2, §14.3).
 - [ ] 15. Priority-3 and optional features (§14.19–14.23).
 
 ---
@@ -457,7 +457,7 @@ Implementation note: the markdown grammar has no footnotes, and a `[ref]: url` l
 
 ### 13.1 Image paste — **implemented for macOS (2026-09-29)**
 Decisions (all configurable under `images`):
-- Key `<P>p` (normal; visual = selection becomes alt text and is replaced), `:Mdtools image`; opt-in plain `p` when the clipboard holds an image and no text (`smart_paste`).
+- Key `<P>p` (normal; visual = selection becomes alt text and is replaced), `:Markwright image`; opt-in plain `p` when the clipboard holds an image and no text (`smart_paste`).
 - Sources: image data (saved as PNG), a Finder file (copied, format kept; detected via `«class furl»` before the icon image), a copied local image path (copied), a copied image URL (linked, not downloaded).
 - Backend: `pngpaste` when installed, else `osascript` (built in). Async via `vim.system`.
 - Save to `assets/` next to the file (relative, absolute, `~` or function); created on demand; name prompt prefilled with `image-%Y%m%d-%H%M%S` (Finder: original name); sanitized; never overwrites (`-1`, `-2`…).
@@ -482,7 +482,7 @@ Shared helper in `util.lua` (`completion_active`, `save_fallback`, `fallback`): 
 - ~~Checkbox key on a non-list line (9.2)~~ — resolved: native `<CR>`.
 - Fence language prompt completion (9.3) — planned, §14.5.
 - TOC default level range (4 / 9.6) — shipped with 2–4.
-- ~~Diagnostics lifetime between saves (10)~~ — implemented as proposed: kept until the next save; `:Mdtools check` re-runs on demand.
+- ~~Diagnostics lifetime between saves (10)~~ — implemented as proposed: kept until the next save; `:Markwright check` re-runs on demand.
 - Checkbox 3-state (`[-]`) — optional, §14.22.
 - External URL checking — optional on-demand command, §14.23.
 
@@ -509,8 +509,8 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 - `:checkhealth` reports the detected backend and missing tools.
 - Tests: fake executables per backend, like the macOS ones.
 
-### 14.2 `:help mdtools`
-- `doc/mdtools.txt` in vimdoc format with tags (`mdtools`, `mdtools-config`, `mdtools-keymaps`, `mdtools-<feature>`, `:Mdtools`).
+### 14.2 `:help markwright`
+- `doc/markwright.txt` in vimdoc format with tags (`markwright`, `markwright-config`, `markwright-keymaps`, `markwright-<feature>`, `:Markwright`).
 - Generated from README.md with panvimdoc in CI (commit the result) so the two never drift; README stays the source.
 - Acceptance: `:helptags` runs clean; every config key and command has a tag.
 
@@ -519,9 +519,10 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 - Steps: install Neovim, `make test`, `stylua --check`, `selene` (lint).
 - Run on push and pull requests; badge in README.
 
-### 14.4 Rename the plugin
-- Pick the new name (candidates discussed 2026-09-30), then rename: repo, `lua/<name>/`, `plugin/<name>.lua`, `:Mdtools` command, `mdtools_*` namespaces/augroups, health module, README, SPEC, tests.
-- Keep `require("mdtools")` working for one release as a shim that warns and forwards (only needed once published).
+### 14.4 Rename the plugin — **done (2026-09-30)**
+- New name **markwright.nvim** (a "wright" is a craftsman, as in playwright). Checked 2026-09-30: no Neovim plugin uses it; unrelated projects share the name (a Flask Markdown viewer, a desktop-publishing app).
+- Renamed: `lua/markwright/`, `plugin/markwright.lua`, `require("markwright")`, `:Markwright`, `:checkhealth markwright`, namespaces/augroups (`markwright_*`), notification prefix, diagnostic source, README, SPEC, tests.
+- No `require("mdtools")` compatibility shim: the plugin was never published.
 
 ### 14.5 Code fence language completion
 - The `Language:` prompt completes from: installed Treesitter parsers (`vim.api.nvim_get_runtime_file("parser/*.so", true)`), languages already used in fences in the current buffer (first), and a short common list.
@@ -533,7 +534,7 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
   - macOS: built-in `sips` (`sips -Z <max> -s format jpeg -s formatOptions <q>`); WebP via `cwebp` when installed.
   - Linux: ImageMagick `magick`/`convert`, `cwebp`.
   - Missing tool → keep the original and warn once.
-- **Unused images**: `:Mdtools images unused` scans Markdown files under the project root (git root, else cwd) for references into the image folders, lists files nothing links to in the quickfix list. Never deletes on its own; `:Mdtools images unused!` asks for confirmation per file.
+- **Unused images**: `:Markwright images unused` scans Markdown files under the project root (git root, else cwd) for references into the image folders, lists files nothing links to in the quickfix list. Never deletes on its own; `:Markwright images unused!` asks for confirmation per file.
 
 ### 14.7 Pending decisions on built features
 - **Operator keys**: currently `<P>I`/`<P>B`/`<P>S`/`<P>C`/`<P>H` + motion. Options: keep; or `gm` + format letter + motion (`gmbiw`), freeing uppercase `<P>` keys for the features below.
@@ -559,11 +560,11 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 ### 14.9 Heading navigation (priority 1)
 - `]]` / `[[`: next / previous heading (any level), counts, skips code blocks, adds a jumplist entry. Overrides the simpler mappings in Neovim's markdown ftplugin.
 - `][` / `[]` **[OPEN]**: next / previous heading of the same level; `[u` **[OPEN]**: parent heading.
-- `<P>o` **[OPEN]**: outline picker of all headings (indented by level, current section preselected). Uses snacks.picker, telescope or fzf-lua when present, else `vim.ui.select`; also `:Mdtools outline`.
+- `<P>o` **[OPEN]**: outline picker of all headings (indented by level, current section preselected). Uses snacks.picker, telescope or fzf-lua when present, else `vim.ui.select`; also `:Markwright outline`.
 - Config: `nav = { next = "]]", prev = "[[", outline = "<P>o" }`, `false` disables each.
 
 ### 14.10 Rich-text paste (priority 1)
-- `<P>v` **[OPEN]** / `:Mdtools paste`: paste the clipboard's HTML (copied from a browser, Google Docs, Notion, Word…) converted to Markdown: headings, bold/italic, links, lists, tables, code.
+- `<P>v` **[OPEN]** / `:Markwright paste`: paste the clipboard's HTML (copied from a browser, Google Docs, Notion, Word…) converted to Markdown: headings, bold/italic, links, lists, tables, code.
 - Reading HTML: macOS via JXA `NSPasteboard.generalPasteboard.stringForType("public.html")`; Wayland `wl-paste -t text/html`; X11 `xclip -t text/html -o`; WSL `Get-Clipboard -TextFormatType Html`.
 - Conversion: `pandoc -f html -t gfm-raw_html --wrap=none`; post-process to the plugin's style (bullet `-`, `**`/`*` markers, strip empty links and tracking parameters optional).
 - No HTML on the clipboard → normal paste of the text. No pandoc → plain-text paste + one warning; `:checkhealth` reports pandoc.
@@ -573,11 +574,11 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 ### 14.11 GitHub callouts (priority 2)
 - `<P>a` **[OPEN]**: wrap the current paragraph (normal) or selected lines (visual) in a callout; types `NOTE`, `TIP`, `IMPORTANT`, `WARNING`, `CAUTION` via a picker (default `NOTE`).
 - On an existing callout, `<P>a` cycles the type; `<P>A` removes the callout (unwraps the `>` prefix).
-- Handles nested blockquotes and keeps list/code content intact; `:Mdtools callout [type]`.
+- Handles nested blockquotes and keeps list/code content intact; `:Markwright callout [type]`.
 
 ### 14.12 List tools (priority 2)
-- Move an item with its children: `<M-j>`/`<M-k>` **[OPEN]** on a list item swaps it with the next/previous sibling subtree and renumbers; elsewhere falls back to the existing mapping (LazyVim's move-line). Also `:Mdtools list up|down`.
-- Sort: `:Mdtools list sort [alpha|checked|reverse]` sorts the siblings under the cursor (children move with their parent; `checked` puts done tasks last).
+- Move an item with its children: `<M-j>`/`<M-k>` **[OPEN]** on a list item swaps it with the next/previous sibling subtree and renumbers; elsewhere falls back to the existing mapping (LazyVim's move-line). Also `:Markwright list up|down`.
+- Sort: `:Markwright list sort [alpha|checked|reverse]` sorts the siblings under the cursor (children move with their parent; `checked` puts done tasks last).
 - Cycle bullet style for the list under the cursor: `<P>*` **[OPEN]** `-` → `*` → `+` → `1.` → `-`.
 - Lines ↔ list: `<P>L` **[OPEN]** toggles plain lines ↔ bullet list, `<P>N` **[OPEN]** plain lines ↔ numbered list (visual or current paragraph).
 
@@ -592,30 +593,30 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 ### 14.15 Table extras (priority 2)
 - `<P>ts` **[OPEN]**: sort body rows by the column under the cursor (ascending; again → descending); numeric- and date-aware; header and delimiter stay.
 - `<P>t<` / `<P>t>` **[OPEN]**: move the current column left/right (alignment markers move with it).
-- `:Mdtools table export [csv|tsv]`: copy the table to the clipboard as CSV/TSV (quoting as needed); `!` replaces the table in the buffer.
-- `:Mdtools table transpose`.
+- `:Markwright table export [csv|tsv]`: copy the table to the clipboard as CSV/TSV (quoting as needed); `!` replaces the table in the buffer.
+- `:Markwright table transpose`.
 
 ### 14.16 Section operations (priority 2)
-- Move the heading section under the cursor (heading + content + sub-sections) past the previous/next sibling section: `<M-k>`/`<M-j>` **[OPEN]** on a heading line (shares keys with §14.12), `:Mdtools section up|down`.
+- Move the heading section under the cursor (heading + content + sub-sections) past the previous/next sibling section: `<M-k>`/`<M-j>` **[OPEN]** on a heading line (shares keys with §14.12), `:Markwright section up|down`.
 - Promote/demote a heading together with all its sub-headings: `<P>+` / `<P>_` **[OPEN]** (the single-line `<P>=`/`<P>-` stay).
 - TOC updates on save as usual.
 
 ### 14.17 Inline ↔ reference links (priority 2)
 - `<P>r` **[OPEN]** on a link toggles inline `[text](url)` ↔ reference `[text][label]` with `[label]: url` collected in a block at the end of the file (label from the text's slug; numeric labels optional).
-- `:Mdtools links reference` / `:Mdtools links inline` convert the whole buffer; duplicate URLs share one definition; unused definitions are removed.
+- `:Markwright links reference` / `:Markwright links inline` convert the whole buffer; duplicate URLs share one definition; unused definitions are removed.
 
 ### 14.18 Footnote renumbering (priority 2)
-- `:Mdtools footnote renumber`: renumber numeric footnotes by order of first reference and reorder their definitions; named footnotes are left alone.
+- `:Markwright footnote renumber`: renumber numeric footnotes by order of first reference and reorder their definitions; named footnotes are left alone.
 - Optional `footnotes.renumber_on_save = false`.
 
 ### 14.19 Front matter helpers (priority 3)
-- `:Mdtools frontmatter`: insert a YAML block from a template (config `frontmatter.template`, placeholders `{title}` from the first heading or file name, `{date}`, `{tags}`).
+- `:Markwright frontmatter`: insert a YAML block from a template (config `frontmatter.template`, placeholders `{title}` from the first heading or file name, `{date}`, `{tags}`).
 - `frontmatter.update_on_save = false`: when enabled, refresh an existing `updated:`/`lastmod:` field on save (never adds one).
 - Front matter is ignored by TOC, slugs, diagnostics and word count.
 
 ### 14.20 Word count / reading time (priority 3)
-- `require("mdtools").stats(buf?)` → `{ words, chars, reading_minutes }`, excluding front matter, code blocks, URLs and markup; uses the visual selection when active.
-- `:Mdtools stats` shows the numbers; README includes a lualine component snippet. Reading speed configurable (`stats.wpm = 200`).
+- `require("markwright").stats(buf?)` → `{ words, chars, reading_minutes }`, excluding front matter, code blocks, URLs and markup; uses the visual selection when active.
+- `:Markwright stats` shows the numbers; README includes a lualine component snippet. Reading speed configurable (`stats.wpm = 200`).
 
 ### 14.21 Link completion (priority 3)
 - blink.cmp / nvim-cmp source: file paths after `](`, headings after `#` (`](#` and `](file.md#`), reference labels after `][`.
@@ -625,4 +626,4 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 - `lists.checkbox_states = { " ", "x" }` by default; setting `{ " ", "-", "x" }` makes the checkbox key cycle `[ ]` → `[-]` → `[x]`. Visual range and progress (§14.13) count `[-]` as not done.
 
 ### 14.23 Optional: external URL checker (priority 3)
-- `:Mdtools check urls`: async HEAD (falling back to GET) requests with `curl` for every external link in the buffer, limited concurrency and timeout; results as diagnostics (`link returns 404`) and in the quickfix list. Never runs automatically.
+- `:Markwright check urls`: async HEAD (falling back to GET) requests with `curl` for every external link in the buffer, limited concurrency and timeout; results as diagnostics (`link returns 404`) and in the quickfix list. Never runs automatically.

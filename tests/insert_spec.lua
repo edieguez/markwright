@@ -1,8 +1,8 @@
 -- Insert-mode trigger specs (SPEC.md section 13.2).
 local H = dofile(vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h") .. "/helpers.lua")
 local api = vim.api
-local config = require("mdtools.config")
-local links = require("mdtools.links")
+local config = require("markwright.config")
+local links = require("markwright.links")
 local eq = H.eq
 
 local real_clip = links.read_clipboard
@@ -21,7 +21,7 @@ local function with_trigger(t)
     -- re-attach the fresh buffer with the new trigger
     local buf = api.nvim_get_current_buf()
     pcall(vim.keymap.del, "i", ";", { buffer = buf })
-    require("mdtools.insert").attach(buf)
+    require("markwright.insert").attach(buf)
   end
 end
 

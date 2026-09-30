@@ -1,9 +1,9 @@
 -- Paste images from the clipboard. Spec: SPEC.md section 13.1.
 -- macOS backend: pngpaste (if installed) or osascript (built in).
 local api = vim.api
-local config = require("mdtools.config")
-local ts = require("mdtools.ts")
-local util = require("mdtools.util")
+local config = require("markwright.config")
+local ts = require("markwright.ts")
+local util = require("markwright.util")
 
 local M = {}
 
@@ -63,7 +63,7 @@ local function run(cmd, cb)
   end
 end
 
----@class mdtools.ImageBackend
+---@class markwright.ImageBackend
 ---@field info fun(cb: fun(info: string))                      clipboard type summary
 ---@field save_image fun(path: string, cb: fun(ok: boolean, err?: string))
 ---@field file_path fun(cb: fun(path: string?))                 file copied in Finder
@@ -105,7 +105,7 @@ end
 
 --- Text on the clipboard (for copied paths and URLs).
 function M.clipboard_text()
-  return require("mdtools.links").read_clipboard()
+  return require("markwright.links").read_clipboard()
 end
 
 -- Paths ---------------------------------------------------------------------------
@@ -187,7 +187,7 @@ end
 
 -- Clipboard → source ---------------------------------------------------------------
 
----@class mdtools.ImageSource
+---@class markwright.ImageSource
 ---@field kind "data"|"file"|"url"
 ---@field path? string   file to copy (kind = "file")
 ---@field url? string    remote image (kind = "url")

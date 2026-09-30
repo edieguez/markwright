@@ -1,6 +1,6 @@
 local M = {}
 
----@class mdtools.Config
+---@class markwright.Config
 M.defaults = {
   filetypes = { "markdown" },
   keymaps = {
@@ -64,7 +64,7 @@ M.defaults = {
   },
 }
 
----@type mdtools.Config
+---@type markwright.Config
 M.options = vim.deepcopy(M.defaults)
 
 local function validate(opts)
@@ -72,21 +72,21 @@ local function validate(opts)
   for _, name in ipairs({ "italic", "bold", "strike", "code", "highlight" }) do
     local m = f[name] and f[name].marker
     if type(m) ~= "string" or m == "" then
-      error(("mdtools: format.%s.marker must be a non-empty string"):format(name))
+      error(("markwright: format.%s.marker must be a non-empty string"):format(name))
     end
   end
   if f.multiline ~= "per_line" then
-    error("mdtools: format.multiline only supports 'per_line'")
+    error("markwright: format.multiline only supports 'per_line'")
   end
   local t = opts.insert and opts.insert.trigger
   if type(t) ~= "string" then
-    error("mdtools: insert.trigger must be a string")
+    error("markwright: insert.trigger must be a string")
   end
   if t ~= "" and not t:match("^<.+>$") and vim.fn.strchars(t) < 2 then
-    error("mdtools: insert.trigger must be at least two characters (or a key like '<C-g>')")
+    error("markwright: insert.trigger must be at least two characters (or a key like '<C-g>')")
   end
   if type(opts.filetypes) ~= "table" then
-    error("mdtools: filetypes must be a list")
+    error("markwright: filetypes must be a list")
   end
 end
 

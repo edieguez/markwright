@@ -2,7 +2,7 @@ local M = {}
 
 function M.check()
   local h = vim.health
-  h.start("mdtools.nvim")
+  h.start("markwright.nvim")
 
   if vim.fn.has("nvim-0.10") == 1 then
     h.ok("Neovim " .. tostring(vim.version()))

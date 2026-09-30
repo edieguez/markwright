@@ -1,7 +1,7 @@
 -- Document-level queries shared by follow, toc, footnotes and diagnostics.
 local api = vim.api
-local ts = require("mdtools.ts")
-local slug = require("mdtools.slug")
+local ts = require("markwright.ts")
+local slug = require("markwright.slug")
 
 local M = {}
 
@@ -68,14 +68,14 @@ local function collect_headings(root, source)
   return out
 end
 
----@class mdtools.Heading
+---@class markwright.Heading
 ---@field row integer 0-based
 ---@field level integer
 ---@field text string
 ---@field slug string
 
 --- Headings of a buffer (code blocks excluded), with unique slugs.
----@return mdtools.Heading[]
+---@return markwright.Heading[]
 function M.headings(buf)
   local root = root_of(buf)
   return root and collect_headings(root, buf) or {}
@@ -152,14 +152,14 @@ function M.definitions(buf, code)
   return defs
 end
 
----@class mdtools.FootnoteRef
+---@class markwright.FootnoteRef
 ---@field id string
 ---@field row integer
 ---@field col integer 0-based start of "[^"
 ---@field ecol integer exclusive
 
 --- Footnote references and definitions.
----@return mdtools.FootnoteRef[] refs, table<string, {row: integer, col: integer}> defs
+---@return markwright.FootnoteRef[] refs, table<string, {row: integer, col: integer}> defs
 function M.footnotes(buf, code)
   code = code or M.code_rows(buf)
   local refs, defs = {}, {}

@@ -1,18 +1,18 @@
 -- Formatting toggle engine: italic, bold, strikethrough, inline code, highlight.
 -- Spec: SPEC.md section 6.
 local api = vim.api
-local config = require("mdtools.config")
-local ts = require("mdtools.ts")
-local util = require("mdtools.util")
+local config = require("markwright.config")
+local ts = require("markwright.ts")
+local util = require("markwright.util")
 
 local M = {}
 
----@class mdtools.FormatSpec
+---@class markwright.FormatSpec
 ---@field node? string       Treesitter node type in markdown_inline
 ---@field outermost? boolean climb nested nodes of the same type (strikethrough parses `~~x~~` as nested)
 ---@field max_run? integer   max marker run length counted when removing
 
----@type table<string, mdtools.FormatSpec>
+---@type table<string, markwright.FormatSpec>
 M.formats = {
   italic = { node = "emphasis", max_run = 1 },
   bold = { node = "strong_emphasis", max_run = 2 },
@@ -54,7 +54,7 @@ local function find_span_node(p, row, scol, ecol, spec)
   return node
 end
 
----@param tr mdtools.EditTracker
+---@param tr markwright.EditTracker
 local function remove_node(buf, tr, node, spec)
   local sr, sc, er, ec = node:range()
   local first = get_line(buf, sr)
@@ -259,7 +259,7 @@ function M.opfunc(mtype)
   M.apply(buf, fmt, mtype, s[1] - 1, s[2], e[1] - 1, e[2], cursor)
 end
 
-local OPFUNC = "v:lua.require'mdtools.format'.opfunc"
+local OPFUNC = "v:lua.require'markwright.format'.opfunc"
 
 --- Normal mode: word under cursor, or empty markers on whitespace.
 function M.expr_normal(fmt)
@@ -267,7 +267,7 @@ function M.expr_normal(fmt)
   local col = api.nvim_win_get_cursor(0)[2]
   local ch = line:sub(col + 1, col + 1)
   if ch == "" or ch:match("%s") then
-    return ("<Cmd>lua require('mdtools.format').insert_empty(%q)<CR>"):format(fmt)
+    return ("<Cmd>lua require('markwright.format').insert_empty(%q)<CR>"):format(fmt)
   end
   M._pending = fmt
   M._cursor = api.nvim_win_get_cursor(0)
@@ -305,7 +305,7 @@ function M.insert_empty(fmt)
   vim.cmd("startinsert")
 end
 
---- Programmatic entry: toggle the word under the cursor (used by :Mdtools).
+--- Programmatic entry: toggle the word under the cursor (used by :Markwright).
 function M.toggle(fmt)
   local keys = api.nvim_replace_termcodes(M.expr_normal(fmt), true, false, true)
   api.nvim_feedkeys(keys, "nx", false)

@@ -1,8 +1,8 @@
 -- TOC + diagnostics specs (SPEC.md sections 9.6, 10).
 local H = dofile(vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h") .. "/helpers.lua")
 local api = vim.api
-local config = require("mdtools.config")
-local diagnostics = require("mdtools.diagnostics")
+local config = require("markwright.config")
+local diagnostics = require("markwright.diagnostics")
 local eq = H.eq
 
 local DOC = { "# Title", "", "## A", "### A.1", "## B `code`", "```", "## not a heading", "```", "## See [docs](u)" }
@@ -101,7 +101,7 @@ local cases = {
   { "diagnostic ranges point at the destination", fn = function()
     local buf = H.buf({ "see [bad](missing.md) ok" }, { 1, 0 }, dir .. "/doc.md")
     local d = diagnostics.collect(buf)[1]
-    eq({ d.lnum, d.col, d.end_col, d.source }, { 0, 10, 20, "mdtools" })
+    eq({ d.lnum, d.col, d.end_col, d.source }, { 0, 10, 20, "markwright" })
   end },
   { "code is ignored", fn = function()
     local buf = H.buf({ "`[x](missing.md)` and `[^9]`", "```", "[y](missing.md) [^8]", "```" }, { 1, 0 }, dir .. "/doc.md")
@@ -123,9 +123,9 @@ local cases = {
     eq(#vim.diagnostic.get(0, { namespace = diagnostics.ns }), 0)
     vim.cmd("bwipeout!")
   end },
-  { ":Mdtools check", fn = function()
+  { ":Markwright check", fn = function()
     H.buf({ "[y](#nope)" }, { 1, 0 })
-    vim.cmd("Mdtools check")
+    vim.cmd("Markwright check")
     eq(#vim.diagnostic.get(0, { namespace = diagnostics.ns }), 1)
   end },
 }

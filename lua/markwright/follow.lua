@@ -1,10 +1,10 @@
 -- gx: follow links, anchors, files, images and footnotes. Spec: SPEC.md section 8.
 local api = vim.api
-local config = require("mdtools.config")
-local ts = require("mdtools.ts")
-local util = require("mdtools.util")
-local doc = require("mdtools.doc")
-local links = require("mdtools.links")
+local config = require("markwright.config")
+local ts = require("markwright.ts")
+local util = require("markwright.util")
+local doc = require("markwright.doc")
+local links = require("markwright.links")
 
 local M = {}
 

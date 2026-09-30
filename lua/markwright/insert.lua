@@ -5,12 +5,12 @@
 -- character is mapped (a single-key mapping never waits), and the earlier
 -- characters must have just been typed in sequence (tracked by InsertCharPre).
 local api = vim.api
-local config = require("mdtools.config")
-local ts = require("mdtools.ts")
+local config = require("markwright.config")
+local ts = require("markwright.ts")
 
 local M = {}
 
-local ns = api.nvim_create_namespace("mdtools_insert")
+local ns = api.nvim_create_namespace("markwright_insert")
 
 M.KEYS = {
   { key = "i", fmt = "italic", label = "italic" },
@@ -163,7 +163,7 @@ function M.link(buf)
     return
   end
 
-  local links = require("mdtools.links")
+  local links = require("markwright.links")
   local url = ""
   if config.options.links.use_clipboard then
     local clip = vim.trim(links.read_clipboard() or "")
@@ -235,7 +235,7 @@ function M.menu(restore, ctx)
   local buf = api.nvim_get_current_buf()
   local only = ctx == "span" and { c = true } or nil
   vim.cmd("redraw")
-  api.nvim_echo({ { "mdtools: ", "Title" }, { hint(only) } }, false, {})
+  api.nvim_echo({ { "markwright: ", "Title" }, { hint(only) } }, false, {})
   local ok, key = pcall(vim.fn.getcharstr)
   clear_hint()
   if not ok then
@@ -292,7 +292,7 @@ function M.expr_last_char()
     return last -- typing inside inline code, e.g. `for(;;)`
   end
   local bs = string.rep("<BS>", vim.fn.strchars(prefix))
-  return ("%s<Cmd>lua require('mdtools.insert').menu(%q, %s)<CR>"):format(
+  return ("%s<Cmd>lua require('markwright.insert').menu(%q, %s)<CR>"):format(
     bs,
     t,
     ctx == "span" and '"span"' or "nil"
@@ -305,9 +305,9 @@ function M.expr_key()
   local row, col = cursor()
   local ctx = context(buf, row, col)
   if ctx == "block" or (ctx == "span" and line_at(buf, row):sub(col + 1, col + 1) ~= "`") then
-    return "<Cmd>lua require('mdtools.insert').passthrough()<CR>"
+    return "<Cmd>lua require('markwright.insert').passthrough()<CR>"
   end
-  return ("<Cmd>lua require('mdtools.insert').menu(nil, %s)<CR>"):format(ctx == "span" and '"span"' or "nil")
+  return ("<Cmd>lua require('markwright.insert').menu(nil, %s)<CR>"):format(ctx == "span" and '"span"' or "nil")
 end
 
 --- Key trigger in code: behave exactly like the key did before.
@@ -323,7 +323,7 @@ function M.attach(buf)
   if t == "" then
     return
   end
-  local group = api.nvim_create_augroup("mdtools_insert_" .. buf, { clear = true })
+  local group = api.nvim_create_augroup("markwright_insert_" .. buf, { clear = true })
   reset(buf)
   api.nvim_create_autocmd("InsertCharPre", {
     group = group,
@@ -348,7 +348,7 @@ function M.attach(buf)
       pcall(api.nvim_del_augroup_by_id, group)
     end,
   })
-  local opts = { buffer = buf, expr = true, silent = true, desc = "mdtools: insert-mode formatting" }
+  local opts = { buffer = buf, expr = true, silent = true, desc = "markwright: insert-mode formatting" }
   if M.is_key_trigger(t) then
     vim.keymap.set("i", t, M.expr_key, opts)
   else

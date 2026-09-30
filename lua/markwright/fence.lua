@@ -1,7 +1,7 @@
 -- Code fences. Spec: SPEC.md section 9.3.
 local api = vim.api
-local ts = require("mdtools.ts")
-local util = require("mdtools.util")
+local ts = require("markwright.ts")
+local util = require("markwright.util")
 
 local M = {}
 
@@ -87,7 +87,7 @@ function M.wrap(buf, srow, erow)
   end
   prefix = prefix or ""
   local fence = M.fence_for(lines)
-  local ns = api.nvim_create_namespace("mdtools_fence")
+  local ns = api.nvim_create_namespace("markwright_fence")
   local mark = api.nvim_buf_set_extmark(buf, ns, srow, 0, { end_row = erow, end_col = 0, right_gravity = false })
   vim.ui.input({ prompt = "Language: " }, function(lang)
     local m = api.nvim_buf_get_extmark_by_id(buf, ns, mark, { details = true })

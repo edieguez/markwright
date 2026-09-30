@@ -1,9 +1,9 @@
 -- Table of contents between markers. Spec: SPEC.md section 9.6.
 local api = vim.api
-local config = require("mdtools.config")
-local util = require("mdtools.util")
-local doc = require("mdtools.doc")
-local slug = require("mdtools.slug")
+local config = require("markwright.config")
+local util = require("markwright.util")
+local doc = require("markwright.doc")
+local slug = require("markwright.slug")
 
 local M = {}
 

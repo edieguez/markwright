@@ -1,13 +1,13 @@
 -- Links: create, convert bare URLs, remove, smart paste. Spec: SPEC.md section 7.
 local api = vim.api
-local config = require("mdtools.config")
-local ts = require("mdtools.ts")
-local util = require("mdtools.util")
-local title = require("mdtools.title")
+local config = require("markwright.config")
+local ts = require("markwright.ts")
+local util = require("markwright.util")
+local title = require("markwright.title")
 
 local M = {}
 
-local ns = api.nvim_create_namespace("mdtools_links")
+local ns = api.nvim_create_namespace("markwright_links")
 
 local LINK_TYPES = {
   inline_link = true,
@@ -407,10 +407,10 @@ function M.opfunc(mtype)
   M.link_range(buf, srow, scol, erow, ecol)
 end
 
-local OPFUNC = "v:lua.require'mdtools.links'.opfunc"
+local OPFUNC = "v:lua.require'markwright.links'.opfunc"
 
 local function cmd(fn)
-  return ("<Cmd>lua require('mdtools.links').%s()<CR>"):format(fn)
+  return ("<Cmd>lua require('markwright.links').%s()<CR>"):format(fn)
 end
 
 --- Normal-mode link key.
@@ -464,8 +464,8 @@ function M.expr_paste(after)
   if img and img.smart_paste then
     local r = vim.v.register
     local ok, text = pcall(vim.fn.getreg, r)
-    if (r == "+" or r == "*") and ok and text == "" and require("mdtools.images").backend() then
-      return "<Cmd>lua require('mdtools.images').paste()<CR>"
+    if (r == "+" or r == "*") and ok and text == "" and require("markwright.images").backend() then
+      return "<Cmd>lua require('markwright.images').paste()<CR>"
     end
   end
   if not opts().smart_paste_normal then

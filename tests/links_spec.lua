@@ -1,7 +1,7 @@
 -- Links specs (SPEC.md section 7). Clipboard, prompts and title fetching are mocked.
 local H = dofile(vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h") .. "/helpers.lua")
-local links = require("mdtools.links")
-local title = require("mdtools.title")
+local links = require("markwright.links")
+local title = require("markwright.title")
 
 local mock = {}
 local real_input = vim.ui.input

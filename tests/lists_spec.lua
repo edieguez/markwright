@@ -1,7 +1,7 @@
 -- Lists + headings specs (SPEC.md sections 9.1, 9.2).
 local H = dofile(vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h") .. "/helpers.lua")
 local api = vim.api
-local lists = require("mdtools.lists")
+local lists = require("markwright.lists")
 local eq = H.eq
 
 local cases = {

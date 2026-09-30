@@ -1,8 +1,8 @@
 -- gx / slug specs (SPEC.md section 8). The system opener is mocked.
 local H = dofile(vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h") .. "/helpers.lua")
 local api = vim.api
-local follow = require("mdtools.follow")
-local slug = require("mdtools.slug")
+local follow = require("markwright.follow")
+local slug = require("markwright.slug")
 local eq = H.eq
 
 local opened

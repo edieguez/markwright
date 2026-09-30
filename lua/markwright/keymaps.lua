@@ -1,4 +1,4 @@
-local config = require("mdtools.config")
+local config = require("markwright.config")
 
 local M = {}
 
@@ -17,12 +17,12 @@ function M.attach(buf)
   end
   local P = km.prefix
   local function map(mode, lhs, rhs, desc, opts)
-    opts = vim.tbl_extend("force", { buffer = buf, desc = "mdtools: " .. desc, silent = true }, opts or {})
+    opts = vim.tbl_extend("force", { buffer = buf, desc = "markwright: " .. desc, silent = true }, opts or {})
     vim.keymap.set(mode, lhs, rhs, opts)
   end
 
   for _, f in ipairs(FORMAT_KEYS) do
-    local format = require("mdtools.format")
+    local format = require("markwright.format")
     map("n", P .. f.key, function()
       return format.expr_normal(f.fmt)
     end, "Toggle " .. f.desc:lower(), { expr = true })
@@ -36,7 +36,7 @@ function M.attach(buf)
   end
 
   -- links
-  local links = require("mdtools.links")
+  local links = require("markwright.links")
   local lopts = config.options.links
   map("n", P .. "l", links.expr_normal, "Link: create / convert URL / remove", { expr = true })
   map("x", P .. "l", links.expr_visual, "Link: create / convert URL / remove", { expr = true })
@@ -56,23 +56,23 @@ function M.attach(buf)
   local fkey = config.options.follow.key
   if fkey and fkey ~= "" then
     map("n", fkey, function()
-      require("mdtools.follow").follow()
+      require("markwright.follow").follow()
     end, "Follow link / anchor / footnote")
   end
 
   -- code fences & footnotes
   map("n", P .. "f", function()
-    require("mdtools.fence").insert()
+    require("markwright.fence").insert()
   end, "Insert code fence")
-  map("x", P .. "f", "<Esc><Cmd>lua require('mdtools.fence').wrap_visual()<CR>", "Wrap in code fence")
+  map("x", P .. "f", "<Esc><Cmd>lua require('markwright.fence').wrap_visual()<CR>", "Wrap in code fence")
   map("n", P .. "n", function()
-    require("mdtools.footnotes").insert()
+    require("markwright.footnotes").insert()
   end, "Insert footnote")
 
   -- tables
-  local tables = require("mdtools.tables")
+  local tables = require("markwright.tables")
   map("n", P .. "tt", tables.create, "Create table")
-  map("x", P .. "tc", "<Esc><Cmd>lua require('mdtools.tables').from_csv_visual()<CR>", "CSV → table")
+  map("x", P .. "tc", "<Esc><Cmd>lua require('markwright.tables').from_csv_visual()<CR>", "CSV → table")
   map("n", P .. "tr", tables.add_row, "Add row below")
   map("n", P .. "tR", tables.delete_row, "Delete row")
   map("n", P .. "tk", tables.add_col, "Add column right")
@@ -82,8 +82,8 @@ function M.attach(buf)
   end, "Align table")
 
   -- lists: <Tab>/<S-Tab> serve both tables and lists
-  local util = require("mdtools.util")
-  local lists = require("mdtools.lists")
+  local util = require("markwright.util")
+  local lists = require("markwright.lists")
   for _, t in ipairs({ { "<Tab>", 1, "Next cell / indent item" }, { "<S-Tab>", -1, "Previous cell / outdent item" } }) do
     util.save_fallback(buf, "i", t[1])
     map("i", t[1], function()
@@ -102,32 +102,32 @@ function M.attach(buf)
   if ck and ck ~= "" then
     util.save_fallback(buf, "n", ck)
     map("n", ck, lists.expr_checkbox, "Toggle checkbox", { expr = true })
-    map("x", ck, "<Esc><Cmd>lua require('mdtools.lists').toggle_visual()<CR>", "Toggle checkboxes")
+    map("x", ck, "<Esc><Cmd>lua require('markwright.lists').toggle_visual()<CR>", "Toggle checkboxes")
   end
 
   -- headings
-  local headings = require("mdtools.headings")
+  local headings = require("markwright.headings")
   map("n", P .. "=", function()
     headings.change_cursor(1)
   end, "Heading: add #")
   map("n", P .. "-", function()
     headings.change_cursor(-1)
   end, "Heading: remove #")
-  map("x", P .. "=", "<Esc><Cmd>lua require('mdtools.headings').change_visual(1)<CR>", "Heading: add #")
-  map("x", P .. "-", "<Esc><Cmd>lua require('mdtools.headings').change_visual(-1)<CR>", "Heading: remove #")
+  map("x", P .. "=", "<Esc><Cmd>lua require('markwright.headings').change_visual(1)<CR>", "Heading: add #")
+  map("x", P .. "-", "<Esc><Cmd>lua require('markwright.headings').change_visual(-1)<CR>", "Heading: remove #")
 
   -- insert-mode formatting trigger (";;" by default)
-  require("mdtools.insert").attach(buf)
+  require("markwright.insert").attach(buf)
 
   -- images
   map("n", P .. "p", function()
-    require("mdtools.images").paste()
+    require("markwright.images").paste()
   end, "Paste image")
-  map("x", P .. "p", "<Esc><Cmd>lua require('mdtools.images').paste_visual()<CR>", "Paste image (selection = alt text)")
+  map("x", P .. "p", "<Esc><Cmd>lua require('markwright.images').paste_visual()<CR>", "Paste image (selection = alt text)")
 
   -- toc
   map("n", P .. "T", function()
-    require("mdtools.toc").insert()
+    require("markwright.toc").insert()
   end, "Insert / update TOC")
 
   local ok, wk = pcall(require, "which-key")

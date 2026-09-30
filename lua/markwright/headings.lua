@@ -1,7 +1,7 @@
 -- Headings: add / remove `#`. Spec: SPEC.md section 9.1.
 local api = vim.api
-local ts = require("mdtools.ts")
-local util = require("mdtools.util")
+local ts = require("markwright.ts")
+local util = require("markwright.util")
 
 local M = {}
 
