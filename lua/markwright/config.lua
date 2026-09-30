@@ -42,6 +42,7 @@ M.defaults = {
   },
   tables = {
     align_on_insert_leave = true,
+    csv_separator = ",", -- default offered by table → CSV (<P>tx); "\t" for tab
   },
   images = {
     dir = "assets", -- relative to the markdown file's folder; absolute, ~, or function(buf) -> path

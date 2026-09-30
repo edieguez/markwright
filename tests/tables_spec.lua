@@ -175,6 +175,48 @@ local cases = {
   { "delete column", T3, { 1, 6 }, " mtK", { "| a   |", "| --- |", "| 1   |" } },
   { "can't delete only column", { "| a |", "|---|" }, { 1, 2 }, " mtK", { "| a |", "|---|" } },
 
+  -- table → CSV
+  { "table → CSV", T3, { 1, 2 }, " mtx", { "a,b", "1,2" }, { 1, 0 }, setup = A(",") },
+  { "empty answer uses the default separator", T3, { 3, 2 }, " mtx", { "a,b", "1,2" }, setup = A("") },
+  { "semicolon separator", T3, { 1, 2 }, " mtx", { "a;b", "1;2" }, setup = A(";") },
+  { "\\t means tab", T3, { 1, 2 }, " mtx", { "a\tb", "1\t2" }, setup = A("\\t") },
+  {
+    "quoting and escaped pipes",
+    { "| name | note |", "|---|---|", '| Doe, J | say "hi" |', "| a\\|b | x |" },
+    { 1, 2 },
+    " mtx",
+    { "name,note", '"Doe, J","say ""hi"""', "a|b,x" },
+    setup = A(","),
+  },
+  {
+    "short rows are padded",
+    { "| a | b | c |", "|---|---|---|", "| 1 |" },
+    { 1, 2 },
+    " mtx",
+    { "a,b,c", "1,," },
+    setup = A(","),
+  },
+  {
+    "table inside a list keeps its indent",
+    { "- item", "  | a | b |", "  |---|---|" },
+    { 2, 4 },
+    " mtx",
+    { "- item", "  a,b" },
+    setup = A(","),
+  },
+  { "cancel keeps the table", T3, { 1, 2 }, " mtx", T3, setup = A(nil) },
+  { "not in a table", { "text" }, { 1, 0 }, " mtx", { "text" }, setup = A(",") },
+  { "table → CSV is one undo step", T3, { 1, 2 }, { " mtx", "u" }, T3, setup = A(",") },
+  { ":Markwright table tocsv", T3, { 1, 2 }, ":Markwright table tocsv<CR>", { "a,b", "1,2" }, setup = A(",") },
+  {
+    "CSV → table → CSV round trip",
+    { "name,age", '"Doe, J",42' },
+    { 1, 0 },
+    { "Vj mtc", " mtx" },
+    { "name,age", '"Doe, J",42' },
+    setup = A(","),
+  },
+
   -- cell navigation
   { "<Tab> to next cell", T3, { 1, 2 }, "i<Tab>X<Esc>", { "| a   | bX  |", "| --- | --- |", "| 1   | 2   |" } },
   {

@@ -11,6 +11,9 @@ local table_sub = {
   create = function()
     require("markwright.tables").create()
   end,
+  tocsv = function()
+    require("markwright.tables").to_csv()
+  end,
   csv = function(args)
     require("markwright.tables").from_csv(0, args.line1 - 1, args.line2 - 1)
   end,
@@ -66,7 +69,7 @@ local subcommands = {
   table = function(args)
     local fn = table_sub[args.fargs[2] or ""]
     if not fn then
-      vim.notify("markwright: :Markwright table {create|csv|align|row|delrow|col|delcol}", vim.log.levels.ERROR)
+      vim.notify("markwright: :Markwright table {create|csv|tocsv|align|row|delrow|col|delcol}", vim.log.levels.ERROR)
       return
     end
     fn(args)

@@ -1,8 +1,10 @@
 # markwright.nvim
 
+[![CI](https://github.com/edieguez/markwright/actions/workflows/ci.yml/badge.svg)](https://github.com/edieguez/markwright/actions/workflows/ci.yml)
+
 Markdown editing for Neovim that feels native: one key adds a format, the same key removes it. It works on the word under the cursor, on a visual selection or with any motion. It also understands the Markdown structure through Treesitter instead of guessing with regular expressions.
 
-Built for LazyVim, and it works with any Neovim setup (0.10+, tested on 0.11).
+Built for LazyVim, and it works with any Neovim setup from 0.10 on (tested on 0.10.0, 0.10.4 and 0.11).
 
 > **Status: early release (0.1).** All core features are implemented, covered by 300+ headless tests, and used daily on macOS with LazyVim: inline formatting (also while typing), links, `gx`, lists, checkboxes, headings, code fences, footnotes, tables, TOC, link diagnostics and image paste (macOS). Expect rough edges on other setups; [issues](https://github.com/edieguez/markwright/issues) are welcome. See [Roadmap](#roadmap).
 
@@ -82,7 +84,7 @@ All five share one engine, so they behave the same way:
 - **Code fences** (`<leader>mf`): type a language and get an empty block, or wrap selected lines.
 - **Footnotes** (`<leader>mn`): inserts `[^n]` with the next number, adds the definition at the end of the file and puts you there.
 - **Tables** (`<leader>mt…`):
-  - create from a `rows x cols` size, or convert CSV/TSV lines
+  - create from a `rows x cols` size, or convert CSV/TSV lines, and back to CSV
   - add and delete rows and columns
   - `<Tab>`/`<S-Tab>` move between cells
   - columns realign when you leave insert mode, accounting for accents, CJK text and alignment markers
@@ -106,7 +108,7 @@ Text objects, heading navigation, rich-text paste, callouts, image paste on Linu
 
 | Requirement | Why |
 |---|---|
-| Neovim **≥ 0.10** (tested on 0.11) | Modern Treesitter API, `vim.system`, `vim.ui.open` |
+| Neovim **≥ 0.10** (tested on 0.10.0, 0.10.4 and 0.11) | Modern Treesitter API, `vim.system`, `vim.ui.open` |
 | Treesitter parsers **`markdown`** and **`markdown_inline`** | Structure detection. Bundled with Neovim 0.10+ and also installed by LazyVim's markdown extra |
 | `curl` *(optional)* | Fetching page titles for links. Preinstalled on macOS; without it, links use the domain name as text |
 | A clipboard provider *(optional)* | Creating links from a copied URL. Built in on macOS (`pbcopy`/`pbpaste`) |
@@ -268,41 +270,42 @@ And images (take a screenshot with ⌘⇧⌃4 first):
 
 Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes` in [Configuration](#configuration)). The prefix defaults to `<leader>m`. With LazyVim's default leader that is `Space m`.
 
-| Keys | Mode | Action |
-|---|---|---|
-| `<leader>mi` | normal, visual | Toggle **italic** |
-| `<leader>mb` | normal, visual | Toggle **bold** |
-| `<leader>ms` | normal, visual | Toggle **strikethrough** |
-| `<leader>mc` | normal, visual | Toggle **inline code** |
-| `<leader>mh` | normal, visual | Toggle **highlight** |
-| `<leader>mI` + motion | normal | Italic operator |
-| `<leader>mB` + motion | normal | Bold operator |
-| `<leader>mS` + motion | normal | Strikethrough operator |
-| `<leader>mC` + motion | normal | Inline code operator |
-| `<leader>mH` + motion | normal | Highlight operator |
-| `;;` then `i` `b` `s` `c` `h` `l` | insert | **Formatting while typing**: open a pair, or jump out of it (see below) |
-| `<leader>ml` | normal, visual | **Link**: create, convert a bare URL, or remove |
-| `p` | visual | Paste; a URL over the selection makes `[selection](url)` |
-| `p` / `P` | normal | Paste; a bare URL becomes `[Page Title](url)` |
-| `gx` | normal | **Follow** link, anchor, file, image or footnote |
-| `<leader>mf` | normal | Insert a **code fence** |
-| `<leader>mf` | visual | Wrap the selected lines in a code fence |
-| `<leader>mn` | normal | Insert a **footnote** |
-| `<leader>mtt` | normal | Create a **table** |
-| `<leader>mtc` | visual | Convert CSV/TSV lines to a table |
-| `<leader>mtr` / `<leader>mtR` | normal | Add row below / delete row |
-| `<leader>mtk` / `<leader>mtK` | normal | Add column right / delete column |
-| `<leader>mta` | normal | Align the table now |
-| `<Tab>` / `<S-Tab>` | insert | Next / previous table cell; nest / un-nest a list item (native `<Tab>` elsewhere) |
-| `<leader>mT` | normal | Insert or update the **table of contents** |
-| `<CR>` | normal | **Toggle checkbox** on a list item (native `<CR>` elsewhere) |
-| `<CR>` | visual | Check all list items in the selection (or uncheck if all are checked) |
-| `<CR>` | insert | **Continue the list** (native `<CR>` elsewhere) |
-| `o` / `O` | normal | Open a line below / above; continues the list on list items |
-| `<leader>m=` | normal, visual | **Heading**: add a `#` (count works: `2<leader>m=`) |
-| `<leader>m-` | normal, visual | **Heading**: remove a `#` |
-| `<leader>mp` | normal | **Paste image** from the clipboard (macOS) |
-| `<leader>mp` | visual | Paste image; the selection becomes the alt text |
+| Keys                              | Mode           | Action                                                                            |
+| --------------------------------- | -------------- | --------------------------------------------------------------------------------- |
+| `<leader>mi`                      | normal, visual | Toggle **italic**                                                                 |
+| `<leader>mb`                      | normal, visual | Toggle **bold**                                                                   |
+| `<leader>ms`                      | normal, visual | Toggle **strikethrough**                                                          |
+| `<leader>mc`                      | normal, visual | Toggle **inline code**                                                            |
+| `<leader>mh`                      | normal, visual | Toggle **highlight**                                                              |
+| `<leader>mI` + motion             | normal         | Italic operator                                                                   |
+| `<leader>mB` + motion             | normal         | Bold operator                                                                     |
+| `<leader>mS` + motion             | normal         | Strikethrough operator                                                            |
+| `<leader>mC` + motion             | normal         | Inline code operator                                                              |
+| `<leader>mH` + motion             | normal         | Highlight operator                                                                |
+| `;;` then `i` `b` `s` `c` `h` `l` | insert         | **Formatting while typing**: open a pair, or jump out of it (see below)           |
+| `<leader>ml`                      | normal, visual | **Link**: create, convert a bare URL, or remove                                   |
+| `p`                               | visual         | Paste; a URL over the selection makes `[selection](url)`                          |
+| `p` / `P`                         | normal         | Paste; a bare URL becomes `[Page Title](url)`                                     |
+| `gx`                              | normal         | **Follow** link, anchor, file, image or footnote                                  |
+| `<leader>mf`                      | normal         | Insert a **code fence**                                                           |
+| `<leader>mf`                      | visual         | Wrap the selected lines in a code fence                                           |
+| `<leader>mn`                      | normal         | Insert a **footnote**                                                             |
+| `<leader>mtt`                     | normal         | Create a **table**                                                                |
+| `<leader>mtc`                     | visual         | Convert CSV/TSV lines to a table                                                  |
+| `<leader>mtx`                     | normal         | Convert the table under the cursor to CSV (asks for the separator)                |
+| `<leader>mtr` / `<leader>mtR`     | normal         | Add row below / delete row                                                        |
+| `<leader>mtk` / `<leader>mtK`     | normal         | Add column right / delete column                                                  |
+| `<leader>mta`                     | normal         | Align the table now                                                               |
+| `<Tab>` / `<S-Tab>`               | insert         | Next / previous table cell; nest / un-nest a list item (native `<Tab>` elsewhere) |
+| `<leader>mT`                      | normal         | Insert or update the **table of contents**                                        |
+| `<CR>`                            | normal         | **Toggle checkbox** on a list item (native `<CR>` elsewhere)                      |
+| `<CR>`                            | visual         | Check all list items in the selection (or uncheck if all are checked)             |
+| `<CR>`                            | insert         | **Continue the list** (native `<CR>` elsewhere)                                   |
+| `o` / `O`                         | normal         | Open a line below / above; continues the list on list items                       |
+| `<leader>m=`                      | normal, visual | **Heading**: add a `#` (count works: `2<leader>m=`)                               |
+| `<leader>m-`                      | normal, visual | **Heading**: remove a `#`                                                         |
+| `<leader>mp`                      | normal         | **Paste image** from the clipboard (macOS)                                        |
+| `<leader>mp`                      | visual         | Paste image; the selection becomes the alt text                                   |
 
 **Operator examples:**
 
@@ -635,6 +638,23 @@ name,age              V<leader>mtc     | name   | age |
                                        | Doe, J | 42  |
 ```
 
+### Back to CSV
+
+**`<leader>mtx`** (or `:Markwright table tocsv`) with the cursor anywhere in a table replaces the table with CSV, the opposite of `<leader>mtc`:
+
+1. It asks `Separator:`, prefilled with `,` (change the default with `tables.csv_separator`). Type any separator: `;`, `|`, or `\t` (or `tab`) for a tab. Enter on an empty prompt uses the default; `<Esc>` cancels.
+2. The header and body rows become CSV lines; the delimiter row (and with it the column alignment) is dropped.
+3. Fields are quoted when they contain the separator or a `"` (quotes are doubled, as in standard CSV), and `\|` escapes become plain `|`.
+4. Short rows are padded with empty fields, so every line has the same number of columns. A table inside a list item keeps its indentation.
+
+```
+| name   | note     |    <leader>mtx  ,     name,note
+| ------ | -------- |         →             "Doe, J","say ""hi"""
+| Doe, J | say "hi" |
+```
+
+It's one undo step: `u` brings the table back. Converting CSV → table → CSV returns the original text (apart from quoting normalization).
+
 ### Editing
 
 | Keys | Action |
@@ -871,6 +891,7 @@ With `images.smart_paste = true`, pressing `p` (with `clipboard=unnamedplus`, as
 | `:Markwright check`                | Run link diagnostics now and report the count                                 |
 | `:Markwright table create`         | Create a table                                                                |
 | `:'<,'>Markwright table csv`       | Convert the range from CSV/TSV                                                |
+| `:Markwright table tocsv`          | Convert the table under the cursor to CSV (asks for the separator)            |
 | `:Markwright table align`          | Align the table under the cursor                                              |
 | `:Markwright table row` / `delrow` | Add a row below / delete the row                                              |
 | `:Markwright table col` / `delcol` | Add a column right / delete the column                                        |
@@ -923,6 +944,7 @@ require("markwright").setup({
   },
   tables = {
     align_on_insert_leave = true,   -- realign when leaving insert mode in a table
+    csv_separator = ",",            -- default separator for table → CSV (<leader>mtx); "\t" = tab
   },
   images = {
     dir = "assets",                 -- relative to the markdown file; absolute, ~/..., or function(buf) -> path
@@ -1034,6 +1056,7 @@ Other features are plain functions, suitable for normal (non-`expr`) mappings:
 | `require("markwright.footnotes").insert()`                                                                        | Footnote at the cursor                                                                           |
 | `require("markwright.tables").create()` / `align()` / `add_row()` / `delete_row()` / `add_col()` / `delete_col()` | Table commands at the cursor                                                                     |
 | `require("markwright.tables").from_csv(buf, srow, erow)`                                                          | Convert 0-based rows from CSV/TSV                                                                |
+| `require("markwright.tables").to_csv()` / `to_csv_lines(model, sep)`                                              | Table under the cursor → CSV (prompts) / CSV lines for a model from `read(buf, srow, erow)`      |
 | `require("markwright.tables").expr_tab(dir)`                                                                      | `expr` mapping for insert-mode cell navigation (`1` / `-1`)                                      |
 | `require("markwright.toc").insert()` / `update(buf)`                                                              | Insert or refresh the TOC                                                                        |
 | `require("markwright.diagnostics").check(buf)` / `collect(buf)`                                                   | Publish / just compute link diagnostics                                                          |
@@ -1121,7 +1144,6 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 ## Known limitations
 
 - **Image paste is macOS only** for now. On Linux and WSL, `<leader>mp` shows a warning; backends for `wl-paste`, `xclip` and PowerShell are planned.
-- **Neovim 0.10** is the intended minimum, but the plugin has only been tested on 0.11 so far.
 - **Link diagnostics refresh on open and save**, not while typing. `:Markwright check` re-runs them on demand.
 - **Two keymap decisions are provisional** and may change before 1.0: the operator keys (`<leader>mI`, `mB`, …) and the behavior when a selection only partly covers a formatted span (currently the whole span is removed).
 - **If you use the marksman language server** (LazyVim's markdown extra installs it), it has its own link checks. If you ever see the same broken link reported twice, disable one of them (`diagnostics.enabled = false` here).
@@ -1168,16 +1190,20 @@ lazy.nvim doesn't update `dir` plugins; after editing, run `:Lazy reload markwri
 Issues and pull requests are welcome. For changes in behavior, please:
 
 1. Check [SPEC.md](SPEC.md): it records the design decisions, and new features are specified in §14 before they're built.
-2. Add or update cases in `tests/*_spec.lua`, and run `make test`.
+2. Add or update cases in `tests/*_spec.lua`, and run `make check` (lint + tests).
 3. Update the README section for the feature.
 
-### Running the tests
+### Running the tests, formatting and lint
 
 ```sh
-make test
-# or with a specific binary
-make test NVIM=/path/to/nvim
+make test                        # headless test suite
+make test NVIM=/path/to/nvim     # with a specific Neovim binary
+make fmt                         # format with stylua
+make lint                        # stylua --check + selene
+make check                       # lint, then tests
 ```
+
+Formatting follows `.stylua.toml` (2 spaces, 120 columns, double quotes). selene uses `selene.toml` with the `vim.yml` standard library. CI runs the tests on Neovim 0.10.0, stable and nightly on Linux and macOS, plus stylua and selene, for every push and pull request.
 
 The suite starts a headless Neovim with `tests/minimal_init.lua`, sets `<Space>` as leader, and **feeds real keystrokes through the mappings**. The tests therefore cover the keymaps, operators, dot-repeat and undo, not just the internal functions. `tests/run.lua` runs every `*_spec.lua` file.
 
@@ -1251,9 +1277,13 @@ markwright/
 │   ├── run.lua               runs every *_spec.lua
 │   ├── helpers.lua           key-feeding test runner, mocks, temp files
 │   └── *_spec.lua            one spec per feature
+├── .github/workflows/ci.yml  tests (0.10/stable/nightly × Linux/macOS) + lint
+├── .stylua.toml              formatting
+├── selene.toml, vim.yml      lint configuration
+├── CHANGELOG.md              release notes
 ├── SPEC.md                   full design, decisions and status checklist
 ├── LICENSE                   MPL-2.0
-├── Makefile
+├── Makefile                  test, fmt, lint, check
 └── README.md
 ```
 
