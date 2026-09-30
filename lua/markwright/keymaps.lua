@@ -137,6 +137,15 @@ function M.attach(buf)
     "Paste image (selection = alt text)"
   )
 
+  -- callouts
+  map("n", P .. "a", function()
+    require("markwright.callouts").toggle()
+  end, "Callout: wrap / change type")
+  map("x", P .. "a", "<Esc><Cmd>lua require('markwright.callouts').wrap_visual()<CR>", "Callout: wrap selection")
+  map("n", P .. "A", function()
+    require("markwright.callouts").unwrap()
+  end, "Callout: remove")
+
   -- toc
   map("n", P .. "T", function()
     require("markwright.toc").insert()

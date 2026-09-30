@@ -36,6 +36,7 @@ Built for LazyVim, and it works with any Neovim setup from 0.10 on (tested on 0.
 - [Lists and checkboxes](#lists-and-checkboxes)
 - [Headings](#headings)
 - [Heading navigation](#heading-navigation)
+- [Callouts](#callouts)
 - [Pasting images](#pasting-images)
 - [Commands](#commands)
 - [Configuration](#configuration)
@@ -99,6 +100,7 @@ All five share one engine, so they behave the same way:
   - Ordered lists renumber themselves.
 - **Checkboxes:** **`<CR>` in normal mode** toggles `[ ]` ↔ `[x]`, and adds a checkbox to a plain list item.
 - **Heading navigation:** `]]`/`[[` jump between headings, `][`/`[]` between headings of the same level, `[u` to the parent, and `<leader>mo` opens an outline to pick from.
+- **GitHub callouts:** `<leader>ma` wraps a paragraph in `> [!NOTE]` (or TIP, IMPORTANT, WARNING, CAUTION), changes the type of an existing one (same picker), and `<leader>mA` removes it.
 - **Headings:** `<leader>m=` adds a `#`, `<leader>m-` removes one. They take counts and convert setext headings.
 - **Image paste** (`<leader>mp`, macOS): saves a screenshot, copied image or Finder file into `assets/` next to the file and inserts `![alt](assets/name.png)`.
 
@@ -292,6 +294,8 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `<leader>mk`                                                       | normal, visual                   | **Link**: create, convert a bare URL, or remove                                   |
 | `]]` / `[[` · `][` / `[]` · `[u`                                   | normal, visual, operator-pending | Next / previous heading · same-level heading · parent heading                     |
 | `<leader>mo`                                                       | normal                           | **Outline**: pick a heading to jump to                                            |
+| `<leader>ma`                                                       | normal, visual                   | **Callout**: wrap in `> [!NOTE]`…, or change the type                             |
+| `<leader>mA`                                                       | normal                           | Remove the callout                                                                |
 | `ik` `ak` `iu` `ic` `ac` `ih` `ah` `i\|` `a\|` `iL` `aL` `i*` `a*` | operator-pending, visual         | **Text objects** (see below)                                                      |
 | `p`                                                                | visual                           | Paste; a URL over the selection makes `[selection](url)`                          |
 | `p` / `P`                                                          | normal                           | Paste; a bare URL becomes `[Page Title](url)`                                     |
@@ -907,6 +911,34 @@ These keys replace the simpler `]]`/`[[` that Neovim's own markdown ftplugin def
 
 ---
 
+## Callouts
+
+GitHub renders blockquotes that start with `[!TYPE]` as highlighted callouts (also called alerts):
+
+```markdown
+> [!WARNING]
+> Back up your config before upgrading.
+```
+
+| Keys                              | Action                                                                                                                                                 |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `<leader>ma`                      | **Wrap** the paragraph under the cursor in a callout. You pick the type: `NOTE` (first, so Enter takes it), `TIP`, `IMPORTANT`, `WARNING` or `CAUTION` |
+| `<leader>ma` on a callout         | **Change** its type: the picker opens again, with the current type marked `(current)`                                                                  |
+| `<leader>ma` on a plain `>` quote | Turn it into a callout (you pick the type)                                                                                                             |
+| `<leader>ma` in visual mode       | Wrap the selected lines                                                                                                                                |
+| `<leader>mA`                      | **Remove** the callout: the `[!TYPE]` line goes and the content loses one `>` level                                                                    |
+
+- **What gets wrapped in normal mode:** the paragraph (the block of non-blank lines) around the cursor. Inside a fenced code block, the whole block is wrapped, fences included. On an empty line, an empty callout is inserted and you start typing inside it.
+- **Content is kept intact:** blank lines become `>` so the callout isn't split, lists and code keep their structure, and an indented paragraph (for example under a list item) keeps its indentation with the `>` after it.
+- **Types** are recognized in any case (`[!warning]`) and written in uppercase. A title after the marker (`> [!NOTE] Heads up`, as Obsidian uses) is kept when changing the type, and kept as a line of text when removing.
+- **Undo:** each action is one undo step.
+
+From the command line: `:Markwright callout warning` wraps (or retypes) with that type directly, `:'<,'>Markwright callout tip` wraps a range, and `:Markwright callout remove` unwraps. Types tab-complete.
+
+To skip the picker when wrapping, set a default type: `callouts = { default = "NOTE" }` (changing the type of an existing callout still asks). `callouts.types` sets the list and its order; add your own if your renderer supports more (Obsidian has many).
+
+---
+
 ## Pasting images
 
 `<leader>mp` saves the image on the clipboard into your project and links it. macOS only for now.
@@ -956,28 +988,29 @@ With `images.smart_paste = true`, pressing `p` (with `clipboard=unnamedplus`, as
 
 ## Commands
 
-| Command                            | Description                                                                   |
-| ---------------------------------- | ----------------------------------------------------------------------------- |
-| `:Markwright bold`                 | Toggle bold on the word under the cursor                                      |
-| `:Markwright italic`               | Toggle italic                                                                 |
-| `:Markwright strike`               | Toggle strikethrough                                                          |
-| `:Markwright code`                 | Toggle inline code                                                            |
-| `:Markwright highlight`            | Toggle highlight                                                              |
-| `:Markwright link`                 | Same as `<leader>mk` on the cursor position                                   |
-| `:Markwright follow`               | Same as `gx`                                                                  |
-| `:Markwright fence`                | Insert a code fence; with a range (`:'<,'>Markwright fence`) wrap those lines |
-| `:Markwright outline`              | Pick a heading from an outline and jump to it                                 |
-| `:Markwright footnote`             | Insert a footnote                                                             |
-| `:Markwright image`                | Paste the clipboard image (macOS)                                             |
-| `:Markwright toc`                  | Insert or update the table of contents                                        |
-| `:Markwright check`                | Run link diagnostics now and report the count                                 |
-| `:Markwright table create`         | Create a table                                                                |
-| `:'<,'>Markwright table csv`       | Convert the range from CSV/TSV                                                |
-| `:Markwright table tocsv`          | Convert the table under the cursor to CSV (asks for the separator)            |
-| `:Markwright table align`          | Align the table under the cursor                                              |
-| `:Markwright table row` / `delrow` | Add a row below / delete the row                                              |
-| `:Markwright table col` / `delcol` | Add a column right / delete the column                                        |
-| `:Markwright health`               | Run `:checkhealth markwright`                                                 |
+| Command                              | Description                                                                   |
+| ------------------------------------ | ----------------------------------------------------------------------------- |
+| `:Markwright bold`                   | Toggle bold on the word under the cursor                                      |
+| `:Markwright italic`                 | Toggle italic                                                                 |
+| `:Markwright strike`                 | Toggle strikethrough                                                          |
+| `:Markwright code`                   | Toggle inline code                                                            |
+| `:Markwright highlight`              | Toggle highlight                                                              |
+| `:Markwright link`                   | Same as `<leader>mk` on the cursor position                                   |
+| `:Markwright follow`                 | Same as `gx`                                                                  |
+| `:Markwright fence`                  | Insert a code fence; with a range (`:'<,'>Markwright fence`) wrap those lines |
+| `:Markwright callout [type\|remove]` | Wrap in / retype / remove a callout; with a range, wrap those lines           |
+| `:Markwright outline`                | Pick a heading from an outline and jump to it                                 |
+| `:Markwright footnote`               | Insert a footnote                                                             |
+| `:Markwright image`                  | Paste the clipboard image (macOS)                                             |
+| `:Markwright toc`                    | Insert or update the table of contents                                        |
+| `:Markwright check`                  | Run link diagnostics now and report the count                                 |
+| `:Markwright table create`           | Create a table                                                                |
+| `:'<,'>Markwright table csv`         | Convert the range from CSV/TSV                                                |
+| `:Markwright table tocsv`            | Convert the table under the cursor to CSV (asks for the separator)            |
+| `:Markwright table align`            | Align the table under the cursor                                              |
+| `:Markwright table row` / `delrow`   | Add a row below / delete the row                                              |
+| `:Markwright table col` / `delcol`   | Add a column right / delete the column                                        |
+| `:Markwright health`                 | Run `:checkhealth markwright`                                                 |
 
 Subcommands tab-complete, including the `table` actions.
 
@@ -1043,6 +1076,10 @@ require("markwright").setup({
     item = "L",                     -- iL / aL
     emphasis = "*",                 -- i* / a*
     search_lines = 500,             -- not inside an object: use the next one within this many lines
+  },
+  callouts = {
+    types = { "NOTE", "TIP", "IMPORTANT", "WARNING", "CAUTION" }, -- picker order
+    default = nil,                  -- a type here skips the picker
   },
   tables = {
     align_on_insert_leave = true,   -- realign when leaving insert mode in a table
@@ -1258,16 +1295,16 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 
 The full plan lives in [SPEC.md](SPEC.md): **§0 is a checklist** of what's implemented and what isn't, and **§14** describes every planned feature in detail.
 
-**Done:** inline formatting, formatting while typing, text objects, heading navigation, links and titles, smart paste, `gx`, headings, lists and checkboxes, code fences, tables, footnotes, TOC, link diagnostics, image paste (macOS).
+**Done:** inline formatting, formatting while typing, text objects, heading navigation, callouts, links and titles, smart paste, `gx`, headings, lists and checkboxes, code fences, tables, footnotes, TOC, link diagnostics, image paste (macOS).
 
 **Planned:**
 
-| Priority | Features                                                                                                                                    |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Next     | Rich-text paste (HTML → Markdown)                                                                                                           |
-| Then     | GitHub callouts, moving list items, checkbox progress `[2/5]`, table sorting, section moves, inline ↔ reference links, footnote renumbering |
-| Later    | Front matter helpers, word count, link completion                                                                                           |
-| Platform | Image paste on Linux/WSL, `:help markwright`, CI                                                                                            |
+| Priority  | Features                                                                                                                   |
+| --------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Next      | Moving list items, checkbox progress `[2/5]`, table sorting, section moves, inline ↔ reference links, footnote renumbering |
+| Later     | Front matter helpers, word count, link completion                                                                          |
+| Platform  | Image paste on Linux/WSL, `:help markwright`                                                                               |
+| Version 2 | Rich-text paste (HTML → Markdown)                                                                                          |
 
 Out of scope: wiki-style `[[links]]` and rendering or preview. Use `render-markdown.nvim` or `markview.nvim` for rendering.
 
@@ -1332,6 +1369,7 @@ In `tests/links_spec.lua` the clipboard, `vim.ui.input` and the title fetcher ar
 | `doc_spec.lua`         | TOC, diagnostics                                                                                            |
 | `lists_spec.lua`       | lists, checkboxes, renumbering, headings                                                                    |
 | `nav_spec.lua`         | heading motions, counts, siblings, parents, operators, outline                                              |
+| `callouts_spec.lua`    | callouts: wrap, pick, change type, convert, remove, commands                                                |
 | `textobjects_spec.lua` | text objects: every object with d/c/y/visual, counts, empty objects, dot-repeat                             |
 | `insert_spec.lua`      | formatting while typing: pairs, jump out, links, fall-through, code, other triggers                         |
 | `images_spec.lua`      | image paste (mocked clipboard; the real macOS backend runs against fake `osascript`/`pngpaste` executables) |
@@ -1373,6 +1411,7 @@ markwright/
 │   ├── insert.lua            formatting while typing (;; trigger)
 │   ├── textobjects.lua       ik iu ic ih i| iL i* text objects
 │   ├── nav.lua               ]] [[ ][ [] [u motions and the outline
+│   ├── callouts.lua          GitHub callouts > [!NOTE]
 │   ├── toc.lua               table of contents
 │   ├── diagnostics.lua       broken-link diagnostics
 │   ├── doc.lua               headings, definitions, footnotes, code rows
