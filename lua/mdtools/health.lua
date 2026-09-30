@@ -36,6 +36,18 @@ function M.check()
   else
     h.warn("vim.ui.open missing")
   end
+
+  if vim.fn.has("mac") == 1 then
+    if vim.fn.executable("pngpaste") == 1 then
+      h.ok("image paste: pngpaste found")
+    elseif vim.fn.executable("osascript") == 1 then
+      h.ok("image paste: using osascript (optional: `brew install pngpaste` for more formats)")
+    else
+      h.warn("image paste: neither pngpaste nor osascript found")
+    end
+  else
+    h.info("image paste is only supported on macOS for now")
+  end
 end
 
 return M

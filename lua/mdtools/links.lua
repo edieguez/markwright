@@ -459,6 +459,15 @@ end
 --- Normal-mode p / P.
 function M.expr_paste(after)
   local native = after and "p" or "P"
+  -- clipboard holds an image and no text: paste the image (opt-in)
+  local img = config.options.images
+  if img and img.smart_paste then
+    local r = vim.v.register
+    local ok, text = pcall(vim.fn.getreg, r)
+    if (r == "+" or r == "*") and ok and text == "" and require("mdtools.images").backend() then
+      return "<Cmd>lua require('mdtools.images').paste()<CR>"
+    end
+  end
   if not opts().smart_paste_normal then
     return native
   end

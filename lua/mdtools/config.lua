@@ -38,6 +38,13 @@ M.defaults = {
   tables = {
     align_on_insert_leave = true,
   },
+  images = {
+    dir = "assets", -- relative to the markdown file's folder; absolute, ~, or function(buf) -> path
+    name = "image-%Y%m%d-%H%M%S", -- default file name (os.date format), without extension
+    prompt_name = true, -- ask for the name (prefilled with the default)
+    alt = "name", -- alt text: "name" (from a typed name), "prompt", or "empty"
+    smart_paste = false, -- plain `p` pastes an image when the clipboard holds one and no text
+  },
   toc = {
     update_on_save = true,
     marker_start = "<!-- toc -->",

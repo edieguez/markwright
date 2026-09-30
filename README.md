@@ -4,7 +4,7 @@ Markdown editing for Neovim that feels native: one key adds a format, the same k
 
 Built for LazyVim, and it works with any Neovim ≥ 0.10 setup.
 
-> **Status: all core features are complete and tested:** inline formatting, links, `gx`, lists, checkboxes, headings, code fences, footnotes, tables, TOC and link diagnostics. Image paste is parked. See [Roadmap](#roadmap).
+> **Status: all core features are complete and tested:** inline formatting, links, `gx`, lists, checkboxes, headings, code fences, footnotes, tables, TOC, link diagnostics and image paste (macOS). See [Roadmap](#roadmap).
 
 ---
 
@@ -25,6 +25,7 @@ Built for LazyVim, and it works with any Neovim ≥ 0.10 setup.
 - [Link diagnostics](#link-diagnostics)
 - [Lists and checkboxes](#lists-and-checkboxes)
 - [Headings](#headings)
+- [Pasting images](#pasting-images)
 - [Commands](#commands)
 - [Configuration](#configuration)
 - [Custom keymaps and Lua API](#custom-keymaps-and-lua-api)
@@ -83,10 +84,11 @@ All five share one engine, so they behave the same way:
   - Ordered lists renumber themselves.
 - **Checkboxes:** **`<CR>` in normal mode** toggles `[ ]` ↔ `[x]`, and adds a checkbox to a plain list item.
 - **Headings:** `<leader>m=` adds a `#`, `<leader>m-` removes one. They take counts and convert setext headings.
+- **Image paste** (`<leader>mp`, macOS): saves a screenshot, copied image or Finder file into `assets/` next to the file and inserts `![alt](assets/name.png)`.
 
 ### Coming next
 
-Image paste (parked), `:help` docs and CI. Details are in [Roadmap](#roadmap).
+Image paste on Linux/WSL, `:help` docs and CI. Details are in [Roadmap](#roadmap).
 
 ---
 
@@ -202,6 +204,12 @@ And for lists and headings:
 Title           <leader>m=        →  # Title       (again: ## Title; <leader>m- goes back)
 ```
 
+And images (take a screenshot with ⌘⇧⌃4 first):
+
+```
+<leader>mp      name it "login"   →  ![login](assets/login.png)   (file saved in ./assets/)
+```
+
 ---
 
 ## Keymaps
@@ -240,6 +248,8 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `o` / `O` | normal | Open a line below / above; continues the list on list items |
 | `<leader>m=` | normal, visual | **Heading**: add a `#` (count works: `2<leader>m=`) |
 | `<leader>m-` | normal, visual | **Heading**: remove a `#` |
+| `<leader>mp` | normal | **Paste image** from the clipboard (macOS) |
+| `<leader>mp` | visual | Paste image; the selection becomes the alt text |
 
 **Operator examples:**
 
@@ -691,6 +701,53 @@ Title       3<leader>m=  →   ### Title
 
 ---
 
+## Pasting images
+
+`<leader>mp` saves the image on the clipboard into your project and links it. macOS only for now.
+
+### What it can paste
+
+| On the clipboard | What happens |
+|---|---|
+| Image data: a screenshot (⌘⇧⌃4), "Copy Image" from a browser, Preview… | Saved as PNG |
+| An image file copied in Finder (⌘C) | The file is copied, keeping its format (`.jpg`, `.gif`, `.webp`…) |
+| A copied path to an image (`/Users/me/pic.png`, `~/…`, `file://…`) | The file is copied |
+| A copied image URL (`https://…/pic.png`) | Linked as is: `![](https://…/pic.png)` (nothing downloaded) |
+| Anything else | Warning: "the clipboard has no image" |
+
+### How it's saved
+
+1. **Name:** you're asked for a file name, prefilled with a timestamp (`image-20260929-215400`), so Enter accepts it. Spaces become `-` and characters that aren't allowed in file names are removed. For a Finder file, the prefill is its original name.
+2. **Folder:** the image goes into `assets/` next to the Markdown file, created if needed. Configure it with `images.dir`: a relative folder, an absolute path, `~/…`, or a function `function(buf) return "img/2026" end`.
+3. **Collisions:** an existing file is never overwritten: `login.png` becomes `login-1.png`, `login-2.png`…
+4. **The link** is inserted after the cursor, like `p`. Its path is relative to the Markdown file (`assets/login.png`, or `../img/x.png` for a folder outside), with spaces and parentheses URL-encoded so the link never breaks.
+
+### Alt text
+
+- **Name you typed:** `login-page` gives the alt text `login page`.
+- **Default timestamp name:** no alt text, because a timestamp isn't a description.
+- **Finder file:** alt text from its file name.
+- **Visual mode:** select some text, press `<leader>mp`, and the selection becomes the alt text and suggests the file name. The image link replaces the selection.
+- **`images.alt = "prompt"`:** asks for the alt text separately. `"empty"` never sets it.
+
+Other details:
+
+- Inside code blocks nothing is pasted.
+- One `u` removes the link; the saved file stays.
+- `:Mdtools image` does the same as `<leader>mp`.
+
+### Under the hood (macOS)
+
+- `osascript` (built in) reads the clipboard type and writes image data as PNG. The alternative is [pngpaste](https://github.com/jcsalterego/pngpaste) (`brew install pngpaste`), which is used automatically when installed.
+- A file copied in Finder is recognized by its file reference, which is checked before the icon image macOS also puts on the clipboard.
+- Everything runs asynchronously: Neovim doesn't freeze while the image is written.
+
+### Plain `p` for images (opt-in)
+
+With `images.smart_paste = true`, pressing `p` (with `clipboard=unnamedplus`, as in LazyVim) when the clipboard holds an image and no text runs the image paste instead of pasting nothing.
+
+---
+
 ## Commands
 
 | Command | Description |
@@ -704,6 +761,7 @@ Title       3<leader>m=  →   ### Title
 | `:Mdtools follow` | Same as `gx` |
 | `:Mdtools fence` | Insert a code fence; with a range (`:'<,'>Mdtools fence`) wrap those lines |
 | `:Mdtools footnote` | Insert a footnote |
+| `:Mdtools image` | Paste the clipboard image (macOS) |
 | `:Mdtools toc` | Insert or update the table of contents |
 | `:Mdtools check` | Run link diagnostics now and report the count |
 | `:Mdtools table create` | Create a table |
@@ -756,6 +814,13 @@ require("mdtools").setup({
   },
   tables = {
     align_on_insert_leave = true,   -- realign when leaving insert mode in a table
+  },
+  images = {
+    dir = "assets",                 -- relative to the markdown file; absolute, ~/..., or function(buf) -> path
+    name = "image-%Y%m%d-%H%M%S",   -- default file name (os.date format), no extension
+    prompt_name = true,             -- ask for the name (prefilled with the default)
+    alt = "name",                   -- alt text: "name" (from a typed name), "prompt", or "empty"
+    smart_paste = false,            -- plain p pastes an image when the clipboard has one and no text
   },
   toc = {
     update_on_save = true,          -- refresh the TOC between the markers on :w
@@ -883,6 +948,7 @@ It checks:
 - `curl`
 - a clipboard provider
 - `vim.ui.open`
+- on macOS: `pngpaste` or `osascript` for image paste
 
 Warnings for `curl` and the clipboard only affect links: without `curl` the link text is the domain name, and without a clipboard the link key always prompts (on macOS the plugin still tries `pbpaste`).
 
@@ -930,6 +996,10 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 
 **`o`, `<CR>` or `<Tab>` interfere with another plugin.** Turn the list behaviors off individually with `lists.continue_on_enter = false` (`<CR>`, `o`, `O`) and `lists.tab_indent = false` (`<Tab>` for lists; tables keep it).
 
+**`<leader>mp` says "the clipboard has no image".** Check what's on the clipboard with `osascript -e 'clipboard info'` in a terminal. It should list `«class PNGf»` or `TIFF picture` for image data, or `«class furl»` for a copied file. Some apps copy images in formats macOS can't convert to PNG; `brew install pngpaste` handles more of them.
+
+**Pasted images land in the wrong folder.** The folder is relative to the Markdown file, not the working directory (unsaved buffers use the working directory). Set `images.dir` to an absolute path or a function to use one shared folder.
+
 **A nested ordered item didn't become a sublist.** In CommonMark a nested ordered list can only start inside a paragraph if its first number is 1. `<Tab>` resets the first nested item to `1.` for you. If you type the indentation by hand, start with `1.`.
 
 ---
@@ -949,7 +1019,8 @@ Implementation follows [SPEC.md](SPEC.md) §12. Each item links to its spec sect
 | 7 | Tables (§9.4) | create, CSV → table, row/column edit, cell navigation, align on leaving insert mode | ✅ Done |
 | 8 | TOC & diagnostics (§9.6, §10) | auto-updating TOC between markers; broken link/anchor/footnote warnings on save | ✅ Done |
 | 9 | Docs & CI (§12) | `:help mdtools`, GitHub Actions on stable + nightly | ⏳ Planned |
-| — | Image paste (§13.1) | clipboard images → file + `![](path)` | 💤 Parked |
+| 10 | Image paste, macOS (§13.1) | screenshots, copied images, Finder files → `assets/` + `![alt](path)` | ✅ Done |
+| — | Image paste, Linux/WSL | `wl-paste` / `xclip` / `powershell.exe` backends | 💤 Parked |
 | — | Insert-mode formatting keys (§13.2) | `**\|**` pairs while typing | 💤 Parked |
 
 Out of scope: wiki-style `[[links]]` and rendering or preview. Use `render-markdown.nvim` or `markview.nvim` for rendering.
@@ -988,6 +1059,7 @@ In `tests/links_spec.lua` the clipboard, `vim.ui.input` and the title fetcher ar
 | `tables_spec.lua` | tables, `<Tab>` fallback |
 | `doc_spec.lua` | TOC, diagnostics |
 | `lists_spec.lua` | lists, checkboxes, renumbering, headings |
+| `images_spec.lua` | image paste (mocked clipboard; the real macOS backend runs against fake `osascript`/`pngpaste` executables) |
 
 The runner fires `TextChanged` after each key chunk that changed the buffer in normal mode. Real Neovim does this in its main loop between keystrokes, but not while a headless script runs, and the auto-renumbering depends on it.
 
@@ -1022,6 +1094,7 @@ mdtools.nvim/
 │   ├── tables.lua            tables: parse, render, edit, navigate
 │   ├── lists.lua             list continuation, nesting, checkboxes, renumbering
 │   ├── headings.lua          add / remove #
+│   ├── images.lua            image paste (macOS backend)
 │   ├── toc.lua               table of contents
 │   ├── diagnostics.lua       broken-link diagnostics
 │   ├── doc.lua               headings, definitions, footnotes, code rows
