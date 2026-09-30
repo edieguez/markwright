@@ -15,7 +15,7 @@ local table_sub = {
     require("markwright.tables").to_csv()
   end,
   csv = function(args)
-    require("markwright.tables").from_csv(0, args.line1 - 1, args.line2 - 1)
+    require("markwright.tables").from_csv_prompt(0, args.line1 - 1, args.line2 - 1)
   end,
   align = function()
     require("markwright.tables").align()

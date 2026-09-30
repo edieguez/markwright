@@ -630,7 +630,7 @@ Use `gx` on a reference or definition to jump between them. Link diagnostics war
 ### Creating
 
 - **`<leader>mtt`** asks for a size such as `3x4` (`3 x 4`, `3,4` and `3*4` work too): 3 body rows and 4 columns. The table goes on the current line if it's empty, otherwise below it, and you start typing in the first header cell.
-- **`<leader>mtc`** in visual mode converts the selected lines from CSV, TSV or semicolon-separated text. The separator is detected from the first line, and quoted fields (`"Doe, J"`, `""` escapes) are handled. The first line becomes the header, and `|` inside values is escaped.
+- **`<leader>mtc`** in visual mode (or `:'<,'>Markwright table csv`) converts the selected lines to a table. It asks `Separator:`, prefilled with the separator it detects: comma, tab, semicolon, `|` or `:`, choosing the one that splits every line into the same number of columns. Enter accepts it; type any other separator, including multi-character ones like `::` or `; `, or `\t` for a tab; `<Esc>` cancels. Quoted fields (`"Doe, J"`, `""` escapes) are handled, spaces around fields are trimmed, the first line becomes the header, and `|` inside values is escaped.
 
 ```
 name,age              V<leader>mtc     | name   | age |

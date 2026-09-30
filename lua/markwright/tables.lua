@@ -350,9 +350,10 @@ function M.csv_fields(line, sep)
       end
     elseif ch == '"' and field:match("^%s*$") then
       inq, field = true, ""
-    elseif ch == sep then
+    elseif line:sub(i, i + #sep - 1) == sep then
       table.insert(out, field)
       field = ""
+      i = i + #sep - 1
     else
       field = field .. ch
     end
@@ -366,30 +367,64 @@ function M.csv_fields(line, sep)
 end
 
 --- Most frequent separator in the line (outside quotes): tab, comma, semicolon.
-function M.detect_sep(line)
-  local best, best_n = ",", 0
-  for _, sep in ipairs({ "\t", ",", ";" }) do
-    local n = #M.csv_fields(line, sep) - 1
-    if n > best_n then
+M.SEP_CANDIDATES = { "\t", ",", ";", "|", ":" }
+
+--- Guess the separator of CSV-like lines (a string or a list of lines).
+--- Prefers a candidate that splits every line into the same number (> 1) of
+--- fields, the most fields first; otherwise the one that splits the first line
+--- the most. Falls back to ",".
+function M.detect_sep(lines)
+  if type(lines) == "string" then
+    lines = { lines }
+  end
+  local best, best_n = nil, 1
+  for _, sep in ipairs(M.SEP_CANDIDATES) do
+    local n, consistent = nil, true
+    for _, l in ipairs(lines) do
+      local c = #M.csv_fields(l, sep)
+      if n == nil then
+        n = c
+      elseif c ~= n then
+        consistent = false
+        break
+      end
+    end
+    if consistent and n and n > best_n then
       best, best_n = sep, n
+    end
+  end
+  if best then
+    return best
+  end
+  best, best_n = ",", 1
+  for _, sep in ipairs(M.SEP_CANDIDATES) do
+    local c = #M.csv_fields(lines[1] or "", sep)
+    if c > best_n then
+      best, best_n = sep, c
     end
   end
   return best
 end
 
 --- Convert rows srow..erow (0-based, inclusive) of CSV/TSV into a table.
-function M.from_csv(buf, srow, erow)
-  local lines = api.nvim_buf_get_lines(buf, srow, erow + 1, false)
+local function non_blank(buf, srow, erow)
   local src = {}
-  for _, l in ipairs(lines) do
+  for _, l in ipairs(api.nvim_buf_get_lines(buf, srow, erow + 1, false)) do
     if not l:match("^%s*$") then
       table.insert(src, l)
     end
   end
+  return src
+end
+
+--- Convert rows srow..erow (0-based, inclusive) of CSV-like text into a table,
+--- split on `sep` (detected when nil).
+function M.from_csv(buf, srow, erow, sep)
+  local src = non_blank(buf, srow, erow)
   if #src == 0 then
     return
   end
-  local sep = M.detect_sep(src[1])
+  sep = sep or M.detect_sep(src)
   local rows = {}
   for _, l in ipairs(src) do
     table.insert(rows, M.csv_fields(l, sep))
@@ -400,9 +435,29 @@ function M.from_csv(buf, srow, erow)
   end
 end
 
+--- Ask for the separator (prefilled with the detected one), then convert.
+function M.from_csv_prompt(buf, srow, erow)
+  local src = non_blank(buf, srow, erow)
+  if #src == 0 then
+    return
+  end
+  local detected = M.detect_sep(src)
+  local shown = detected == "\t" and "\\t" or detected
+  local ns = api.nvim_create_namespace("markwright_fromcsv")
+  local id = api.nvim_buf_set_extmark(buf, ns, srow, 0, { end_row = erow, end_col = 0, right_gravity = false })
+  vim.ui.input({ prompt = "Separator: ", default = shown }, function(input)
+    local m = api.nvim_buf_get_extmark_by_id(buf, ns, id, { details = true })
+    pcall(api.nvim_buf_del_extmark, buf, ns, id)
+    if input == nil or not m[1] then
+      return
+    end
+    M.from_csv(buf, m[1], m[3].end_row, M.parse_sep(input) or detected)
+  end)
+end
+
 function M.from_csv_visual()
   local buf = api.nvim_get_current_buf()
-  M.from_csv(buf, api.nvim_buf_get_mark(buf, "<")[1] - 1, api.nvim_buf_get_mark(buf, ">")[1] - 1)
+  M.from_csv_prompt(buf, api.nvim_buf_get_mark(buf, "<")[1] - 1, api.nvim_buf_get_mark(buf, ">")[1] - 1)
 end
 
 --- Interpret a typed separator: "\t" or "tab" mean a tab; empty means nil.
