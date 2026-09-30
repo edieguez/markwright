@@ -423,10 +423,12 @@ function M.expr_normal()
     return cmd("prompt_new")
   end
   local p = ts.parse(buf, row - 1)
-  if ts.code_context(p, row - 1, col)
+  if
+    ts.code_context(p, row - 1, col)
     or node_at(p, row - 1, col, LINK_TYPES)
     or node_at(p, row - 1, col, IMAGE)
-    or M.url_at(line, col) then
+    or M.url_at(line, col)
+  then
     return cmd("at_cursor")
   end
   vim.o.operatorfunc = OPFUNC

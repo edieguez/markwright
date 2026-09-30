@@ -69,7 +69,13 @@ local function remove_node(buf, tr, node, spec)
   if spec.node == "code_span" and sr == er then
     local line = get_line(buf, sr)
     local content = line:sub(sc + 1, ec - 2 * n)
-    if n > 1 and #content >= 2 and content:sub(1, 1) == " " and content:sub(-1) == " " and content:find("`", 1, true) then
+    if
+      n > 1
+      and #content >= 2
+      and content:sub(1, 1) == " "
+      and content:sub(-1) == " "
+      and content:find("`", 1, true)
+    then
       local cend = ec - 2 * n
       util.set_text(buf, tr, sr, cend - 1, cend, "")
       util.set_text(buf, tr, sr, sc, sc + 1, "")
@@ -114,15 +120,24 @@ local function text_remove(buf, tr, row, scol, ecol, fmt)
   local n = #m
   -- markers inside the range: "*word*" selected
   local text = line:sub(scol + 1, ecol)
-  if #text > 2 * n and text:sub(1, n) == m and text:sub(-n) == m
-    and text:sub(n + 1, n + 1) ~= ch and text:sub(-n - 1, -n - 1) ~= ch then
+  if
+    #text > 2 * n
+    and text:sub(1, n) == m
+    and text:sub(-n) == m
+    and text:sub(n + 1, n + 1) ~= ch
+    and text:sub(-n - 1, -n - 1) ~= ch
+  then
     util.set_text(buf, tr, row, ecol - n, ecol, "")
     util.set_text(buf, tr, row, scol, scol + n, "")
     return true
   end
   -- markers just outside the range: *[word]*
-  if line:sub(scol - n + 1, scol) == m and line:sub(ecol + 1, ecol + n) == m
-    and line:sub(scol - n, scol - n) ~= ch and line:sub(ecol + n + 1, ecol + n + 1) ~= ch then
+  if
+    line:sub(scol - n + 1, scol) == m
+    and line:sub(ecol + 1, ecol + n) == m
+    and line:sub(scol - n, scol - n) ~= ch
+    and line:sub(ecol + n + 1, ecol + n + 1) ~= ch
+  then
     util.set_text(buf, tr, row, ecol, ecol + n, "")
     util.set_text(buf, tr, row, scol - n, scol, "")
     return true

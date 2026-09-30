@@ -46,9 +46,7 @@ function M.insert()
   end
   local def = ref .. ": "
   local new
-  if last == 0 then
-    new = { def }
-  elseif lines[last]:match(DEF) then
+  if last == 0 or lines[last]:match(DEF) then
     new = { def }
   else
     new = { "", def }

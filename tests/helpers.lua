@@ -120,8 +120,14 @@ function H.run(title, cases, opts)
       pass = ok and vim.deep_equal(got, want) and (not want_cur or vim.deep_equal(got_cur, want_cur))
       if not pass then
         detail = (not ok and ("        error: " .. tostring(err) .. "\n") or "")
-          .. "        want: " .. vim.inspect(want) .. (want_cur and (" @" .. vim.inspect(want_cur)) or "") .. "\n"
-          .. "        got:  " .. vim.inspect(got) .. " @" .. vim.inspect(got_cur)
+          .. "        want: "
+          .. vim.inspect(want)
+          .. (want_cur and (" @" .. vim.inspect(want_cur)) or "")
+          .. "\n"
+          .. "        got:  "
+          .. vim.inspect(got)
+          .. " @"
+          .. vim.inspect(got_cur)
       end
     end
     if pass then

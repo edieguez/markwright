@@ -37,18 +37,34 @@ local cases = {
   { "multibyte text", { "" }, { 1, 0 }, "i;;iaçã;;iü<Esc>", { "*açã*ü" } },
 
   -- the README examples, typed exactly
-  { "readme: bold/italic sentence", { "" }, { 1, 0 }, "i;;bimportant;;b and ;;ialso;;i this<Esc>",
-    { "**important** and *also* this" } },
+  {
+    "readme: bold/italic sentence",
+    { "" },
+    { 1, 0 },
+    "i;;bimportant;;b and ;;ialso;;i this<Esc>",
+    { "**important** and *also* this" },
+  },
   { "readme: link", { "" }, { 1, 0 }, "i;;lthe docs;;lhttps://x.io;;l<Esc>", { "[the docs](https://x.io)" } },
   { "readme: nested", { "" }, { 1, 0 }, "i;;bbold ;;iboth;;i;;b<Esc>", { "**bold *both***" } },
 
   -- links
-  { "link without clipboard: text, url, out", { "" }, { 1, 0 }, "i;;ldocs;;lhttps://x.io;;l ok<Esc>",
-    { "[docs](https://x.io) ok" } },
-  { "link with clipboard URL skips the url stage", { "" }, { 1, 0 }, "i;;ldocs;;l!<Esc>", { "[docs](https://c.io)!" },
+  {
+    "link without clipboard: text, url, out",
+    { "" },
+    { 1, 0 },
+    "i;;ldocs;;lhttps://x.io;;l ok<Esc>",
+    { "[docs](https://x.io) ok" },
+  },
+  {
+    "link with clipboard URL skips the url stage",
+    { "" },
+    { 1, 0 },
+    "i;;ldocs;;l!<Esc>",
+    { "[docs](https://c.io)!" },
     setup = function()
       clip = "https://c.io"
-    end },
+    end,
+  },
   { "link jump by text shape", { "[t]()" }, { 1, 1 }, "a;;lu;;l.<Esc>", { "[t](u)." } },
 
   -- anything else is typed as-is
@@ -72,13 +88,22 @@ local cases = {
   { "custom character trigger jj", { "" }, { 1, 0 }, "ijjbx<Esc>", { "**x**" }, setup = with_trigger("jj") },
   { "jj trigger keeps single j", { "" }, { 1, 0 }, "ijam<Esc>", { "jam" }, setup = with_trigger("jj") },
   { "key trigger <C-g>", { "" }, { 1, 0 }, "i<C-g>bx<C-g>by<Esc>", { "**x**y" }, setup = with_trigger("<C-g>") },
-  { "<C-g> passes other keys to Vim (<C-g>j)", { "ab", "cd" }, { 1, 1 }, "i<C-g>jX<Esc>", { "ab", "cXd" },
-    setup = with_trigger("<C-g>") },
-  { "config rejects a one-character trigger", fn = function()
-    local ok = pcall(config.setup, { insert = { trigger = ";" } })
-    eq(ok, false)
-    config.setup({})
-  end },
+  {
+    "<C-g> passes other keys to Vim (<C-g>j)",
+    { "ab", "cd" },
+    { 1, 1 },
+    "i<C-g>jX<Esc>",
+    { "ab", "cXd" },
+    setup = with_trigger("<C-g>"),
+  },
+  {
+    "config rejects a one-character trigger",
+    fn = function()
+      local ok = pcall(config.setup, { insert = { trigger = ";" } })
+      eq(ok, false)
+      config.setup({})
+    end,
+  },
 }
 
 local failed, total = H.run("insert trigger", cases, { before_each = before_each })

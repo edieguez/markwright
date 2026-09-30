@@ -123,7 +123,12 @@ function M.attach(buf)
   map("n", P .. "p", function()
     require("markwright.images").paste()
   end, "Paste image")
-  map("x", P .. "p", "<Esc><Cmd>lua require('markwright.images').paste_visual()<CR>", "Paste image (selection = alt text)")
+  map(
+    "x",
+    P .. "p",
+    "<Esc><Cmd>lua require('markwright.images').paste_visual()<CR>",
+    "Paste image (selection = alt text)"
+  )
 
   -- toc
   map("n", P .. "T", function()

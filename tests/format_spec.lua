@@ -1,5 +1,4 @@
 -- Formatting engine specs (SPEC.md section 6). Leader is <Space>, prefix " m".
-local api = vim.api
 local H = dofile(vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h") .. "/helpers.lua")
 
 local cases = {

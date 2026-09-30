@@ -7,10 +7,26 @@ M.user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.
   .. "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 
 local NAMED = {
-  amp = "&", lt = "<", gt = ">", quot = '"', apos = "'", nbsp = " ",
-  ndash = "–", mdash = "—", hellip = "…", laquo = "«", raquo = "»",
-  lsquo = "‘", rsquo = "’", ldquo = "“", rdquo = "”", middot = "·", bull = "•",
-  copy = "©", reg = "®", trade = "™",
+  amp = "&",
+  lt = "<",
+  gt = ">",
+  quot = '"',
+  apos = "'",
+  nbsp = " ",
+  ndash = "–",
+  mdash = "—",
+  hellip = "…",
+  laquo = "«",
+  raquo = "»",
+  lsquo = "‘",
+  rsquo = "’",
+  ldquo = "“",
+  rdquo = "”",
+  middot = "·",
+  bull = "•",
+  copy = "©",
+  reg = "®",
+  trade = "™",
 }
 
 function M.decode_entities(s)
@@ -70,10 +86,15 @@ function M.fetch(url, cb)
   end
   local timeout = config.options.links.title_timeout_ms
   local cmd = {
-    "curl", "-sL", "--compressed",
-    "--max-time", tostring(math.max(1, math.ceil(timeout / 1000))),
-    "-A", M.user_agent,
-    "-r", "0-65535", -- first 64 KB is plenty for <head>
+    "curl",
+    "-sL",
+    "--compressed",
+    "--max-time",
+    tostring(math.max(1, math.ceil(timeout / 1000))),
+    "-A",
+    M.user_agent,
+    "-r",
+    "0-65535", -- first 64 KB is plenty for <head>
     url,
   }
   local ok = pcall(vim.system, cmd, { text = true, timeout = timeout + 1000 }, function(res)
