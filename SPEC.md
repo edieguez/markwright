@@ -21,6 +21,7 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
   - [x] backtick escalation for inline code; code guard
   - [x] dot-repeat; one undo step per action
 - [x] **Formatting while typing** — `;;` + `i`/`b`/`s`/`c`/`h`/`k`, jump out, configurable trigger (§13.2)
+- [x] **GitHub callouts** — `<P>a` wrap paragraph / selection / code block (type picker) or change type (picker again), `<P>A` remove, plain quote → callout, `:Markwright callout` (§14.11)
 - [x] **Heading navigation** — `]]`/`[[`, `][`/`[]` same level, `[u` parent, `<P>o` outline via `vim.ui.select`; counts, jumplist, operators (§14.9)
 - [x] **Text objects** — `ik`/`ak` link, `iu` URL, `ic`/`ac` code, `ih`/`ah` section, `i|`/`a|` cell, `iL`/`aL` list item, `i*`/`a*` emphasis; counts, empty objects, dot-repeat (§14.8)
 - [x] **Links** (§7)
@@ -42,7 +43,7 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 - [x] **TOC** — markers, nested entries, refresh on save (§9.6)
 - [x] **Link diagnostics** — files, anchors, references, footnotes; on open/save; `:Markwright check` (§10)
 - [x] **Image paste, macOS** — screenshots, Finder files, paths, URLs; `assets/`; alt text (§13.1)
-- [x] **Tests** — 414 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
+- [x] **Tests** — 457 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
 - [x] **Verified on macOS + LazyVim** (2026-09-30): clipboard links, live titles, `gx`, image paste (screenshot / Finder / browser), `<CR>` with blink.cmp + mini.pairs, `<Tab>` in snippets/lists/tables, `;;` hint with noice, no duplicate diagnostics
 
 ### Release 0.1.0
@@ -52,15 +53,15 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 - [x] README for the public repo: installation for all major managers, keys markwright changes, known limitations, license (MPL-2.0)
 - [x] `CHANGELOG.md`
 - [x] `v0.1.0` git tag
-- [ ] CI workflow and `Makefile` targets (`fmt`, `lint`, `check`) added to the repo — files are written; they are protected from remote writes, so they're added by hand
-- [ ] Pushed to GitHub (`git push && git push --tags`)
+- [x] CI workflow and `Makefile` targets (`fmt`, `lint`, `check`) added to the repo (by hand: protected from remote writes)
+- [x] Pushed to GitHub with the `v0.1.0` tag
 
 ### Not implemented
 
 **Project / platform**
 - [ ] Image paste on Linux (Wayland/X11) and WSL (§14.1)
 - [ ] `:help markwright` vimdoc (§14.2)
-- [ ] CI: GitHub Actions on Neovim 0.10.0, stable and nightly × Linux/macOS, plus stylua/selene (§14.3) — workflow written, see Release 0.1.0
+- [x] CI: GitHub Actions on Neovim 0.10.0, stable and nightly × Linux/macOS, plus stylua/selene (§14.3)
 - [x] Rename the plugin to **markwright.nvim** (§14.4)
 
 **Small follow-ups**
@@ -69,11 +70,7 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 - [ ] Decide operator keymap names (§14.7)
 - [ ] Decide partial-overlap selection behavior (§14.7)
 
-**New features — priority 1**
-- [ ] Rich-text paste (HTML → Markdown) (§14.10)
-
 **New features — priority 2**
-- [ ] GitHub callouts (§14.11)
 - [ ] List tools: move items with children, sort, cycle bullets, lines ↔ list (§14.12)
 - [ ] Checkbox progress counters `[2/5]` / `[40%]` (§14.13)
 - [ ] Completion dates on checked tasks (§14.14)
@@ -88,6 +85,9 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 - [ ] Link completion for paths and `#anchors` (§14.21)
 - [ ] Optional: 3-state checkboxes `[-]` (§14.22)
 - [ ] Optional: external URL checker (§14.23)
+
+**Version 2**
+- [ ] Rich-text paste (HTML → Markdown) (§14.10) — moved to version 2 (2026-09-30): too large for 0.x
 
 ---
 
@@ -263,9 +263,11 @@ All buffer-local, Markdown only. `<P>` = configured prefix (default `<leader>m`)
 | i | `;;` + `i`/`b`/`s`/`c`/`h`/`k` | Formatting while typing (trigger configurable) |
 | n, x, o | `]]`/`[[`, `][`/`[]`, `[u` | Heading navigation (§14.9; configurable under `nav`) |
 | n | `<P>o` | Outline picker (§14.9) |
+| n, x | `<P>a` | Callout: wrap / change type, both with the type picker (§14.11) |
+| n | `<P>A` | Remove callout (§14.11) |
 | o, x | `ik`/`ak`, `iu`, `ic`/`ac`, `ih`/`ah`, `i\|`/`a\|`, `iL`/`aL`, `i*`/`a*` | Text objects (§14.8; letters configurable under `textobjects`) |
 
-**Planned keys** (§14; all **[OPEN]** until implemented): `<P>v` rich paste; `<P>a`/`<P>A` callouts; `<M-j>`/`<M-k>` move list items/sections; `<P>*` cycle bullet; `<P>L`/`<P>N` lines ↔ bullet/numbered list; `<P>+`/`<P>_` promote/demote with children; `<P>ts` sort table; `<P>t<`/`<P>t>` move column; `<P>r` inline ↔ reference link.
+**Planned keys** (§14; all **[OPEN]** until implemented): `<P>v` rich paste (v2); `<M-j>`/`<M-k>` move list items/sections; `<P>*` cycle bullet; `<P>L`/`<P>N` lines ↔ bullet/numbered list; `<P>+`/`<P>_` promote/demote with children; `<P>ts` sort table; `<P>t<`/`<P>t>` move column; `<P>r` inline ↔ reference link.
 
 Keys already taken under `<P>`: `i b s c h I B S C H l = - f n p T tt tc tr tR tk tK ta`.
 
@@ -459,8 +461,8 @@ Implementation note: the markdown grammar has no footnotes, and a `[ref]: url` l
 - [x] 8. `toc.lua`, `diagnostics.lua`.
 - [x] 9. `images.lua` (macOS), `insert.lua`.
 - [x] 10. Rename to markwright.nvim (§14.4).
-- [ ] 11. Priority-1 features: ~~text objects~~, ~~heading navigation~~ (done), rich-text paste (§14.8–14.10).
-- [ ] 12. Priority-2 features (§14.11–14.18).
+- [x] 11. Priority-1 features: text objects, heading navigation (§14.8, §14.9); rich-text paste moved to version 2 (§14.10).
+- [ ] 12. Priority-2 features (§14.11–14.18) — callouts done.
 - [ ] 13. Linux/WSL image paste, image extras, fence completion (§14.1, §14.5, §14.6).
 - [x] 10b. Release 0.1.0 preparation: Neovim 0.10 check, stylua/selene, CHANGELOG, tag (see §0 Release 0.1.0).
 - [ ] 14. Docs (`doc/markwright.txt`) and CI (§14.2, §14.3) — CI workflow written, to be added to the repo.
@@ -584,7 +586,7 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 - `<P>o` / `:Markwright outline`: `vim.ui.select` over all headings, labelled `› ` (current section) + indentation + `#`×level + text; jumps with a jumplist entry and `zv`. Decided: `vim.ui.select` instead of picker-specific code — LazyVim routes it to snacks.picker; telescope/fzf-lua when registered; built-in list otherwise.
 - Config `nav = { enabled, next, prev, next_sibling, prev_sibling, parent, outline }`; `outline = nil` means `<prefix>o`; `false`/`""` disables a key.
 
-### 14.10 Rich-text paste (priority 1)
+### 14.10 Rich-text paste (version 2)
 - `<P>v` **[OPEN]** / `:Markwright paste`: paste the clipboard's HTML (copied from a browser, Google Docs, Notion, Word…) converted to Markdown: headings, bold/italic, links, lists, tables, code.
 - Reading HTML: macOS via JXA `NSPasteboard.generalPasteboard.stringForType("public.html")`; Wayland `wl-paste -t text/html`; X11 `xclip -t text/html -o`; WSL `Get-Clipboard -TextFormatType Html`.
 - Conversion: `pandoc -f html -t gfm-raw_html --wrap=none`; post-process to the plugin's style (bullet `-`, `**`/`*` markers, strip empty links and tracking parameters optional).
@@ -592,10 +594,16 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 - Optional: `rich_paste.smart = false` — when true, plain `p` converts automatically if HTML is present.
 - Pasted block is one undo step; relative links in the HTML are resolved against its source URL when the clipboard provides it.
 
-### 14.11 GitHub callouts (priority 2)
-- `<P>a` **[OPEN]**: wrap the current paragraph (normal) or selected lines (visual) in a callout; types `NOTE`, `TIP`, `IMPORTANT`, `WARNING`, `CAUTION` via a picker (default `NOTE`).
-- On an existing callout, `<P>a` cycles the type; `<P>A` removes the callout (unwraps the `>` prefix).
-- Handles nested blockquotes and keeps list/code content intact; `:Markwright callout [type]`.
+### 14.11 GitHub callouts — **implemented (2026-09-30)**
+- `<P>a` normal mode:
+  - on a callout (`> [!TYPE]`, any case) → pick a new type from the same picker, the current one labelled `(current)`; `callouts.default` doesn't apply here; a title after the marker is kept. (Changed 2026-09-30: first version cycled NOTE → TIP → … without a picker.)
+  - on a plain blockquote → add the `[!TYPE]` line (type picker);
+  - in a fenced code block → wrap the whole block; elsewhere → wrap the paragraph (contiguous non-blank lines); on a blank line → insert an empty callout and start insert mode.
+- `<P>a` visual: wrap the selected lines. Blank lines become `>`; the common indentation stays before the `>` (callouts inside list items).
+- Type picker: `vim.ui.select(callouts.types)`, NOTE first; `callouts.default` skips it.
+- `<P>A`: remove the callout/blockquote under the cursor — drops the marker line (keeping a title as text) and one `>` level from every line (nested quotes keep their inner level).
+- `:Markwright callout [type|remove]` with completion; with a range, wraps those lines.
+- Each action is one undo step. Blockquotes are found by line scan (contiguous `>` lines, up to 3 spaces of indent).
 
 ### 14.12 List tools (priority 2)
 - Move an item with its children: `<M-j>`/`<M-k>` **[OPEN]** on a list item swaps it with the next/previous sibling subtree and renumbers; elsewhere falls back to the existing mapping (LazyVim's move-line). Also `:Markwright list up|down`.

@@ -51,6 +51,20 @@ local subcommands = {
       require("markwright.fence").insert()
     end
   end,
+  callout = function(args)
+    local sub = args.fargs[2]
+    local callouts = require("markwright.callouts")
+    if sub == "remove" then
+      return callouts.unwrap()
+    end
+    if args.range > 0 then
+      local buf = vim.api.nvim_get_current_buf()
+      vim.api.nvim_buf_set_mark(buf, "<", args.line1, 0, {})
+      vim.api.nvim_buf_set_mark(buf, ">", args.line2, 0, {})
+      return callouts.wrap_visual(sub)
+    end
+    callouts.toggle(sub)
+  end,
   outline = function()
     require("markwright.nav").outline()
   end,
@@ -107,6 +121,15 @@ end, {
     local words = vim.split((line:gsub("^%S*%s*", "")), "%s+")
     if #words >= 2 and words[1] == "table" then
       return sorted_keys(table_sub, lead)
+    end
+    if #words == 2 and words[1] == "callout" then
+      local names = { "remove" }
+      for _, t in ipairs(require("markwright.config").options.callouts.types) do
+        table.insert(names, t:lower())
+      end
+      return vim.tbl_filter(function(n)
+        return n:find(lead:lower(), 1, true) == 1
+      end, names)
     end
     if #words > 1 then
       return {}
