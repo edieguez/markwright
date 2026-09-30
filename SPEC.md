@@ -21,6 +21,7 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
   - [x] backtick escalation for inline code; code guard
   - [x] dot-repeat; one undo step per action
 - [x] **Formatting while typing** — `;;` + `i`/`b`/`s`/`c`/`h`/`k`, jump out, configurable trigger (§13.2)
+- [x] **Heading navigation** — `]]`/`[[`, `][`/`[]` same level, `[u` parent, `<P>o` outline via `vim.ui.select`; counts, jumplist, operators (§14.9)
 - [x] **Text objects** — `ik`/`ak` link, `iu` URL, `ic`/`ac` code, `ih`/`ah` section, `i|`/`a|` cell, `iL`/`aL` list item, `i*`/`a*` emphasis; counts, empty objects, dot-repeat (§14.8)
 - [x] **Links** (§7)
   - [x] link key: clipboard URL / prompt / bare URL → titled link / unlink
@@ -41,7 +42,7 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 - [x] **TOC** — markers, nested entries, refresh on save (§9.6)
 - [x] **Link diagnostics** — files, anchors, references, footnotes; on open/save; `:Markwright check` (§10)
 - [x] **Image paste, macOS** — screenshots, Finder files, paths, URLs; `assets/`; alt text (§13.1)
-- [x] **Tests** — 381 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
+- [x] **Tests** — 414 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
 - [x] **Verified on macOS + LazyVim** (2026-09-30): clipboard links, live titles, `gx`, image paste (screenshot / Finder / browser), `<CR>` with blink.cmp + mini.pairs, `<Tab>` in snippets/lists/tables, `;;` hint with noice, no duplicate diagnostics
 
 ### Release 0.1.0
@@ -69,7 +70,6 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 - [ ] Decide partial-overlap selection behavior (§14.7)
 
 **New features — priority 1**
-- [ ] Heading navigation `]]`/`[[` + outline picker (§14.9)
 - [ ] Rich-text paste (HTML → Markdown) (§14.10)
 
 **New features — priority 2**
@@ -261,9 +261,11 @@ All buffer-local, Markdown only. `<P>` = configured prefix (default `<leader>m`)
 | n | `<P>T` | Insert/update TOC |
 | n, x | `<P>p` | Paste image (visual: selection = alt text) |
 | i | `;;` + `i`/`b`/`s`/`c`/`h`/`k` | Formatting while typing (trigger configurable) |
+| n, x, o | `]]`/`[[`, `][`/`[]`, `[u` | Heading navigation (§14.9; configurable under `nav`) |
+| n | `<P>o` | Outline picker (§14.9) |
 | o, x | `ik`/`ak`, `iu`, `ic`/`ac`, `ih`/`ah`, `i\|`/`a\|`, `iL`/`aL`, `i*`/`a*` | Text objects (§14.8; letters configurable under `textobjects`) |
 
-**Planned keys** (§14; all **[OPEN]** until implemented): `]]`/`[[` headings; `<P>o` outline; `<P>v` rich paste; `<P>a`/`<P>A` callouts; `<M-j>`/`<M-k>` move list items/sections; `<P>*` cycle bullet; `<P>L`/`<P>N` lines ↔ bullet/numbered list; `<P>+`/`<P>_` promote/demote with children; `<P>ts` sort table; `<P>t<`/`<P>t>` move column; `<P>r` inline ↔ reference link.
+**Planned keys** (§14; all **[OPEN]** until implemented): `<P>v` rich paste; `<P>a`/`<P>A` callouts; `<M-j>`/`<M-k>` move list items/sections; `<P>*` cycle bullet; `<P>L`/`<P>N` lines ↔ bullet/numbered list; `<P>+`/`<P>_` promote/demote with children; `<P>ts` sort table; `<P>t<`/`<P>t>` move column; `<P>r` inline ↔ reference link.
 
 Keys already taken under `<P>`: `i b s c h I B S C H l = - f n p T tt tc tr tR tk tK ta`.
 
@@ -457,7 +459,7 @@ Implementation note: the markdown grammar has no footnotes, and a `[ref]: url` l
 - [x] 8. `toc.lua`, `diagnostics.lua`.
 - [x] 9. `images.lua` (macOS), `insert.lua`.
 - [x] 10. Rename to markwright.nvim (§14.4).
-- [ ] 11. Priority-1 features: ~~text objects~~ (done), heading navigation, rich-text paste (§14.8–14.10).
+- [ ] 11. Priority-1 features: ~~text objects~~, ~~heading navigation~~ (done), rich-text paste (§14.8–14.10).
 - [ ] 12. Priority-2 features (§14.11–14.18).
 - [ ] 13. Linux/WSL image paste, image extras, fence completion (§14.1, §14.5, §14.6).
 - [x] 10b. Release 0.1.0 preparation: Neovim 0.10 check, stylua/selene, CHANGELOG, tag (see §0 Release 0.1.0).
@@ -574,11 +576,13 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 - Config `textobjects = { enabled, link, url, code, section, cell, item, emphasis }` (letters; `false`/`""` disables one). In Markdown buffers `ic`/`ac` and `iu` take priority over LazyVim mini.ai's class / function-call objects.
 - Built on Treesitter nodes (`inline_link`, `image`, `link_text`, `image_description`, `link_destination`, `code_span`, `fenced_code_block`, `indented_code_block`, `list_item`, `emphasis`, `strong_emphasis`, `strikethrough`), `doc.headings()` for sections, `tables.split_row()` for cells, and a line scan for `==highlight==`.
 
-### 14.9 Heading navigation (priority 1)
-- `]]` / `[[`: next / previous heading (any level), counts, skips code blocks, adds a jumplist entry. Overrides the simpler mappings in Neovim's markdown ftplugin.
-- `][` / `[]` **[OPEN]**: next / previous heading of the same level; `[u` **[OPEN]**: parent heading.
-- `<P>o` **[OPEN]**: outline picker of all headings (indented by level, current section preselected). Uses snacks.picker, telescope or fzf-lua when present, else `vim.ui.select`; also `:Markwright outline`.
-- Config: `nav = { next = "]]", prev = "[[", outline = "<P>o" }`, `false` disables each.
+### 14.9 Heading navigation — **implemented (2026-09-30)**
+- `]]` / `[[`: next / previous heading of any level; counts; skips headings inside code blocks; setext headings count; jumplist entry in normal/visual mode; column 0. Replace the markdown ftplugin's buffer-local `]]`/`[[`.
+- `][` / `[]`: next / previous heading of the **same level** as the current section, never crossing a lower-level (parent) heading. From inside a section, `[]` first goes to the section's own heading (like Vim's `[[`). Before any heading, `][` goes to the first heading.
+- `[u`: parent heading (nearest previous heading of a lower level); counts climb further.
+- All motions work in normal, visual and operator-pending mode (`<Cmd>` motions → exclusive; Vim's exclusive-linewise rule makes `d]]` linewise, like the built-in `]]`).
+- `<P>o` / `:Markwright outline`: `vim.ui.select` over all headings, labelled `› ` (current section) + indentation + `#`×level + text; jumps with a jumplist entry and `zv`. Decided: `vim.ui.select` instead of picker-specific code — LazyVim routes it to snacks.picker; telescope/fzf-lua when registered; built-in list otherwise.
+- Config `nav = { enabled, next, prev, next_sibling, prev_sibling, parent, outline }`; `outline = nil` means `<prefix>o`; `false`/`""` disables a key.
 
 ### 14.10 Rich-text paste (priority 1)
 - `<P>v` **[OPEN]** / `:Markwright paste`: paste the clipboard's HTML (copied from a browser, Google Docs, Notion, Word…) converted to Markdown: headings, bold/italic, links, lists, tables, code.

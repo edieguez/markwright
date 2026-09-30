@@ -51,6 +51,9 @@ local subcommands = {
       require("markwright.fence").insert()
     end
   end,
+  outline = function()
+    require("markwright.nav").outline()
+  end,
   footnote = function()
     require("markwright.footnotes").insert()
   end,
