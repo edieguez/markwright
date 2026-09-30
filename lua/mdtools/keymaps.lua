@@ -80,12 +80,41 @@ function M.attach(buf)
   map("n", P .. "ta", function()
     tables.align()
   end, "Align table")
-  for _, t in ipairs({ { "<Tab>", 1, "Next table cell" }, { "<S-Tab>", -1, "Previous table cell" } }) do
-    tables.save_fallback(buf, t[1])
+
+  -- lists: <Tab>/<S-Tab> serve both tables and lists
+  local util = require("mdtools.util")
+  local lists = require("mdtools.lists")
+  for _, t in ipairs({ { "<Tab>", 1, "Next cell / indent item" }, { "<S-Tab>", -1, "Previous cell / outdent item" } }) do
+    util.save_fallback(buf, "i", t[1])
     map("i", t[1], function()
-      return tables.expr_tab(t[2])
+      return lists.expr_tab(t[2])
     end, t[3], { expr = true })
   end
+  util.save_fallback(buf, "i", "<CR>")
+  map("i", "<CR>", lists.expr_enter, "Continue list", { expr = true })
+  map("n", "o", function()
+    return lists.expr_open(true)
+  end, "Open line (continues lists)", { expr = true })
+  map("n", "O", function()
+    return lists.expr_open(false)
+  end, "Open line above (continues lists)", { expr = true })
+  local ck = config.options.lists.checkbox_key
+  if ck and ck ~= "" then
+    util.save_fallback(buf, "n", ck)
+    map("n", ck, lists.expr_checkbox, "Toggle checkbox", { expr = true })
+    map("x", ck, "<Esc><Cmd>lua require('mdtools.lists').toggle_visual()<CR>", "Toggle checkboxes")
+  end
+
+  -- headings
+  local headings = require("mdtools.headings")
+  map("n", P .. "=", function()
+    headings.change_cursor(1)
+  end, "Heading: add #")
+  map("n", P .. "-", function()
+    headings.change_cursor(-1)
+  end, "Heading: remove #")
+  map("x", P .. "=", "<Esc><Cmd>lua require('mdtools.headings').change_visual(1)<CR>", "Heading: add #")
+  map("x", P .. "-", "<Esc><Cmd>lua require('mdtools.headings').change_visual(-1)<CR>", "Heading: remove #")
 
   -- toc
   map("n", P .. "T", function()

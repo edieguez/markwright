@@ -142,9 +142,9 @@ All buffer-local, Markdown only. `<P>` = configured prefix (default `<leader>m`)
 | x | `p` | Smart paste (URL over selection → link) |
 | n | `p` / `P` | Smart paste (bare URL → titled link) |
 | n | `gx` | Follow link / anchor / file / image / footnote |
-| n | `<P>=` | Promote heading (fewer `#`) **[OPEN]** key choice |
-| n | `<P>-` | Demote heading (more `#`) **[OPEN]** key choice |
-| n | `<P>x` | Toggle checkbox |
+| n, x | `<P>=` | Heading: add a `#` (plain line → `#`; counts) |
+| n, x | `<P>-` | Heading: remove a `#` (`#` → plain line) |
+| n, x | `<CR>` | Toggle checkbox on list items (native elsewhere) — `lists.checkbox_key` |
 | i | `<CR>` | List continuation (and `o`/`O` in normal) |
 | i | `<Tab>` / `<S-Tab>` | Indent/outdent list item; next/prev table cell |
 | n, x | `<P>f` | Insert / wrap code fence |
@@ -262,8 +262,7 @@ GitHub style: lowercase, strip punctuation except `-` and `_`, spaces → `-`, k
 ## 9. Structure editing
 
 ### 9.1 Headings (`headings.lua`)
-- Promote: `## x` → `# x`; `# x` stays (or no-op with notice).
-- Demote: `# x` → `## x`; plain line → `# x`… **[OPEN]** proposed: demote on a plain line makes it `######`? Agreed behavior: *plain line → `#` on first increase*. Define "increase" as the demote key (more `#`)? **[OPEN] Clarify which key turns plain text into a heading.**
+- Decided 2026-09-29: keys work on the `#` count. `<P>=` adds a `#` (plain line → `# x`, `## x` → `### x`, capped at 6); `<P>-` removes one (`# x` → plain line).
 - Current line only (children are not shifted).
 - Works on visual line ranges (each heading line). Setext headings (`===`/`---`) are converted to ATX first.
 - Accepts a count.
@@ -274,7 +273,9 @@ GitHub style: lowercase, strip punctuation except `-` and `_`, spaces → `-`, k
 - Splitting: `<CR>` in the middle of an item moves the rest of the text into the new item.
 - **`<Tab>` / `<S-Tab>` in insert mode on a list item:** indent/outdent by the list's indent unit (detect from context; default 2 spaces, or content-width for ordered lists). Ordered items restart numbering at `1.` when nested.
 - Must not steal `<Tab>` when the completion menu is visible or a snippet is active — see 13.3.
-- **Checkbox key:** `- [ ] x` ↔ `- [x] x` (also `[X]`); on plain `- x` → `- [ ] x`; on a non-list line → **[OPEN]** proposed: make it `- [ ] line`. Works on visual ranges.
+- **Checkbox key: `<CR>` in normal mode** (decided 2026-09-29, configurable as `lists.checkbox_key`): `- [ ] x` ↔ `- [x] x` (also `[X]`); on plain `- x` → `- [ ] x`; on a non-list line or in code → the previous/native `<CR>`. Visual: check all items in the range, or uncheck all if all are checked.
+- **Renumber start rule:** the first item's number is the list's start; lazy lists (all the same number) are left alone; renumbering never runs after undo/redo and joins the triggering edit's undo step.
+- **Nesting:** `<Tab>` indents to the previous sibling's content column and moves the subtree; the first item of a new ordered sublist becomes `1.` (CommonMark only lets a nested list starting at 1 interrupt a paragraph).
 - **Auto-renumber:** ordered lists renumber after `<CR>`, item deletion (`TextChanged`), indent/outdent. Preserve the list's starting number and delimiter (`.` or `)`). Only the list containing the cursor, per nesting level. Debounce.
 
 ### 9.3 Code fences (`fence.lua`)
@@ -367,10 +368,10 @@ Implemented in `tables.lua`: insert-mode `<Tab>`/`<S-Tab>` act only when the cur
 
 ### 13.4 Open questions collected
 - Operator keymap names (section 5).
-- Heading promote/demote keys and which one turns plain text into a heading (9.1).
+- ~~Heading keys (9.1)~~ — resolved: `<P>=` adds `#`, `<P>-` removes.
 - Partial-overlap selection behavior (6.9).
 - ~~Link key on whitespace (7.1)~~ — resolved: prompt URL, then text; empty text → page title.
-- Checkbox key on a non-list line (9.2).
+- ~~Checkbox key on a non-list line (9.2)~~ — resolved: native `<CR>`.
 - Fence language prompt completion (9.3) — not implemented; plain prompt for now.
 - TOC default level range (4 / 9.6) — shipped with 2–4.
 - ~~Diagnostics lifetime between saves (10)~~ — implemented as proposed: kept until the next save; `:Mdtools check` re-runs on demand.

@@ -509,65 +509,12 @@ function M.next_cell(dir)
   write(buf, t, { i, c, "end" }, { no_break = true })
 end
 
--- <Tab> handling with fallback -------------------------------------------
+-- <Tab> -------------------------------------------------------------------
 
---- Completion menu or snippet active? Then <Tab> belongs to them.
-local function completion_active(dir)
-  local blink = package.loaded["blink.cmp"]
-  if blink and blink.is_visible and blink.is_visible() then
-    return true
-  end
-  local cmp = package.loaded["cmp"]
-  if cmp and cmp.visible and cmp.visible() then
-    return true
-  end
-  if vim.fn.pumvisible() == 1 then
-    return true
-  end
-  if vim.snippet and vim.snippet.active({ direction = dir }) then
-    return true
-  end
-  return false
-end
-
-M._fallback = {} ---@type table<string, table>
-
---- Remember the mapping that existed before ours, so it keeps working
---- outside tables.
-function M.save_fallback(buf, lhs)
-  local m = vim.fn.maparg(lhs, "i", false, true)
-  M._fallback[buf .. lhs] = (m and not vim.tbl_isempty(m)) and m or nil
-end
-
-function M._run_fallback(key)
-  local m = M._fallback[key]
-  if m and m.callback then
-    m.callback()
-  end
-end
-
-local function fallback(buf, lhs)
-  local m = M._fallback[buf .. lhs]
-  if not m then
-    return lhs
-  end
-  if m.callback then
-    if m.expr == 1 then
-      return m.callback() or ""
-    end
-    return ("<Cmd>lua require('mdtools.tables')._run_fallback(%q)<CR>"):format(buf .. lhs)
-  end
-  if m.rhs and m.rhs ~= "" then
-    if m.expr == 1 then
-      return api.nvim_eval(m.rhs)
-    end
-    if m.noremap == 1 then
-      return m.rhs
-    end
-    api.nvim_feedkeys(api.nvim_replace_termcodes(m.rhs, true, false, true), "m", false)
-    return ""
-  end
-  return lhs
+--- Is the cursor row inside a table?
+function M.at_cursor(buf)
+  buf = buf or api.nvim_get_current_buf()
+  return M.find(buf, api.nvim_win_get_cursor(0)[1] - 1) ~= nil
 end
 
 --- Insert-mode <Tab>/<S-Tab>: next/previous cell inside a table, otherwise
@@ -575,12 +522,8 @@ end
 function M.expr_tab(dir)
   local lhs = dir > 0 and "<Tab>" or "<S-Tab>"
   local buf = api.nvim_get_current_buf()
-  if completion_active(dir) then
-    return fallback(buf, lhs)
-  end
-  local row = api.nvim_win_get_cursor(0)[1] - 1
-  if not M.find(buf, row) then
-    return fallback(buf, lhs)
+  if util.completion_active(dir) or not M.at_cursor(buf) then
+    return util.fallback(buf, "i", lhs)
   end
   return ("<Cmd>lua require('mdtools.tables').next_cell(%d)<CR>"):format(dir)
 end

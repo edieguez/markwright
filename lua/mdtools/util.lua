@@ -74,6 +74,98 @@ function M.undo_break(buf)
   vim.bo[buf].undolevels = vim.bo[buf].undolevels
 end
 
+-- Key fallbacks ------------------------------------------------------------
+-- mdtools overrides keys like <Tab>/<CR> only in specific contexts; everywhere
+-- else the mapping that existed before (completion, autopairs...) must run.
+
+--- Completion menu or snippet active? Then the key belongs to them.
+function M.completion_active(dir)
+  local blink = package.loaded["blink.cmp"]
+  if blink and blink.is_visible and blink.is_visible() then
+    return true
+  end
+  local cmp = package.loaded["cmp"]
+  if cmp and cmp.visible and cmp.visible() then
+    return true
+  end
+  if vim.fn.pumvisible() == 1 then
+    return true
+  end
+  if dir and vim.snippet and vim.snippet.active({ direction = dir }) then
+    return true
+  end
+  return false
+end
+
+M._fallback = {} ---@type table<string, table>
+
+local function fkey(buf, mode, lhs)
+  return buf .. ":" .. mode .. ":" .. lhs
+end
+
+--- Remember the mapping that exists before ours (call before mapping).
+function M.save_fallback(buf, mode, lhs)
+  local m = vim.fn.maparg(lhs, mode, false, true)
+  M._fallback[fkey(buf, mode, lhs)] = (m and not vim.tbl_isempty(m)) and m or nil
+end
+
+function M._run_fallback(key)
+  local m = M._fallback[key]
+  if m and m.callback then
+    m.callback()
+  end
+end
+
+--- Keys to return from an `expr` mapping to run the previous behavior.
+function M.fallback(buf, mode, lhs)
+  local key = fkey(buf, mode, lhs)
+  local m = M._fallback[key]
+  if not m then
+    return lhs
+  end
+  if m.callback then
+    if m.expr == 1 then
+      return m.callback() or ""
+    end
+    return ("<Cmd>lua require('mdtools.util')._run_fallback(%q)<CR>"):format(key)
+  end
+  if m.rhs and m.rhs ~= "" then
+    if m.expr == 1 then
+      return vim.api.nvim_eval(m.rhs)
+    end
+    if m.noremap == 1 then
+      return m.rhs
+    end
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(m.rhs, true, false, true), "m", false)
+    return ""
+  end
+  return lhs
+end
+
+--- Length of blockquote prefixes ("> ", "> > ") at the start of a line.
+function M.bq_len(line)
+  local pos = 1
+  while true do
+    local s, e = line:find("^ ? ? ?>%s?", pos)
+    if not s then
+      break
+    end
+    pos = e + 1
+  end
+  return pos - 1
+end
+
+--- Shift a line's indentation (after any blockquote prefix) by `delta` columns.
+function M.shift_line(line, delta)
+  local bq = M.bq_len(line)
+  if delta > 0 then
+    return line:sub(1, bq) .. string.rep(" ", delta) .. line:sub(bq + 1)
+  end
+  local ws = #line:sub(bq + 1):match("^ *")
+  local n = math.min(ws, -delta)
+  return line:sub(1, bq) .. line:sub(bq + 1 + n)
+end
+
 --- Byte length of the (possibly multibyte) character starting at `col` (0-based).
 function M.char_len(line, col)
   local b = line:byte(col + 1)

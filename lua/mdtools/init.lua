@@ -11,6 +11,18 @@ local function attach_autocmds(buf)
     buffer = buf,
     callback = function()
       require("mdtools.tables").on_insert_leave()
+      require("mdtools.lists").on_change()
+    end,
+  })
+  vim.api.nvim_create_autocmd("TextChanged", {
+    group = group,
+    buffer = buf,
+    callback = function()
+      -- not after undo/redo: that would re-apply what the user just undid
+      local ut = vim.fn.undotree()
+      if ut.seq_cur == ut.seq_last then
+        require("mdtools.lists").on_change()
+      end
     end,
   })
   vim.api.nvim_create_autocmd("BufWritePre", {
