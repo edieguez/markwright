@@ -93,7 +93,7 @@ All five share one engine, so they behave the same way:
   - `<Tab>`/`<S-Tab>` move between cells
   - columns realign when you leave insert mode, accounting for accents, CJK text and alignment markers
 - **Table of contents** (`<leader>mT`): a nested list of heading links between `<!-- toc -->` markers, updated on every save.
-- **Link diagnostics:** on save, broken file links, missing anchors, undefined references and orphan footnotes show up as warnings.
+- **Link diagnostics:** on save, broken file links, missing anchors, undefined references and orphan footnotes show up as warnings. `:Markwright check urls` checks external links too, on demand.
 - **Lists:**
   - `<CR>` and `o`/`O` continue a list (bullets, numbers, checkboxes); `<CR>` on an empty item ends it.
   - `<Tab>`/`<S-Tab>` nest and un-nest items together with their children.
@@ -779,11 +779,31 @@ When a Markdown buffer is opened and every time it's saved, markwright checks it
 
 What is **not** checked:
 
-- external URLs (no network requests)
+- external URLs: they're checked on demand with `:Markwright check urls` (below)
 - anything inside code blocks or code spans
 - relative paths in unsaved buffers, which have no folder to resolve against
 
 The diagnostics stay until the next save, even if you fix the link in the meantime. `:Markwright check` re-runs the check immediately and reports the count. Disable with `diagnostics.enabled = false`, or keep only the check on open with `diagnostics.on_save = false`. `diagnostics.severity` sets the level.
+
+### Checking external links
+
+The automatic check never touches the network. To check that external links still work, run **`:Markwright check urls`**:
+
+- **What's checked:** every `http(s)` link in the buffer: inline links, images, `<autolinks>`, `[ref]:` definitions and bare URLs (`www.…` too). Links inside code, local files, `mailto:` and other schemes are skipped. Each URL is requested once, however often it appears.
+- **How:** in the background with `curl`, 8 at a time, 10 seconds each, following redirects. A light `HEAD` request comes first; if the server answers it with an error, a normal `GET` (of the first byte only) is tried before calling the link broken, because many servers handle `HEAD` badly.
+- **Results:**
+
+  | Result                                       | Shown as                                                                                           |
+  | -------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+  | 2xx / 3xx                                    | fine, nothing shown                                                                                |
+  | 404, 410, 5xx, other errors                  | **warning**: `HTTP 404: https://…`                                                                 |
+  | unknown host, refused, timeout, TLS problems | **warning**: `host not found: https://…`                                                           |
+  | 401, 403, 429                                | **info**: `HTTP 403: needs a login or blocks automated checks` (the page may be fine in a browser) |
+
+  They appear as diagnostics on the links themselves (every occurrence) and in the **quickfix list** (`:copen`, `]q`/`[q`), which opens automatically when something is wrong. A notification sums it up: `12 links checked: 1 broken, 1 restricted`.
+- **Separate from the automatic check:** these results stay until you run the check again (a new run replaces them), and saving the file doesn't clear them.
+
+Options under `url_check`: `concurrency`, `timeout_ms`, `ignore` (Lua patterns of URLs to skip, e.g. `{ "^https://localhost", "internal%.corp" }`), `open_quickfix`, `severity`.
 
 ---
 
@@ -988,29 +1008,30 @@ With `images.smart_paste = true`, pressing `p` (with `clipboard=unnamedplus`, as
 
 ## Commands
 
-| Command                              | Description                                                                   |
-| ------------------------------------ | ----------------------------------------------------------------------------- |
-| `:Markwright bold`                   | Toggle bold on the word under the cursor                                      |
-| `:Markwright italic`                 | Toggle italic                                                                 |
-| `:Markwright strike`                 | Toggle strikethrough                                                          |
-| `:Markwright code`                   | Toggle inline code                                                            |
-| `:Markwright highlight`              | Toggle highlight                                                              |
-| `:Markwright link`                   | Same as `<leader>mk` on the cursor position                                   |
-| `:Markwright follow`                 | Same as `gx`                                                                  |
-| `:Markwright fence`                  | Insert a code fence; with a range (`:'<,'>Markwright fence`) wrap those lines |
-| `:Markwright callout [type\|remove]` | Wrap in / retype / remove a callout; with a range, wrap those lines           |
-| `:Markwright outline`                | Pick a heading from an outline and jump to it                                 |
-| `:Markwright footnote`               | Insert a footnote                                                             |
-| `:Markwright image`                  | Paste the clipboard image (macOS)                                             |
-| `:Markwright toc`                    | Insert or update the table of contents                                        |
-| `:Markwright check`                  | Run link diagnostics now and report the count                                 |
-| `:Markwright table create`           | Create a table                                                                |
-| `:'<,'>Markwright table csv`         | Convert the range from CSV/TSV                                                |
-| `:Markwright table tocsv`            | Convert the table under the cursor to CSV (asks for the separator)            |
-| `:Markwright table align`            | Align the table under the cursor                                              |
-| `:Markwright table row` / `delrow`   | Add a row below / delete the row                                              |
-| `:Markwright table col` / `delcol`   | Add a column right / delete the column                                        |
-| `:Markwright health`                 | Run `:checkhealth markwright`                                                 |
+| Command                              | Description                                                                                             |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `:Markwright bold`                   | Toggle bold on the word under the cursor                                                                |
+| `:Markwright italic`                 | Toggle italic                                                                                           |
+| `:Markwright strike`                 | Toggle strikethrough                                                                                    |
+| `:Markwright code`                   | Toggle inline code                                                                                      |
+| `:Markwright highlight`              | Toggle highlight                                                                                        |
+| `:Markwright link`                   | Same as `<leader>mk` on the cursor position                                                             |
+| `:Markwright follow`                 | Same as `gx`                                                                                            |
+| `:Markwright fence`                  | Insert a code fence; with a range (`:'<,'>Markwright fence`) wrap those lines                           |
+| `:Markwright callout [type\|remove]` | Wrap in / retype / remove a callout; with a range, wrap those lines                                     |
+| `:Markwright outline`                | Pick a heading from an outline and jump to it                                                           |
+| `:Markwright footnote`               | Insert a footnote                                                                                       |
+| `:Markwright image`                  | Paste the clipboard image (macOS)                                                                       |
+| `:Markwright toc`                    | Insert or update the table of contents                                                                  |
+| `:Markwright check`                  | Run link diagnostics now and report the count                                                           |
+| `:Markwright check urls`             | Check external links (in the background) and report broken ones as diagnostics and in the quickfix list |
+| `:Markwright table create`           | Create a table                                                                                          |
+| `:'<,'>Markwright table csv`         | Convert the range from CSV/TSV                                                                          |
+| `:Markwright table tocsv`            | Convert the table under the cursor to CSV (asks for the separator)                                      |
+| `:Markwright table align`            | Align the table under the cursor                                                                        |
+| `:Markwright table row` / `delrow`   | Add a row below / delete the row                                                                        |
+| `:Markwright table col` / `delcol`   | Add a column right / delete the column                                                                  |
+| `:Markwright health`                 | Run `:checkhealth markwright`                                                                           |
 
 Subcommands tab-complete, including the `table` actions.
 
@@ -1098,6 +1119,13 @@ require("markwright").setup({
     marker_end = "<!-- tocstop -->",
     min_level = 2,                  -- heading levels included
     max_level = 4,
+  },
+  url_check = {                   -- :Markwright check urls
+    concurrency = 8,
+    timeout_ms = 10000,
+    ignore = {},                    -- Lua patterns of URLs to skip
+    open_quickfix = true,
+    severity = vim.diagnostic.severity.WARN,
   },
   diagnostics = {
     enabled = true,                 -- check links on open (and on save, see below)
@@ -1260,6 +1288,8 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 
 **`<Tab>` doesn't accept my completion.** markwright checks for a visible blink.cmp or nvim-cmp menu, the built-in popup and active snippets before touching `<Tab>`. If your completion plugin maps `<Tab>` in a way it can't detect, disable table navigation by overriding it: `vim.keymap.set("i", "<Tab>", "<Tab>", { buffer = true })` in a `FileType markdown` autocmd, or map completion to another key.
 
+**`:Markwright check urls` reports a link that opens fine in the browser.** Some sites refuse requests that don't come from a browser, or answer `HEAD` requests with errors. 401/403/429 answers are only shown as info for that reason. For a site that always fails, add it to `url_check.ignore`.
+
 **Diagnostics complain about a link that works on GitHub.**
 
 - Anchors are compared with GitHub's slug rules; headings with unusual Unicode punctuation may differ slightly.
@@ -1370,6 +1400,7 @@ In `tests/links_spec.lua` the clipboard, `vim.ui.input` and the title fetcher ar
 | `lists_spec.lua`       | lists, checkboxes, renumbering, headings                                                                    |
 | `nav_spec.lua`         | heading motions, counts, siblings, parents, operators, outline                                              |
 | `callouts_spec.lua`    | callouts: wrap, pick, change type, convert, remove, commands                                                |
+| `urlcheck_spec.lua`    | external URL checker (mocked requests, plus real curl against a local server)                               |
 | `textobjects_spec.lua` | text objects: every object with d/c/y/visual, counts, empty objects, dot-repeat                             |
 | `insert_spec.lua`      | formatting while typing: pairs, jump out, links, fall-through, code, other triggers                         |
 | `images_spec.lua`      | image paste (mocked clipboard; the real macOS backend runs against fake `osascript`/`pngpaste` executables) |
@@ -1412,6 +1443,7 @@ markwright/
 │   ├── textobjects.lua       ik iu ic ih i| iL i* text objects
 │   ├── nav.lua               ]] [[ ][ [] [u motions and the outline
 │   ├── callouts.lua          GitHub callouts > [!NOTE]
+│   ├── urlcheck.lua          :Markwright check urls
 │   ├── toc.lua               table of contents
 │   ├── diagnostics.lua       broken-link diagnostics
 │   ├── doc.lua               headings, definitions, footnotes, code rows

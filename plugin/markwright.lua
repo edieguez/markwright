@@ -77,7 +77,10 @@ local subcommands = {
   toc = function()
     require("markwright.toc").insert()
   end,
-  check = function()
+  check = function(args)
+    if args.fargs[2] == "urls" then
+      return require("markwright.urlcheck").run(0)
+    end
     local d = require("markwright.diagnostics")
     d.check(0)
     local n = #vim.diagnostic.get(0, { namespace = d.ns })
@@ -121,6 +124,11 @@ end, {
     local words = vim.split((line:gsub("^%S*%s*", "")), "%s+")
     if #words >= 2 and words[1] == "table" then
       return sorted_keys(table_sub, lead)
+    end
+    if #words == 2 and words[1] == "check" then
+      return vim.tbl_filter(function(n)
+        return n:find(lead, 1, true) == 1
+      end, { "urls" })
     end
     if #words == 2 and words[1] == "callout" then
       local names = { "remove" }

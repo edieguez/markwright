@@ -84,6 +84,14 @@ M.defaults = {
     min_level = 2,
     max_level = 4,
   },
+  url_check = {
+    -- :Markwright check urls (never automatic)
+    concurrency = 8, -- requests at the same time
+    timeout_ms = 10000, -- per request
+    ignore = {}, -- Lua patterns of URLs to skip, e.g. { "^https://localhost" }
+    open_quickfix = true, -- open the quickfix list when something is broken
+    severity = vim.diagnostic.severity.WARN, -- for broken links (restricted ones are INFO)
+  },
   diagnostics = {
     enabled = true,
     on_save = true,

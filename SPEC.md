@@ -21,6 +21,7 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
   - [x] backtick escalation for inline code; code guard
   - [x] dot-repeat; one undo step per action
 - [x] **Formatting while typing** — `;;` + `i`/`b`/`s`/`c`/`h`/`k`, jump out, configurable trigger (§13.2)
+- [x] **External URL checker** — `:Markwright check urls`: async curl HEAD→GET, concurrency/timeout, broken = warning, 401/403/429 = info, diagnostics + quickfix (§14.23)
 - [x] **GitHub callouts** — `<P>a` wrap paragraph / selection / code block (type picker) or change type (picker again), `<P>A` remove, plain quote → callout, `:Markwright callout` (§14.11)
 - [x] **Heading navigation** — `]]`/`[[`, `][`/`[]` same level, `[u` parent, `<P>o` outline via `vim.ui.select`; counts, jumplist, operators (§14.9)
 - [x] **Text objects** — `ik`/`ak` link, `iu` URL, `ic`/`ac` code, `ih`/`ah` section, `i|`/`a|` cell, `iL`/`aL` list item, `i*`/`a*` emphasis; counts, empty objects, dot-repeat (§14.8)
@@ -43,7 +44,7 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 - [x] **TOC** — markers, nested entries, refresh on save (§9.6)
 - [x] **Link diagnostics** — files, anchors, references, footnotes; on open/save; `:Markwright check` (§10)
 - [x] **Image paste, macOS** — screenshots, Finder files, paths, URLs; `assets/`; alt text (§13.1)
-- [x] **Tests** — 457 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
+- [x] **Tests** — 472 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
 - [x] **Verified on macOS + LazyVim** (2026-09-30): clipboard links, live titles, `gx`, image paste (screenshot / Finder / browser), `<CR>` with blink.cmp + mini.pairs, `<Tab>` in snippets/lists/tables, `;;` hint with noice, no duplicate diagnostics
 
 ### Release 0.1.0
@@ -84,7 +85,6 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 - [ ] Word count / reading time (§14.20)
 - [ ] Link completion for paths and `#anchors` (§14.21)
 - [ ] Optional: 3-state checkboxes `[-]` (§14.22)
-- [ ] Optional: external URL checker (§14.23)
 
 **Version 2**
 - [ ] Rich-text paste (HTML → Markdown) (§14.10) — moved to version 2 (2026-09-30): too large for 0.x
@@ -501,7 +501,7 @@ Shared helper in `util.lua` (`completion_active`, `save_fallback`, `fallback`): 
 - TOC default level range (4 / 9.6) — shipped with 2–4.
 - ~~Diagnostics lifetime between saves (10)~~ — implemented as proposed: kept until the next save; `:Markwright check` re-runs on demand.
 - Checkbox 3-state (`[-]`) — optional, §14.22.
-- External URL checking — optional on-demand command, §14.23.
+- ~~External URL checking~~ — implemented as the on-demand `:Markwright check urls`, §14.23.
 
 ### 13.5 Explicitly out of scope
 - Wiki-style `[[links]]`.
@@ -654,5 +654,10 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 ### 14.22 Optional: 3-state checkboxes (priority 3)
 - `lists.checkbox_states = { " ", "x" }` by default; setting `{ " ", "-", "x" }` makes the checkbox key cycle `[ ]` → `[-]` → `[x]`. Visual range and progress (§14.13) count `[-]` as not done.
 
-### 14.23 Optional: external URL checker (priority 3)
-- `:Markwright check urls`: async HEAD (falling back to GET) requests with `curl` for every external link in the buffer, limited concurrency and timeout; results as diagnostics (`link returns 404`) and in the quickfix list. Never runs automatically.
+### 14.23 External URL checker — **implemented (2026-09-30)**
+- `:Markwright check urls` (completion under `check`); never automatic.
+- Collects `http(s)` URLs from inline links, images, `<autolinks>`, `[ref]:` definitions and bare URLs (`www.` → `https://`); skips code blocks/spans, local paths, `mailto:` and other schemes, and `url_check.ignore` patterns; a URL inside link text isn't counted twice. Each unique URL is requested once.
+- Requests: `curl -sS -o /dev/null -L --max-redirs 10 --max-time T -A <browser UA> -w %{http_code}`; `HEAD` (`-I`) first, then `GET -r 0-0` when HEAD returns an error status (not for unknown host / refused / timeout). Async via `vim.system`, at most `url_check.concurrency` (8) at once, `timeout_ms` 10000 each.
+- Classification: 2xx/3xx/416 ok; 401/403/429 "restricted" (INFO: needs a login or blocks automated checks); other statuses and curl errors (6 host not found, 7 refused, 28 timed out, 35/51/58/60 TLS/certificate, 47 redirects) "broken" (`url_check.severity`, WARN).
+- Output: diagnostics in their own namespace `markwright_urls` on every occurrence (kept until the next run; unaffected by the on-save link diagnostics), the quickfix list titled "markwright: external links" (opened without stealing focus when something is wrong, `url_check.open_quickfix`), and a summary notification.
+- Tests mock the request function; one test runs real curl against a local `python3 -m http.server` (skipped when curl or python3 is missing).
