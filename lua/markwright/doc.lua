@@ -126,9 +126,11 @@ end
 
 --- Remove code spans from a line (so scans don't see their content).
 function M.strip_code_spans(line)
-  return (line:gsub("(`+)(.-)%1", function(ticks, inner)
-    return ticks .. string.rep(" ", #inner) .. ticks -- keep column positions
-  end))
+  return (
+    line:gsub("(`+)(.-)%1", function(ticks, inner)
+      return ticks .. string.rep(" ", #inner) .. ticks -- keep column positions
+    end)
+  )
 end
 
 --- Link reference definitions `[label]: dest` (footnotes excluded).

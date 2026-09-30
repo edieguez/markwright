@@ -292,11 +292,7 @@ function M.expr_last_char()
     return last -- typing inside inline code, e.g. `for(;;)`
   end
   local bs = string.rep("<BS>", vim.fn.strchars(prefix))
-  return ("%s<Cmd>lua require('markwright.insert').menu(%q, %s)<CR>"):format(
-    bs,
-    t,
-    ctx == "span" and '"span"' or "nil"
-  )
+  return ("%s<Cmd>lua require('markwright.insert').menu(%q, %s)<CR>"):format(bs, t, ctx == "span" and '"span"' or "nil")
 end
 
 --- Mapping for key triggers like <C-g>.

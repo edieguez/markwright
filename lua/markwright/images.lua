@@ -7,7 +7,18 @@ local util = require("markwright.util")
 
 local M = {}
 
-M.IMAGE_EXT = { png = true, jpg = true, jpeg = true, gif = true, webp = true, svg = true, bmp = true, tiff = true, heic = true, avif = true }
+M.IMAGE_EXT = {
+  png = true,
+  jpg = true,
+  jpeg = true,
+  gif = true,
+  webp = true,
+  svg = true,
+  bmp = true,
+  tiff = true,
+  heic = true,
+  avif = true,
+}
 
 local function opts()
   return config.options.images
@@ -161,7 +172,7 @@ end
 --- Turn a typed name into a safe file name (no extension).
 function M.sanitize(name)
   name = vim.trim(name):gsub("%.%w+$", "")
-  name = name:gsub("[/\\:*?\"<>|]", ""):gsub("%s+", "-")
+  name = name:gsub('[/\\:*?"<>|]', ""):gsub("%s+", "-")
   return name
 end
 

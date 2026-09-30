@@ -45,8 +45,12 @@ function M.split_row(line)
     table.remove(segs, 1)
   end
   local last = segs[#segs]
-  if #segs > 1 and line:sub(last[1] + 1, last[2]):match("^%s*$")
-    and line:sub(last[1], last[1]) == "|" and line:sub(last[1] - 1, last[1] - 1) ~= "\\" then
+  if
+    #segs > 1
+    and line:sub(last[1] + 1, last[2]):match("^%s*$")
+    and line:sub(last[1], last[1]) == "|"
+    and line:sub(last[1] - 1, last[1] - 1) ~= "\\"
+  then
     table.remove(segs)
   end
   local cells = {}

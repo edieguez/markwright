@@ -2,7 +2,8 @@
 local M = {}
 
 -- Non-ASCII punctuation GitHub drops from anchors.
-local UNICODE_PUNCT = { "—", "–", "«", "»", "“", "”", "‘", "’", "…", "¿", "¡", "·", "•", "©", "®", "™" }
+local UNICODE_PUNCT =
+  { "—", "–", "«", "»", "“", "”", "‘", "’", "…", "¿", "¡", "·", "•", "©", "®", "™" }
 
 --- Replace links/images with their text (keeps other inline formatting).
 function M.strip_links(text)
