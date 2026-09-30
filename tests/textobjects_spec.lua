@@ -92,7 +92,6 @@ local cases = {
   { "dih on a parent includes subsections", SECTIONS, { 3, 0 }, "dih", { "# A", "" } },
   { "cih", SECTIONS, { 6, 0 }, "cihnew<Esc>", { "# A", "", "text a", "", "## B", "new", "", "## C", "c1" } },
   { "setext heading", { "Title", "=====", "body", "more" }, { 3, 0 }, "dih", { "Title", "=====" } },
-  { "before the first heading: nothing", { "intro", "# A", "x" }, { 1, 0 }, "dah", { "intro", "# A", "x" } },
   { "headings in code don't count", { "# A", "```", "# not", "```", "x" }, { 5, 0 }, "dih", { "# A" } },
 
   -- table cells
@@ -126,6 +125,68 @@ local cases = {
   { "italic inside a link", { "[x *em* y](u)" }, { 1, 5 }, "di*", { "[x ** y](u)" } },
   { "searches forward on the line", { "x **y** z" }, { 1, 0 }, "di*", { "x **** z" } },
   { "visual vi*", { "a *it* b" }, { 1, 4 }, "vi*d", { "a ** b" } },
+
+  -- not inside one: the next one, even on later lines (like mini.ai)
+  {
+    "cik: link on a later line",
+    { "no link here", "", "see [a](u)" },
+    { 1, 0 },
+    "cikX<Esc>",
+    { "no link here", "", "see [X](u)" },
+    { 3, 5 },
+  },
+  { "dak: image on the next line", { "text", "![alt](i.png) end" }, { 1, 2 }, "dak", { "text", " end" } },
+  { "ciu: URL on a later line", { "x", "[t](old)" }, { 1, 0 }, "ciunew<Esc>", { "x", "[t](new)" } },
+  { "dik: bare URL on the next line", { "x", "go https://a.io now" }, { 1, 0 }, "dik", { "x", "go  now" } },
+  {
+    "cic: inline code on a later line",
+    { "text", "", "use `x` here" },
+    { 1, 0 },
+    "cicY<Esc>",
+    { "text", "", "use `Y` here" },
+  },
+  { "dic: code block below", { "text", "```", "a", "```" }, { 1, 0 }, "dic", { "text", "```", "```" } },
+  { "ci*: emphasis on the next line", { "plain", "a **b** c" }, { 1, 0 }, "ci*Z<Esc>", { "plain", "a **Z** c" } },
+  { "di*: highlight on the next line", { "plain", "a ==h== c" }, { 1, 0 }, "di*", { "plain", "a ==== c" } },
+  { "ciL: list item below", { "intro", "", "- item" }, { 1, 0 }, "ciLW<Esc>", { "intro", "", "- W" } },
+  {
+    "ci|: table below",
+    { "intro", "", "| a | b |", "|---|---|" },
+    { 1, 0 },
+    "ci|V<Esc>",
+    { "intro", "", "| V   | b   |", "| --- | --- |" },
+  },
+  { "dah: before the first heading, the next section", { "intro", "", "# A", "a" }, { 1, 0 }, "dah", { "intro", "" } },
+  { "vik selects the next link", { "x", "[ab](u)" }, { 1, 0 }, "vikd", { "x", "[](u)" } },
+  {
+    "the next one after the cursor, not the first on the line",
+    { "[a](u) [b](v)", "[c](w)" },
+    { 1, 6 },
+    "cikX<Esc>",
+    { "[a](u) [X](v)", "[c](w)" },
+  },
+  {
+    "dot-repeat moves on to the following link",
+    { "[a](u)", "text", "[b](v)" },
+    { 1, 1 },
+    { "cikX<Esc>", "j." },
+    { "[X](u)", "text", "[X](v)" },
+  },
+  { "never searches backwards", { "[a](u)", "text" }, { 2, 0 }, "dik", { "[a](u)", "text" } },
+  {
+    "search limit",
+    fn = function()
+      local config = require("markwright.config")
+      config.options.textobjects.search_lines = 1
+      local ok, err = pcall(function()
+        H.buf({ "x", "y", "z", "[a](u)" }, { 1, 0 })
+        H.feed("dik")
+        eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { "x", "y", "z", "[a](u)" })
+      end)
+      config.options.textobjects.search_lines = 500
+      assert(ok, err)
+    end,
+  },
 
   -- configuration
   {

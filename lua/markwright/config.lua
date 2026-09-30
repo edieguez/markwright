@@ -60,6 +60,7 @@ M.defaults = {
     cell = "|", -- i|/a|: table cell text / cell with padding
     item = "L", -- iL/aL: list item text / item with its children
     emphasis = "*", -- i*/a*: inside / around *, **, ~~, ==
+    search_lines = 500, -- not inside an object: use the next one within this many lines
   },
   tables = {
     align_on_insert_leave = true,

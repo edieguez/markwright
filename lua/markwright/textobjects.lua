@@ -438,6 +438,154 @@ function M.emphasis(buf, row, col, inner, count)
   return r
 end
 
+-- Forward search ------------------------------------------------------------------
+-- When the cursor isn't inside an object, the next one after the cursor is used
+-- (like mini.ai's default "cover_or_next"), up to `textobjects.search_lines`
+-- lines ahead. Each object lists the positions where its instances start; the
+-- object function is then evaluated at the first position after the cursor.
+
+local function walk(node, fn)
+  fn(node)
+  for c in node:iter_children() do
+    walk(c, fn)
+  end
+end
+
+--- Start positions of inline nodes of `types` in rows [from, to].
+local function inline_anchors(p, types, from, to, out)
+  local inl = p:children()["markdown_inline"]
+  if not inl then
+    return
+  end
+  for _, tree in ipairs(inl:trees()) do
+    local root = tree:root()
+    local sr, _, er = root:range()
+    if er >= from and sr <= to then
+      walk(root, function(n)
+        if types[n:type()] then
+          local r, c = n:range()
+          if r >= from and r <= to then
+            table.insert(out, { r, c })
+          end
+        end
+      end)
+    end
+  end
+end
+
+--- Start positions of block nodes of `types` in rows [from, to] (`col` picks
+--- the column: "start" = node start, a number = that column).
+local function block_anchors(p, types, from, to, out)
+  local trees = p:trees()
+  if not trees[1] then
+    return
+  end
+  walk(trees[1]:root(), function(n)
+    if types[n:type()] then
+      local r, c = n:range()
+      if r >= from and r <= to then
+        table.insert(out, { r, c })
+      end
+    end
+  end)
+end
+
+local URL_STARTS = { "%a[%w+.-]*://", "www%.", "mailto:" }
+
+local function bare_url_anchors(buf, from, to, out)
+  local links = require("markwright.links")
+  for r = from, to do
+    local line = get_line(buf, r)
+    for _, pat in ipairs(URL_STARTS) do
+      local init = 1
+      while true do
+        local s = line:find(pat, init)
+        if not s then
+          break
+        end
+        local sc = links.url_at(line, s - 1)
+        if sc then
+          table.insert(out, { r, sc })
+        end
+        init = s + 1
+      end
+    end
+  end
+end
+
+local ANCHORS = {}
+
+ANCHORS.link = function(buf, p, from, to, out)
+  inline_anchors(p, LINK_TYPES, from, to, out)
+  bare_url_anchors(buf, from, to, out)
+end
+ANCHORS.url = ANCHORS.link
+
+ANCHORS.code = function(_, p, from, to, out)
+  inline_anchors(p, { code_span = true }, from, to, out)
+  block_anchors(p, BLOCKS, from, to, out)
+end
+
+ANCHORS.section = function(buf, _, from, to, out)
+  for _, h in ipairs(require("markwright.doc").headings(buf)) do
+    if h.row >= from and h.row <= to then
+      table.insert(out, { h.row, 0 })
+    end
+  end
+end
+
+ANCHORS.cell = function(buf, p, from, to, out)
+  local tables = require("markwright.tables")
+  local found = {}
+  block_anchors(p, { pipe_table = true }, from, to, found)
+  for _, a in ipairs(found) do
+    local cells = tables.split_row(get_line(buf, a[1]))
+    if cells[1] then
+      table.insert(out, { a[1], cells[1].s })
+    end
+  end
+end
+
+ANCHORS.item = function(_, p, from, to, out)
+  block_anchors(p, { list_item = true }, from, to, out)
+end
+
+ANCHORS.emphasis = function(buf, p, from, to, out)
+  inline_anchors(p, EMPH, from, to, out)
+  for r = from, to do
+    local line = get_line(buf, r)
+    local open, i = nil, 1
+    while true do
+      local st = line:find("==", i, true)
+      if not st then
+        break
+      end
+      if open then
+        table.insert(out, { r, open - 1 })
+        open = nil
+      else
+        open = st
+      end
+      i = st + 2
+    end
+  end
+end
+
+--- Positions (0-based {row, col}) where objects of `name` start, from `row`
+--- to `row + lines`, in document order.
+function M.anchors(name, buf, row, lines)
+  local last = math.min(api.nvim_buf_line_count(buf) - 1, row + lines)
+  local p = ts.parse(buf, row, last)
+  local out = {}
+  if p then
+    ANCHORS[name](buf, p, row, last, out)
+  end
+  table.sort(out, function(a, b)
+    return a[1] < b[1] or (a[1] == b[1] and a[2] < b[2])
+  end)
+  return out
+end
+
 -- Selecting ------------------------------------------------------------------------
 
 local function is_empty(r)
@@ -469,8 +617,24 @@ function M.select(r)
 end
 
 local function compute(name, inner, count)
+  local buf = api.nvim_get_current_buf()
   local row, col = unpack(api.nvim_win_get_cursor(0))
-  return M.OBJECTS[name].fn(api.nvim_get_current_buf(), row - 1, col, inner, count)
+  row = row - 1
+  local fn = M.OBJECTS[name].fn
+  local r = fn(buf, row, col, inner, count)
+  if r then
+    return r
+  end
+  -- not inside one: the next one after the cursor
+  local lines = config.options.textobjects.search_lines or 500
+  for _, a in ipairs(M.anchors(name, buf, row, lines)) do
+    if a[1] > row or (a[1] == row and a[2] > col) then
+      r = fn(buf, a[1], a[2], inner, count)
+      if r then
+        return r
+      end
+    end
+  end
 end
 
 --- Called from the mapping's <Cmd>; recomputes the range so dot-repeat works

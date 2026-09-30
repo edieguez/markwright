@@ -462,7 +462,8 @@ ci*       change the bold/italic text, keep the markers
 va*       select an emphasized span, markers included
 ```
 
-- **Where the cursor can be:** anywhere inside the object. For a link that includes the brackets and the URL; for a section, any line in it, the heading included. For links, emphasis and bare URLs, when the cursor isn't inside one, the next one on the same line is used, like Vim's `ci"`.
+- **Where the cursor can be:** anywhere inside the object. For a link that includes the brackets and the URL; for a section, any line in it, the heading included.
+- **Not inside one? The next one is used**, even several lines below, like LazyVim's mini.ai text objects: with the cursor on a paragraph, `cik` changes the next link's text, `ci|` the first cell of the next table, `dah` (before the first heading) the first section. The search looks up to 500 lines ahead (`textobjects.search_lines`) and never backwards; if nothing is found, nothing happens. In visual mode, `vik` moves the selection to that next link.
 - **Counts reach outward:** `2ah` is the parent section, `2aL` the parent list item, `2i*` the next enclosing span (in `***x***`, `i*` is inside `**`, `2i*` inside `*`).
 - **Empty objects:** `cik` on `[](url)`, or `cic` on an empty code block, starts insert mode at the right spot. `d` and `y` do nothing.
 - **Dot-repeat:** `.` repeats the change on the object under the new cursor position (`cikNew<Esc>` then `f[.`).
@@ -1041,6 +1042,7 @@ require("markwright").setup({
     cell = "|",                     -- i| / a|
     item = "L",                     -- iL / aL
     emphasis = "*",                 -- i* / a*
+    search_lines = 500,             -- not inside an object: use the next one within this many lines
   },
   tables = {
     align_on_insert_leave = true,   -- realign when leaving insert mode in a table
