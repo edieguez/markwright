@@ -69,9 +69,9 @@ All five share one engine, so they behave the same way:
 - **Knows Markdown structure.** List markers, checkboxes, `>` and `#` are never wrapped.
 - **Skips code.** Nothing gets broken inside code blocks or code spans.
 - **Behaves like a native command.** Every action is dot-repeatable (`.`) and undoes in a single `u`.
-- **While typing, too.** In insert mode, type `;;` then `b` for `**|**` (or `i`, `s`, `c`, `h`, `l`). The same keys jump past the closing marker. There's no delay on normal `;` typing, and it works in any terminal.
+- **While typing, too.** In insert mode, type `;;` then `b` for `**|**` (or `i`, `s`, `c`, `h`, `k`). The same keys jump past the closing marker. There's no delay on normal `;` typing, and it works in any terminal.
 
-**Links** (`<leader>ml`) follow the same toggle idea:
+**Links** (`<leader>mk`) follow the same toggle idea:
 
 - **On a word or selection** it wraps the text as `[text](url)`. The URL comes from the clipboard if it holds one; otherwise you're prompted.
 - **On a bare URL** it turns the URL into `[Page Title](url)`, fetching the title in the background.
@@ -225,16 +225,16 @@ While typing, you don't need to leave insert mode:
 
 ```
 typed exactly:   ;;bbold;;b           →  **bold**|      (;;b opens the pair, ;;b again jumps out)
-                 ;;ldocs;;lurl;;l     →  [docs](url)|
+                 ;;kdocs;;kurl;;k     →  [docs](url)|
 ```
 
 For links, copy a URL in your browser, then:
 
 ```
-<leader>ml      link the word           docs  →  [docs](https://copied.url)
-vip<leader>ml   link the selection
-<leader>ml      on a bare URL           https://neovim.io  →  [Neovim — hyperextensible…](https://neovim.io)
-<leader>ml      on a link: remove it    [docs](https://…)  →  docs
+<leader>mk      link the word           docs  →  [docs](https://copied.url)
+vip<leader>mk   link the selection
+<leader>mk      on a bare URL           https://neovim.io  →  [Neovim — hyperextensible…](https://neovim.io)
+<leader>mk      on a link: remove it    [docs](https://…)  →  docs
 viwp            paste URL over a word   here  →  [here](https://copied.url)
 ```
 
@@ -282,8 +282,8 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `<leader>mS` + motion             | normal         | Strikethrough operator                                                            |
 | `<leader>mC` + motion             | normal         | Inline code operator                                                              |
 | `<leader>mH` + motion             | normal         | Highlight operator                                                                |
-| `;;` then `i` `b` `s` `c` `h` `l` | insert         | **Formatting while typing**: open a pair, or jump out of it (see below)           |
-| `<leader>ml`                      | normal, visual | **Link**: create, convert a bare URL, or remove                                   |
+| `;;` then `i` `b` `s` `c` `h` `k` | insert         | **Formatting while typing**: open a pair, or jump out of it (see below)           |
+| `<leader>mk`                      | normal, visual | **Link**: create, convert a bare URL, or remove                                   |
 | `p`                               | visual         | Paste; a URL over the selection makes `[selection](url)`                          |
 | `p` / `P`                         | normal         | Paste; a bare URL becomes `[Page Title](url)`                                     |
 | `gx`                              | normal         | **Follow** link, anchor, file, image or footnote                                  |
@@ -438,7 +438,7 @@ In insert mode, type **`;;`** and then a letter:
 | `s` | `~~\|~~` | jumps past `~~` |
 | `c` | `` `\|` `` | jumps past the backtick |
 | `h` | `==\|==` | jumps past `==` |
-| `l` | `[\|]()`, or `[\|](url)` when the clipboard holds a URL | 1st: into the `()`; 2nd: past `)` |
+| `k` | `[\|]()`, or `[\|](url)` when the clipboard holds a URL | 1st: into the `()`; 2nd: past `)` |
 
 (`|` is the cursor.)
 
@@ -446,7 +446,7 @@ Keys typed exactly as shown:
 
 ```
 ;;bimportant;;b and ;;ialso;;i this   →   **important** and *also* this
-;;lthe docs;;lhttps://x.io;;l         →   [the docs](https://x.io)
+;;kthe docs;;khttps://x.io;;k         →   [the docs](https://x.io)
 ;;bbold ;;iboth;;i;;b                 →   **bold *both***
 ```
 
@@ -481,7 +481,7 @@ Avoid `<C-m>` (it's Enter in most terminals) and `<C-i>` (it's Tab).
 
 ## Links in detail
 
-### What `<leader>ml` does
+### What `<leader>mk` does
 
 The link key looks at what's under the cursor (or selected) and picks one action:
 
@@ -882,7 +882,7 @@ With `images.smart_paste = true`, pressing `p` (with `clipboard=unnamedplus`, as
 | `:Markwright strike`               | Toggle strikethrough                                                          |
 | `:Markwright code`                 | Toggle inline code                                                            |
 | `:Markwright highlight`            | Toggle highlight                                                              |
-| `:Markwright link`                 | Same as `<leader>ml` on the cursor position                                   |
+| `:Markwright link`                 | Same as `<leader>mk` on the cursor position                                   |
 | `:Markwright follow`               | Same as `gx`                                                                  |
 | `:Markwright fence`                | Insert a code fence; with a range (`:'<,'>Markwright fence`) wrap those lines |
 | `:Markwright footnote`             | Insert a footnote                                                             |

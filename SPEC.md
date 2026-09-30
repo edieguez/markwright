@@ -20,7 +20,7 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
   - [x] per-line multi-line wrapping, prefix skipping, whitespace trimming
   - [x] backtick escalation for inline code; code guard
   - [x] dot-repeat; one undo step per action
-- [x] **Formatting while typing** — `;;` + `i`/`b`/`s`/`c`/`h`/`l`, jump out, configurable trigger (§13.2)
+- [x] **Formatting while typing** — `;;` + `i`/`b`/`s`/`c`/`h`/`k`, jump out, configurable trigger (§13.2)
 - [x] **Links** (§7)
   - [x] link key: clipboard URL / prompt / bare URL → titled link / unlink
   - [x] async page titles (curl), domain fallback
@@ -242,7 +242,7 @@ All buffer-local, Markdown only. `<P>` = configured prefix (default `<leader>m`)
 | n, x | `<P>c` | Toggle inline code |
 | n, x | `<P>h` | Toggle highlight |
 | n | `<P>I` / `<P>B` / `<P>S` / `<P>C` / `<P>H` | Operator versions (+ motion) **[OPEN]** key choice |
-| n, x | `<P>l` | Link: create / convert URL / remove |
+| n, x | `<P>k` | Link: create / convert URL / remove |
 | x | `p` | Smart paste (URL over selection → link) |
 | n | `p` / `P` | Smart paste (bare URL → titled link) |
 | n | `gx` | Follow link / anchor / file / image / footnote |
@@ -260,7 +260,7 @@ All buffer-local, Markdown only. `<P>` = configured prefix (default `<leader>m`)
 | n | `<P>ta` | Align table now |
 | n | `<P>T` | Insert/update TOC |
 | n, x | `<P>p` | Paste image (visual: selection = alt text) |
-| i | `;;` + `i`/`b`/`s`/`c`/`h`/`l` | Formatting while typing (trigger configurable) |
+| i | `;;` + `i`/`b`/`s`/`c`/`h`/`k` | Formatting while typing (trigger configurable) |
 
 **Planned keys** (§14; all **[OPEN]** until implemented): text objects `il`/`al`, `ic`/`ac`, `ih`/`ah`, `i\|`/`a\|`, `iL`/`aL`, `i*`/`a*`; `]]`/`[[` headings; `<P>o` outline; `<P>v` rich paste; `<P>a`/`<P>A` callouts; `<M-j>`/`<M-k>` move list items/sections; `<P>*` cycle bullet; `<P>L`/`<P>N` lines ↔ bullet/numbered list; `<P>+`/`<P>_` promote/demote with children; `<P>ts` sort table; `<P>t<`/`<P>t>` move column; `<P>r` inline ↔ reference link.
 
@@ -324,7 +324,7 @@ If the target is inside `code_span`, `fenced_code_block` or `indented_code_block
 
 ## 7. Links (`links.lua`, `title.lua`)
 
-### 7.1 Link key (`<P>l`)
+### 7.1 Link key (`<P>k`)
 | Situation | Result |
 |---|---|
 | Text/word, clipboard (`+`) contains a URL | `[text](url)` immediately |
@@ -477,7 +477,7 @@ Decisions (all configurable under `images`):
 - Still open: Linux/WSL backends (`wl-paste`, `xclip`, `powershell.exe`), compression/WebP, cleanup of unreferenced images.
 
 ### 13.2 Insert-mode formatting keys — **implemented (2026-09-30)**
-- Trigger `;;` (config `insert.trigger`: 2+ characters, a key like `<C-g>`, or `""` to disable), then `i` `b` `s` `c` `h` `l`. Chosen for portability: plain characters work in every terminal and layout; `<C-m>` (= Enter), `<C-i>` (= Tab), Option/Meta keys and completion-plugin keys were ruled out.
+- Trigger `;;` (config `insert.trigger`: 2+ characters, a key like `<C-g>`, or `""` to disable), then `i` `b` `s` `c` `h` `k`. Chosen for portability: plain characters work in every terminal and layout; `<C-m>` (= Enter), `<C-i>` (= Tab), Option/Meta keys and completion-plugin keys were ruled out.
 - No timeout: only the trigger's last character is mapped, and it fires only when the preceding characters were just typed in sequence (tracked with InsertCharPre). The menu then waits for the key with no time limit (`getcharstr`) and shows a hint.
 - Unknown key → the trigger text plus that key are typed as-is; `<Esc>` restores the trigger and leaves insert mode. Key triggers pass unknown keys to their previous meaning (`<C-g>u`, plugin mappings).
 - Pressing the same format again right before its closing marker jumps out (tracked with extmarks; falls back to the text shape for pairs typed by hand). Links go text → URL → out; a clipboard URL skips the URL stage.

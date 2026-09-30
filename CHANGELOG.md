@@ -10,6 +10,7 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ### Changed
 
+- **Link keys moved to `k`**, the usual link shortcut in other editors: `<leader>ml` is now `<leader>mk`, and `;;l` (formatting while typing) is now `;;k`. The `l` versions are gone; if you prefer them, map `<leader>ml` yourself to `require("markwright.links").expr_normal()` (see Custom keymaps in the README).
 - CSV → table now asks for the separator, prefilled with the detected one (Enter accepts it), like table → CSV. Detection also recognizes `|` and `:`, and looks at all selected lines instead of only the first.
 - CSV separators can be several characters long (`::`, `; `).
 
