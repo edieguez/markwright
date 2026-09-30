@@ -8,6 +8,10 @@ local subcommands = {
   health = function()
     vim.cmd("checkhealth mdtools")
   end,
+  link = function()
+    local keys = vim.api.nvim_replace_termcodes(require("mdtools.links").expr_normal(), true, false, true)
+    vim.api.nvim_feedkeys(keys, "nx", false)
+  end,
 }
 for _, fmt in ipairs({ "italic", "bold", "strike", "code", "highlight" }) do
   subcommands[fmt] = function()

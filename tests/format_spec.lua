@@ -78,4 +78,4 @@ local cases = {
   { "middle space keeps spacing", { "a b" }, { 1, 1 }, " mbx\27", { "a **x** b" } },
 }
 
-H.run(cases)
+return H.run("format", cases)

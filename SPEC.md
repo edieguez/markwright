@@ -221,7 +221,8 @@ If the target is inside `code_span`, `fenced_code_block` or `indented_code_block
 | Text/word, clipboard has no URL | Prompt (`vim.ui.input`) for URL; cancel = no-op |
 | Target is a bare URL | `[Page Title](url)` via async title fetch |
 | Cursor on existing link (`inline_link`, reference link, `<autolink>`) | Remove link, keep text (`[text](url)` → `text`; `<url>` → `url`) |
-| Nothing (whitespace) | Prompt for URL, then text **[OPEN]** |
+| Nothing (whitespace) | Prompt for URL, then text; empty text → titled link (decided 2026-09-29) |
+| Image `![alt](src)` | No-op with warning |
 
 URL detection: `^%a[%w+.-]*://%S+$` plus `www.`-prefixed and `mailto:`. Trim whitespace and surrounding `<>`.
 
@@ -369,7 +370,7 @@ Decide approach during implementation.
 - Operator keymap names (section 5).
 - Heading promote/demote keys and which one turns plain text into a heading (9.1).
 - Partial-overlap selection behavior (6.9).
-- Link key on whitespace (7.1).
+- ~~Link key on whitespace (7.1)~~ — resolved: prompt URL, then text; empty text → page title.
 - Checkbox key on a non-list line (9.2).
 - Fence language prompt completion (9.3).
 - TOC default level range (4 / 9.6).
