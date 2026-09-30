@@ -35,20 +35,30 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
   - [x] auto-renumber (joined undo, lazy lists kept)
   - [x] completion/snippet-aware `<Tab>`/`<CR>` fallback (§13.3)
 - [x] **Code fences** — typed language, wrap selection, container-aware, fence escalation (§9.3)
-- [x] **Tables** — create, CSV/TSV → table, add/delete row/column, `<Tab>` cells, align on InsertLeave (§9.4)
+- [x] **Tables** — create, CSV/TSV → table, table → CSV (asks for the separator), add/delete row/column, `<Tab>` cells, align on InsertLeave (§9.4)
 - [x] **Footnotes** — insert + jump (§9.5)
 - [x] **TOC** — markers, nested entries, refresh on save (§9.6)
 - [x] **Link diagnostics** — files, anchors, references, footnotes; on open/save; `:Markwright check` (§10)
 - [x] **Image paste, macOS** — screenshots, Finder files, paths, URLs; `assets/`; alt text (§13.1)
-- [x] **Tests** — 302 headless cases feeding real keys (§11)
+- [x] **Tests** — 314 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
 - [x] **Verified on macOS + LazyVim** (2026-09-30): clipboard links, live titles, `gx`, image paste (screenshot / Finder / browser), `<CR>` with blink.cmp + mini.pairs, `<Tab>` in snippets/lists/tables, `;;` hint with noice, no duplicate diagnostics
+
+### Release 0.1.0
+
+- [x] Minimum Neovim version verified: full suite on 0.10.0, 0.10.4 and 0.11
+- [x] Formatting and lint: `.stylua.toml`, `selene.toml` + `vim.yml`; code formatted, 0 selene findings
+- [x] README for the public repo: installation for all major managers, keys markwright changes, known limitations, license (MPL-2.0)
+- [x] `CHANGELOG.md`
+- [x] `v0.1.0` git tag
+- [ ] CI workflow and `Makefile` targets (`fmt`, `lint`, `check`) added to the repo — files are written; they are protected from remote writes, so they're added by hand
+- [ ] Pushed to GitHub (`git push && git push --tags`)
 
 ### Not implemented
 
 **Project / platform**
 - [ ] Image paste on Linux (Wayland/X11) and WSL (§14.1)
 - [ ] `:help markwright` vimdoc (§14.2)
-- [ ] CI: GitHub Actions on Neovim stable, nightly and 0.10 (§14.3)
+- [ ] CI: GitHub Actions on Neovim 0.10.0, stable and nightly × Linux/macOS, plus stylua/selene (§14.3) — workflow written, see Release 0.1.0
 - [x] Rename the plugin to **markwright.nvim** (§14.4)
 
 **Small follow-ups**
@@ -67,7 +77,7 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 - [ ] List tools: move items with children, sort, cycle bullets, lines ↔ list (§14.12)
 - [ ] Checkbox progress counters `[2/5]` / `[40%]` (§14.13)
 - [ ] Completion dates on checked tasks (§14.14)
-- [ ] Table extras: sort by column, move columns, table → CSV (§14.15)
+- [ ] Table extras: sort by column, move columns, transpose, copy as CSV to the clipboard (§14.15)
 - [ ] Section operations: move heading sections, promote/demote with children (§14.16)
 - [ ] Inline ↔ reference link conversion (§14.17)
 - [ ] Footnote renumbering (§14.18)
@@ -394,6 +404,7 @@ GitHub style: lowercase, strip punctuation except `-` and `_`, spaces → `-`, k
 ### 9.4 Tables (`tables.lua`)
 - **Create** (`<P>tt`): prompt `rows x cols` (e.g. `3x4`), insert header row, delimiter row and empty body rows, cursor in first header cell.
 - **CSV → table** (`<P>tc`): visual selection; auto-detect delimiter (`,` / `\t` / `;`), honor quoted fields; first line becomes the header; escape `|` in cells.
+- **Table → CSV** (`<P>tx`, `:Markwright table tocsv`; implemented 2026-09-30): replaces the table under the cursor with CSV lines — the opposite of `<P>tc`. Asks `Separator:` prefilled with `tables.csv_separator` (default `,`); `\t`/`tab` mean a tab, empty input means the default, cancel does nothing. Delimiter row dropped; short rows padded; fields quoted when they contain the separator, a `"` or edge spaces (quotes doubled); `\|` unescaped; indentation kept (tables in list items). One undo step; CSV → table → CSV round-trips.
 - **Row/column editing:** add row below / delete row; add column right / delete column (updates delimiter row).
 - **Cell navigation:** `<Tab>` / `<S-Tab>` in insert mode inside a table → next/previous cell; `<Tab>` in the last cell adds a new row.
 - **Align:** pad cells so pipes line up, using display width (`vim.fn.strdisplaywidth`, for accents/CJK/emoji); respect alignment markers (`:---`, `:---:`, `---:`). Runs on `InsertLeave` when the cursor was in a table, after row/col edits, and via `<P>ta`.
@@ -448,7 +459,8 @@ Implementation note: the markdown grammar has no footnotes, and a `[ref]: url` l
 - [ ] 11. Priority-1 features: text objects, heading navigation, rich-text paste (§14.8–14.10).
 - [ ] 12. Priority-2 features (§14.11–14.18).
 - [ ] 13. Linux/WSL image paste, image extras, fence completion (§14.1, §14.5, §14.6).
-- [ ] 14. Docs (`doc/markwright.txt`) and CI (§14.2, §14.3).
+- [x] 10b. Release 0.1.0 preparation: Neovim 0.10 check, stylua/selene, CHANGELOG, tag (see §0 Release 0.1.0).
+- [ ] 14. Docs (`doc/markwright.txt`) and CI (§14.2, §14.3) — CI workflow written, to be added to the repo.
 - [ ] 15. Priority-3 and optional features (§14.19–14.23).
 
 ---
@@ -593,7 +605,7 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 ### 14.15 Table extras (priority 2)
 - `<P>ts` **[OPEN]**: sort body rows by the column under the cursor (ascending; again → descending); numeric- and date-aware; header and delimiter stay.
 - `<P>t<` / `<P>t>` **[OPEN]**: move the current column left/right (alignment markers move with it).
-- `:Markwright table export [csv|tsv]`: copy the table to the clipboard as CSV/TSV (quoting as needed); `!` replaces the table in the buffer.
+- Table → CSV in the buffer is implemented (§9.4). Still open: a variant that copies the CSV to the clipboard instead of replacing the table (`:Markwright table tocsv!` **[OPEN]**).
 - `:Markwright table transpose`.
 
 ### 14.16 Section operations (priority 2)

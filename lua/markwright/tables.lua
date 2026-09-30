@@ -405,6 +405,72 @@ function M.from_csv_visual()
   M.from_csv(buf, api.nvim_buf_get_mark(buf, "<")[1] - 1, api.nvim_buf_get_mark(buf, ">")[1] - 1)
 end
 
+--- Interpret a typed separator: "\t" or "tab" mean a tab; empty means nil.
+function M.parse_sep(input)
+  if input == nil or input == "" then
+    return nil
+  end
+  if input == "\\t" or input:lower() == "tab" then
+    return "\t"
+  end
+  return input
+end
+
+--- One CSV field: quoted when it contains the separator, a quote, or
+--- leading/trailing spaces (RFC 4180 style, quotes doubled).
+function M.csv_field(text, sep)
+  text = text:gsub("\\|", "|") -- markdown escape, not part of the value
+  if text:find(sep, 1, true) or text:find('"', 1, true) or text:match("^%s") or text:match("%s$") then
+    return '"' .. text:gsub('"', '""') .. '"'
+  end
+  return text
+end
+
+--- CSV lines for a table model (delimiter row dropped, short rows padded).
+function M.to_csv_lines(t, sep)
+  local n = ncols(t)
+  local out = {}
+  for i, r in ipairs(t.rows) do
+    if i ~= 2 then
+      local fields = {}
+      for c = 1, n do
+        fields[c] = M.csv_field(r[c] or "", sep)
+      end
+      table.insert(out, t.indent .. table.concat(fields, sep))
+    end
+  end
+  return out
+end
+
+--- Replace the table under the cursor with CSV, asking for the separator
+--- (prefilled with `tables.csv_separator`). The opposite of from_csv().
+function M.to_csv()
+  local t, buf = current()
+  if not t then
+    return util.warn("not in a table")
+  end
+  local default = config.options.tables.csv_separator
+  local shown = default == "\t" and "\\t" or default
+  local sr, er = t.sr, t.er
+  local ns = api.nvim_create_namespace("markwright_tocsv")
+  local id = api.nvim_buf_set_extmark(buf, ns, sr, 0, { end_row = er, end_col = 0, right_gravity = false })
+  vim.ui.input({ prompt = "Separator: ", default = shown }, function(input)
+    local m = api.nvim_buf_get_extmark_by_id(buf, ns, id, { details = true })
+    pcall(api.nvim_buf_del_extmark, buf, ns, id)
+    if input == nil or not m[1] then
+      return
+    end
+    local sep = M.parse_sep(input) or default
+    local fresh = M.read(buf, m[1], m[3].end_row)
+    local lines = M.to_csv_lines(fresh, sep)
+    util.undo_break(buf)
+    api.nvim_buf_set_lines(buf, fresh.sr, fresh.er + 1, false, lines)
+    if buf == api.nvim_get_current_buf() then
+      api.nvim_win_set_cursor(0, { fresh.sr + 1, #fresh.indent })
+    end
+  end)
+end
+
 --- Add an empty row below the cursor (below the delimiter when on the header).
 function M.add_row()
   local t, buf = current()
