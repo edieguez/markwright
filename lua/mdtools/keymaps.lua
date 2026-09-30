@@ -116,6 +116,12 @@ function M.attach(buf)
   map("x", P .. "=", "<Esc><Cmd>lua require('mdtools.headings').change_visual(1)<CR>", "Heading: add #")
   map("x", P .. "-", "<Esc><Cmd>lua require('mdtools.headings').change_visual(-1)<CR>", "Heading: remove #")
 
+  -- images
+  map("n", P .. "p", function()
+    require("mdtools.images").paste()
+  end, "Paste image")
+  map("x", P .. "p", "<Esc><Cmd>lua require('mdtools.images').paste_visual()<CR>", "Paste image (selection = alt text)")
+
   -- toc
   map("n", P .. "T", function()
     require("mdtools.toc").insert()

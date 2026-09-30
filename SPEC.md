@@ -349,16 +349,14 @@ Implementation note: the markdown grammar has no footnotes, and a `[ref]: url` l
 
 ## 13. Pending / parked features
 
-### 13.1 Image paste — **parked**
-Agreed in principle, details deferred. To decide:
-- Target platforms and clipboard backends: Wayland (`wl-paste`), X11 (`xclip`), macOS (`pngpaste` / `osascript`), WSL/Windows (`powershell.exe`).
-- Save location: relative to file (`./assets/`), project root, or configurable per project.
-- File naming: timestamp template vs prompt.
-- Alt text: prompt or empty.
-- Also accept a file path or URL from the clipboard (copy vs link)?
-- Optional compression/conversion (WebP/PNG) and max width.
-- Cleanup of unreferenced images.
-- Relative vs absolute paths in the inserted `![alt](path)`.
+### 13.1 Image paste — **implemented for macOS (2026-09-29)**
+Decisions (all configurable under `images`):
+- Key `<P>p` (normal; visual = selection becomes alt text and is replaced), `:Mdtools image`; opt-in plain `p` when the clipboard holds an image and no text (`smart_paste`).
+- Sources: image data (saved as PNG), a Finder file (copied, format kept; detected via `«class furl»` before the icon image), a copied local image path (copied), a copied image URL (linked, not downloaded).
+- Backend: `pngpaste` when installed, else `osascript` (built in). Async via `vim.system`.
+- Save to `assets/` next to the file (relative, absolute, `~` or function); created on demand; name prompt prefilled with `image-%Y%m%d-%H%M%S` (Finder: original name); sanitized; never overwrites (`-1`, `-2`…).
+- Link path relative to the file, spaces/parens URL-encoded. Alt text from a typed name (default timestamp → empty), or `prompt` / `empty`.
+- Still open: Linux/WSL backends (`wl-paste`, `xclip`, `powershell.exe`), compression/WebP, cleanup of unreferenced images.
 
 ### 13.2 Insert-mode formatting keys — **parked**
 Keys that insert `**|**` around the cursor, or close the pair if already inside one. Key choice must avoid `<C-i>` (= `<Tab>`) and LazyVim insert mappings.

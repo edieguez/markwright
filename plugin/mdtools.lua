@@ -51,6 +51,9 @@ local subcommands = {
   footnote = function()
     require("mdtools.footnotes").insert()
   end,
+  image = function()
+    require("mdtools.images").paste()
+  end,
   toc = function()
     require("mdtools.toc").insert()
   end,
