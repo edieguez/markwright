@@ -139,6 +139,70 @@ local cases = {
   { "remove outside a callout does nothing", { "text" }, { 1, 0 }, " mA", { "text" } },
   { "remove then undo", { "> [!NOTE]", "> x" }, { 2, 0 }, { " mA", "u" }, { "> [!NOTE]", "> x" } },
 
+  -- continuing quotes and callouts
+  {
+    "<CR> after the marker continues the callout",
+    { "> [!NOTE]" },
+    { 1, 0 },
+    "A<CR>text<Esc>",
+    { "> [!NOTE]", "> text" },
+  },
+  {
+    "<CR> on a content line continues",
+    { "> [!NOTE]", "> one" },
+    { 2, 0 },
+    "A<CR>two<Esc>",
+    { "> [!NOTE]", "> one", "> two" },
+  },
+  {
+    "<CR> on an empty > line ends the quote",
+    { "> [!NOTE]", "> one", "> " },
+    { 3, 0 },
+    "A<CR>after<Esc>",
+    { "> [!NOTE]", "> one", "after" },
+  },
+  {
+    "Enter twice leaves the callout",
+    { "> [!TIP]", "> one" },
+    { 2, 0 },
+    "A<CR><CR>plain<Esc>",
+    { "> [!TIP]", "> one", "plain" },
+  },
+  { "bare > counts as empty", { "> a", ">" }, { 2, 0 }, "A<CR>x<Esc>", { "> a", "x" } },
+  { "plain blockquotes continue too", { "> quoted" }, { 1, 0 }, "A<CR>more<Esc>", { "> quoted", "> more" } },
+  { "nested quote keeps its level", { "> > deep" }, { 1, 0 }, "A<CR>x<Esc>", { "> > deep", "> > x" } },
+  { "empty nested line drops one level", { "> > deep", "> > " }, { 2, 0 }, "A<CR>x<Esc>", { "> > deep", "> x" } },
+  { "split in the middle", { "> hello world" }, { 1, 7 }, "i<CR><Esc>", { "> hello", "> world" } },
+  { "indented quote", { "- item", "  > quote" }, { 2, 0 }, "A<CR>x<Esc>", { "- item", "  > quote", "  > x" } },
+  { "list inside a quote still continues as a list", { "> - a" }, { 1, 0 }, "A<CR>b<Esc>", { "> - a", "> - b" } },
+  {
+    "code inside a callout keeps the >",
+    { "> [!NOTE]", "> ```", "> x = 1" },
+    { 3, 0 },
+    "A<CR>y<Esc>",
+    { "> [!NOTE]", "> ```", "> x = 1", "> y" },
+  },
+  {
+    "> in a normal code block is not a quote",
+    { "```", "> prompt" },
+    { 2, 0 },
+    "A<CR>x<Esc>",
+    { "```", "> prompt", "x" },
+  },
+  { "o continues the quote", { "> [!NOTE]", "> one" }, { 2, 0 }, "otwo<Esc>", { "> [!NOTE]", "> one", "> two" } },
+  { "O continues the quote above", { "> [!NOTE]", "> two" }, { 2, 0 }, "Oone<Esc>", { "> [!NOTE]", "> one", "> two" } },
+  { "<CR> outside quotes is unchanged", { "text" }, { 1, 0 }, "A<CR>x<Esc>", { "text", "x" } },
+  {
+    "can be turned off",
+    fn = function()
+      config.options.blockquotes.continue_on_enter = false
+      H.buf({ "> quoted" }, { 1, 0 })
+      H.feed("A<CR>x<Esc>")
+      config.options.blockquotes.continue_on_enter = true
+      eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { "> quoted", "x" })
+    end,
+  },
+
   -- commands and config
   {
     ":Markwright callout warning",

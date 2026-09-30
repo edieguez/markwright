@@ -504,22 +504,40 @@ local function cursor_item()
 end
 
 --- Insert-mode <CR>.
+local function quote_continues(buf)
+  local callouts = require("markwright.callouts")
+  return callouts.continues(buf, api.nvim_win_get_cursor(0)[1] - 1)
+end
+
 function M.expr_enter()
   local item, buf = cursor_item()
-  if util.completion_active() or not item or not opts().continue_on_enter then
+  if util.completion_active() then
     return util.fallback(buf, "i", "<CR>")
   end
-  return cmd("enter")
+  if item and opts().continue_on_enter then
+    return cmd("enter")
+  end
+  if not item and quote_continues(buf) then
+    local col = api.nvim_win_get_cursor(0)[2]
+    local prefix = require("markwright.callouts").quote_prefix(api.nvim_get_current_line())
+    if col >= #prefix:gsub("%s+$", "") then
+      return "<Cmd>lua require('markwright.callouts').enter()<CR>"
+    end
+  end
+  return util.fallback(buf, "i", "<CR>")
 end
 
 --- Normal-mode o / O.
 function M.expr_open(below)
   local key = below and "o" or "O"
-  local item = cursor_item()
-  if not item or not opts().continue_on_enter then
-    return key
+  local item, buf = cursor_item()
+  if item and opts().continue_on_enter then
+    return cmd("open", tostring(below))
   end
-  return cmd("open", tostring(below))
+  if not item and quote_continues(buf) then
+    return ("<Cmd>lua require('markwright.callouts').open(%s)<CR>"):format(tostring(below))
+  end
+  return key
 end
 
 --- Normal-mode checkbox key (<CR> by default).
