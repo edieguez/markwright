@@ -2,9 +2,14 @@
 
 Markdown editing for Neovim that feels native: one key adds a format, the same key removes it. It works on the word under the cursor, on a visual selection or with any motion. It also understands the Markdown structure through Treesitter instead of guessing with regular expressions.
 
-Built for LazyVim, and it works with any Neovim ≥ 0.10 setup.
+Built for LazyVim, and it works with any Neovim setup (0.10+, tested on 0.11).
 
-> **Status: all core features are complete and tested:** inline formatting (also while typing), links, `gx`, lists, checkboxes, headings, code fences, footnotes, tables, TOC, link diagnostics and image paste (macOS). See [Roadmap](#roadmap).
+> **Status: early release (0.1).** All core features are implemented, covered by 300+ headless tests, and used daily on macOS with LazyVim: inline formatting (also while typing), links, `gx`, lists, checkboxes, headings, code fences, footnotes, tables, TOC, link diagnostics and image paste (macOS). Expect rough edges on other setups; [issues](https://github.com/edieguez/markwright/issues) are welcome. See [Roadmap](#roadmap).
+
+```lua
+-- lazy.nvim / LazyVim
+{ "edieguez/markwright", ft = "markdown", opts = {} }
+```
 
 ---
 
@@ -13,6 +18,7 @@ Built for LazyVim, and it works with any Neovim ≥ 0.10 setup.
 - [Features](#features)
 - [Requirements](#requirements)
 - [Installation](#installation)
+- [Keys markwright changes](#keys-markwright-changes)
 - [Quick start](#quick-start)
 - [Keymaps](#keymaps)
 - [Inline formatting in detail](#inline-formatting-in-detail)
@@ -32,9 +38,11 @@ Built for LazyVim, and it works with any Neovim ≥ 0.10 setup.
 - [Custom keymaps and Lua API](#custom-keymaps-and-lua-api)
 - [Health check](#health-check)
 - [Troubleshooting](#troubleshooting)
+- [Known limitations](#known-limitations)
 - [Roadmap](#roadmap)
 - [Development](#development)
 - [Project layout](#project-layout)
+- [License](#license)
 
 ---
 
@@ -90,7 +98,7 @@ All five share one engine, so they behave the same way:
 
 ### Coming next
 
-Image paste on Linux/WSL, `:help` docs and CI. Details are in [Roadmap](#roadmap).
+Text objects, heading navigation, rich-text paste, callouts, image paste on Linux/WSL, `:help` docs and more. The full list, with what's done and what isn't, is in [Roadmap](#roadmap).
 
 ---
 
@@ -98,10 +106,11 @@ Image paste on Linux/WSL, `:help` docs and CI. Details are in [Roadmap](#roadmap
 
 | Requirement | Why |
 |---|---|
-| Neovim **≥ 0.10** | Modern Treesitter API, `vim.system`, `vim.ui.open` |
+| Neovim **≥ 0.10** (tested on 0.11) | Modern Treesitter API, `vim.system`, `vim.ui.open` |
 | Treesitter parsers **`markdown`** and **`markdown_inline`** | Structure detection. Bundled with Neovim 0.10+ and also installed by LazyVim's markdown extra |
 | `curl` *(optional)* | Fetching page titles for links. Preinstalled on macOS; without it, links use the domain name as text |
 | A clipboard provider *(optional)* | Creating links from a copied URL. Built in on macOS (`pbcopy`/`pbpaste`) |
+| macOS *(for image paste)* | Image paste uses `osascript` (built in) or `pngpaste` if installed. Other platforms: planned |
 
 Run `:checkhealth markwright` to verify everything.
 
@@ -109,54 +118,88 @@ Run `:checkhealth markwright` to verify everything.
 
 ## Installation
 
-### LazyVim / lazy.nvim, local checkout
+markwright needs `setup()` to be called (it registers the Markdown autocommands). With lazy.nvim, `opts = {}` does that for you; with other managers, call `require("markwright").setup()` yourself.
+
+### lazy.nvim / LazyVim
 
 Create `~/.config/nvim/lua/plugins/markwright.lua`:
 
 ```lua
 return {
   {
-    dir = "~/code/markwright.nvim", -- the folder that contains lua/ and plugin/
-    name = "markwright.nvim",
-    ft = "markdown",
-    opts = {},
+    "edieguez/markwright",
+    ft = "markdown", -- load when a Markdown file opens
+    opts = {
+      -- your options, see Configuration; {} uses the defaults
+    },
   },
 }
 ```
 
-Restart Neovim and open any `.md` file. lazy.nvim does not auto-update `dir` plugins. After editing the plugin, run `:Lazy reload markwright.nvim` or restart.
+To pin releases instead of following the main branch, add `version = "*"` (uses the latest git tag).
 
-### LazyVim / lazy.nvim, from a Git repository
-
-Once the repo is on GitHub (replace `you/markwright.nvim`):
+### mini.deps
 
 ```lua
-return {
-  { "you/markwright.nvim", ft = "markdown", opts = {} },
-}
+MiniDeps.add({ source = "edieguez/markwright" })
+require("markwright").setup()
 ```
 
-### Plain Neovim (no plugin manager)
+### packer.nvim
 
 ```lua
--- init.lua
-vim.opt.rtp:prepend(vim.fn.expand("~/code/markwright.nvim"))
-require("markwright").setup({})
+use({
+  "edieguez/markwright",
+  config = function()
+    require("markwright").setup()
+  end,
+})
 ```
 
-Or clone it into a native package directory:
+### vim-plug
+
+```vim
+Plug 'edieguez/markwright'
+" after plug#end():
+lua require("markwright").setup()
+```
+
+### Native packages (no plugin manager)
 
 ```sh
-git clone <repo> ~/.local/share/nvim/site/pack/local/start/markwright.nvim
+git clone https://github.com/edieguez/markwright \
+  ~/.local/share/nvim/site/pack/plugins/start/markwright
 ```
 
-Then call `require("markwright").setup({})` in your config.
+Then add `require("markwright").setup()` to your `init.lua`.
 
 ### Verifying the install
 
-1. `:Lazy` lists `markwright.nvim` as loaded (lazy.nvim users).
-2. `:checkhealth markwright` shows all parsers as OK.
-3. In a Markdown buffer, `<leader>m` opens the which-key **markdown** group.
+1. Open a Markdown file.
+2. `:checkhealth markwright` shows Neovim, the Treesitter parsers and the optional tools.
+3. `<leader>m` opens the which-key **markdown** group (if you use which-key), and `<leader>mb` on a word makes it bold.
+
+### Updating
+
+With lazy.nvim, `:Lazy update markwright`. Changes are listed in the [commit history](https://github.com/edieguez/markwright/commits/main) and, from the first tagged release on, in the release notes.
+
+---
+
+## Keys markwright changes
+
+Besides the `<leader>m…` keys, markwright maps a few everyday keys **in Markdown buffers only**. Each one does something extra in a specific place and behaves exactly as before everywhere else (it calls whatever mapping existed before, such as blink.cmp or mini.pairs, or the built-in key):
+
+| Key | Mode | Extra behavior | Only when | Turn off with |
+|---|---|---|---|---|
+| `<CR>` | normal, visual | Toggle checkboxes | On a list item | `lists.checkbox_key = ""` |
+| `<CR>` | insert | Continue the list | On a list item, no completion menu open | `lists.continue_on_enter = false` |
+| `o` / `O` | normal | Start a new list item | On a list item | `lists.continue_on_enter = false` |
+| `<Tab>` / `<S-Tab>` | insert | Next/previous table cell; nest/un-nest list item | In a table or on a list item, no completion menu or snippet active | `lists.tab_indent = false` (lists) |
+| `p` / `P` | normal, visual | Paste a URL as a link | The register holds a single URL | `links.smart_paste_normal = false`, `links.smart_paste_visual = false` |
+| `gx` | normal | Follow anchors, local files, footnotes, references | On a link or footnote (otherwise the default `gx`) | `follow.key = ""` |
+| `;` | insert | `;;` + letter formats while typing | Right after typing `;` (a single `;` is never delayed) | `insert.trigger = ""` |
+
+To opt out of every default key at once, set `keymaps = { enabled = false }` and map only what you want (see [Custom keymaps and Lua API](#custom-keymaps-and-lua-api)).
 
 ---
 
@@ -651,15 +694,15 @@ The marker text is configurable (`toc.marker_start` / `toc.marker_end`).
 
 When a Markdown buffer is opened and every time it's saved, markwright checks its links and shows problems as regular Neovim diagnostics (source `markwright`). They appear in the sign column, `]d`/`[d` navigation, and pickers like Trouble or `<leader>sd`:
 
-| Problem | Example message |
-|---|---|
-| Local file doesn't exist | `file not found: missing.md` |
-| `#anchor` has no matching heading | `no heading for #nope` |
-| Anchor missing in another file | `no heading #zzz in exists.md` |
-| Missing image | `file not found: gone.png` |
-| `[text][ref]` without a `[ref]:` definition | `undefined reference [ref]` |
-| `[^n]` without a definition | `no definition for [^n]` |
-| Footnote defined but never used | `footnote [^n] is never referenced` |
+| Problem                                     | Example message                     |
+| ------------------------------------------- | ----------------------------------- |
+| Local file doesn't exist                    | `file not found: missing.md`        |
+| `#anchor` has no matching heading           | `no heading for #nope`              |
+| Anchor missing in another file              | `no heading #zzz in exists.md`      |
+| Missing image                               | `file not found: gone.png`          |
+| `[text][ref]` without a `[ref]:` definition | `undefined reference [ref]`         |
+| `[^n]` without a definition                 | `no definition for [^n]`            |
+| Footnote defined but never used             | `footnote [^n] is never referenced` |
 
 What is **not** checked:
 
@@ -677,13 +720,13 @@ The diagnostics stay until the next save, even if you fix the link in the meanti
 
 In insert mode, `<CR>` on a list item starts the next item:
 
-| On this line | `<CR>` gives |
-|---|---|
-| `- one` | `- ` (same bullet: `-`, `*` or `+`, same spacing) |
-| `1. one` / `3) c` | `2. ` / `4) ` |
-| `- [x] done` | `- [ ] ` (new checkboxes start unchecked) |
-| `  - nested` | `  - ` (same indentation) |
-| `> - quoted` | `> - ` (inside the blockquote) |
+| On this line      | `<CR>` gives                                                             |
+| ----------------- | ------------------------------------------------------------------------ |
+| `- one`           | `- ` (same bullet: `-`, `*` or `+`, same spacing)                        |
+| `1. one` / `3) c` | `2. ` / `4) `                                                            |
+| `- [x] done`      | `- [ ] ` (new checkboxes start unchecked)                                |
+| `  - nested`      | `  - ` (same indentation)                                                |
+| `> - quoted`      | `> - ` (inside the blockquote)                                           |
 | `- ` (empty item) | Ends the list: the marker is removed and you keep typing on a plain line |
 
 - **In the middle of an item**, `<CR>` splits it: `- hello|world` becomes `- hello` and `- world`.
@@ -702,7 +745,7 @@ In insert mode, `<CR>` on a list item starts the next item:
 - **An ordered item that becomes the first of a new sublist restarts at `1.`**, and both lists renumber.
 - **The cursor stays on the same text.**
 
-```
+```shell
 - a              - a
 - b      <Tab>     - b
   - c    →           - c
@@ -732,12 +775,12 @@ Set `lists.auto_renumber = false` to turn it off.
 
 **`<CR>` in normal mode** on a list item:
 
-| Line | After `<CR>` |
-|---|---|
-| `- [ ] task` | `- [x] task` |
-| `- [x] task` or `- [X] task` | `- [ ] task` |
-| `- task` | `- [ ] task` (set `lists.checkbox_add = false` to skip this) |
-| Plain text, code blocks | Native `<CR>` (moves down) |
+| Line                         | After `<CR>`                                                 |
+| ---------------------------- | ------------------------------------------------------------ |
+| `- [ ] task`                 | `- [x] task`                                                 |
+| `- [x] task` or `- [X] task` | `- [ ] task`                                                 |
+| `- task`                     | `- [ ] task` (set `lists.checkbox_add = false` to skip this) |
+| Plain text, code blocks      | Native `<CR>` (moves down)                                   |
 
 In visual mode `<CR>` checks every list item in the selection, or unchecks them all if they're already all checked. The cursor doesn't move, and each toggle is one undo step. Pick another key with `lists.checkbox_key` (normal and visual), or `""` for none.
 
@@ -747,7 +790,7 @@ In visual mode `<CR>` checks every list item in the selection, or unchecks them 
 
 `<leader>m=` adds a `#`, `<leader>m-` removes one:
 
-```
+```shell
 Title       <leader>m=   →   # Title
 # Title     <leader>m=   →   ## Title
 ## Title    <leader>m-   →   # Title
@@ -769,13 +812,13 @@ Title       3<leader>m=  →   ### Title
 
 ### What it can paste
 
-| On the clipboard | What happens |
-|---|---|
-| Image data: a screenshot (⌘⇧⌃4), "Copy Image" from a browser, Preview… | Saved as PNG |
-| An image file copied in Finder (⌘C) | The file is copied, keeping its format (`.jpg`, `.gif`, `.webp`…) |
-| A copied path to an image (`/Users/me/pic.png`, `~/…`, `file://…`) | The file is copied |
-| A copied image URL (`https://…/pic.png`) | Linked as is: `![](https://…/pic.png)` (nothing downloaded) |
-| Anything else | Warning: "the clipboard has no image" |
+| On the clipboard                                                       | What happens                                                      |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Image data: a screenshot (⌘⇧⌃4), "Copy Image" from a browser, Preview… | Saved as PNG                                                      |
+| An image file copied in Finder (⌘C)                                    | The file is copied, keeping its format (`.jpg`, `.gif`, `.webp`…) |
+| A copied path to an image (`/Users/me/pic.png`, `~/…`, `file://…`)     | The file is copied                                                |
+| A copied image URL (`https://…/pic.png`)                               | Linked as is: `![](https://…/pic.png)` (nothing downloaded)       |
+| Anything else                                                          | Warning: "the clipboard has no image"                             |
 
 ### How it's saved
 
@@ -812,26 +855,26 @@ With `images.smart_paste = true`, pressing `p` (with `clipboard=unnamedplus`, as
 
 ## Commands
 
-| Command | Description |
-|---|---|
-| `:Markwright bold` | Toggle bold on the word under the cursor |
-| `:Markwright italic` | Toggle italic |
-| `:Markwright strike` | Toggle strikethrough |
-| `:Markwright code` | Toggle inline code |
-| `:Markwright highlight` | Toggle highlight |
-| `:Markwright link` | Same as `<leader>ml` on the cursor position |
-| `:Markwright follow` | Same as `gx` |
-| `:Markwright fence` | Insert a code fence; with a range (`:'<,'>Markwright fence`) wrap those lines |
-| `:Markwright footnote` | Insert a footnote |
-| `:Markwright image` | Paste the clipboard image (macOS) |
-| `:Markwright toc` | Insert or update the table of contents |
-| `:Markwright check` | Run link diagnostics now and report the count |
-| `:Markwright table create` | Create a table |
-| `:'<,'>Markwright table csv` | Convert the range from CSV/TSV |
-| `:Markwright table align` | Align the table under the cursor |
-| `:Markwright table row` / `delrow` | Add a row below / delete the row |
-| `:Markwright table col` / `delcol` | Add a column right / delete the column |
-| `:Markwright health` | Run `:checkhealth markwright` |
+| Command                            | Description                                                                   |
+| ---------------------------------- | ----------------------------------------------------------------------------- |
+| `:Markwright bold`                 | Toggle bold on the word under the cursor                                      |
+| `:Markwright italic`               | Toggle italic                                                                 |
+| `:Markwright strike`               | Toggle strikethrough                                                          |
+| `:Markwright code`                 | Toggle inline code                                                            |
+| `:Markwright highlight`            | Toggle highlight                                                              |
+| `:Markwright link`                 | Same as `<leader>ml` on the cursor position                                   |
+| `:Markwright follow`               | Same as `gx`                                                                  |
+| `:Markwright fence`                | Insert a code fence; with a range (`:'<,'>Markwright fence`) wrap those lines |
+| `:Markwright footnote`             | Insert a footnote                                                             |
+| `:Markwright image`                | Paste the clipboard image (macOS)                                             |
+| `:Markwright toc`                  | Insert or update the table of contents                                        |
+| `:Markwright check`                | Run link diagnostics now and report the count                                 |
+| `:Markwright table create`         | Create a table                                                                |
+| `:'<,'>Markwright table csv`       | Convert the range from CSV/TSV                                                |
+| `:Markwright table align`          | Align the table under the cursor                                              |
+| `:Markwright table row` / `delrow` | Add a row below / delete the row                                              |
+| `:Markwright table col` / `delcol` | Add a column right / delete the column                                        |
+| `:Markwright health`               | Run `:checkhealth markwright`                                                 |
 
 Subcommands tab-complete, including the `table` actions.
 
@@ -911,7 +954,7 @@ require("markwright").setup({
 })
 ```
 
-**Examples**
+## Examples
 
 Underscore italics and a different prefix:
 
@@ -961,49 +1004,49 @@ config = function(_, opts)
 end,
 ```
 
-| Function | Use |
-|---|---|
-| `require("markwright.format").expr_normal(fmt)` | Normal-mode `expr` mapping: word under the cursor, or empty markers on whitespace |
-| `require("markwright.format").expr_operator(fmt)` | `expr` mapping for visual mode, or a normal-mode operator that waits for a motion |
-| `require("markwright.format").toggle(fmt)` | Toggle on the word under the cursor from any Lua code (not an `expr` mapping) |
+| Function                                                                      | Use                                                                                                                                 |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `require("markwright.format").expr_normal(fmt)`                               | Normal-mode `expr` mapping: word under the cursor, or empty markers on whitespace                                                   |
+| `require("markwright.format").expr_operator(fmt)`                             | `expr` mapping for visual mode, or a normal-mode operator that waits for a motion                                                   |
+| `require("markwright.format").toggle(fmt)`                                    | Toggle on the word under the cursor from any Lua code (not an `expr` mapping)                                                       |
 | `require("markwright.format").apply(buf, fmt, mtype, srow, scol, erow, ecol)` | Low-level: toggle over a range. Rows and columns are 0-based bytes, `ecol` is inclusive, `mtype` is `"char"`, `"line"` or `"block"` |
 
 `fmt` is one of `"italic"`, `"bold"`, `"strike"`, `"code"`, `"highlight"`.
 
 Link entry points (all `expr = true` except where noted):
 
-| Function | Use |
-|---|---|
-| `require("markwright.links").expr_normal()` | Normal-mode link key |
-| `require("markwright.links").expr_visual()` | Visual-mode link key |
-| `require("markwright.links").expr_paste(after)` | Normal `p` (`after = true`) or `P` (`false`) |
-| `require("markwright.links").expr_paste_visual()` | Visual `p` |
-| `require("markwright.links").is_url(s)` / `url_at(line, col)` | Plain helpers (not mappings) |
-| `require("markwright.title").fetch(url, cb)` | Async title fetch; `cb(title | nil)` runs on the main loop |
+| Function                                                      | Use                                          |                             |
+| ------------------------------------------------------------- | -------------------------------------------- | --------------------------- |
+| `require("markwright.links").expr_normal()`                   | Normal-mode link key                         |                             |
+| `require("markwright.links").expr_visual()`                   | Visual-mode link key                         |                             |
+| `require("markwright.links").expr_paste(after)`               | Normal `p` (`after = true`) or `P` (`false`) |                             |
+| `require("markwright.links").expr_paste_visual()`             | Visual `p`                                   |                             |
+| `require("markwright.links").is_url(s)` / `url_at(line, col)` | Plain helpers (not mappings)                 |                             |
+| `require("markwright.title").fetch(url, cb)`                  | Async title fetch; `cb(title                 | nil)` runs on the main loop |
 
 Other features are plain functions, suitable for normal (non-`expr`) mappings:
 
-| Function | Use |
-|---|---|
-| `require("markwright.follow").follow()` | `gx` behavior at the cursor |
-| `require("markwright.follow").open_target(buf, dest)` | Follow a destination string (`#anchor`, path, URL) |
-| `require("markwright.fence").insert()` / `wrap(buf, srow, erow)` | Code fence at the cursor / around 0-based rows |
-| `require("markwright.footnotes").insert()` | Footnote at the cursor |
-| `require("markwright.tables").create()` / `align()` / `add_row()` / `delete_row()` / `add_col()` / `delete_col()` | Table commands at the cursor |
-| `require("markwright.tables").from_csv(buf, srow, erow)` | Convert 0-based rows from CSV/TSV |
-| `require("markwright.tables").expr_tab(dir)` | `expr` mapping for insert-mode cell navigation (`1` / `-1`) |
-| `require("markwright.toc").insert()` / `update(buf)` | Insert or refresh the TOC |
-| `require("markwright.diagnostics").check(buf)` / `collect(buf)` | Publish / just compute link diagnostics |
-| `require("markwright.slug").slug(text)` | GitHub-style anchor for heading text |
-| `require("markwright.lists").expr_enter()` / `expr_open(below)` / `expr_checkbox()` / `expr_tab(dir)` | `expr` mappings for insert `<CR>`, `o`/`O`, the checkbox key and insert `<Tab>` (tables + lists) |
-| `require("markwright.lists").toggle_range(srow, erow)` / `renumber(buf, row)` | Check or uncheck a range of 0-based rows / renumber the list around a row |
-| `require("markwright.headings").change(buf, srow, erow, delta)` | Add (`delta > 0`) or remove `#` on 0-based rows |
+| Function                                                                                                          | Use                                                                                              |
+| ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `require("markwright.follow").follow()`                                                                           | `gx` behavior at the cursor                                                                      |
+| `require("markwright.follow").open_target(buf, dest)`                                                             | Follow a destination string (`#anchor`, path, URL)                                               |
+| `require("markwright.fence").insert()` / `wrap(buf, srow, erow)`                                                  | Code fence at the cursor / around 0-based rows                                                   |
+| `require("markwright.footnotes").insert()`                                                                        | Footnote at the cursor                                                                           |
+| `require("markwright.tables").create()` / `align()` / `add_row()` / `delete_row()` / `add_col()` / `delete_col()` | Table commands at the cursor                                                                     |
+| `require("markwright.tables").from_csv(buf, srow, erow)`                                                          | Convert 0-based rows from CSV/TSV                                                                |
+| `require("markwright.tables").expr_tab(dir)`                                                                      | `expr` mapping for insert-mode cell navigation (`1` / `-1`)                                      |
+| `require("markwright.toc").insert()` / `update(buf)`                                                              | Insert or refresh the TOC                                                                        |
+| `require("markwright.diagnostics").check(buf)` / `collect(buf)`                                                   | Publish / just compute link diagnostics                                                          |
+| `require("markwright.slug").slug(text)`                                                                           | GitHub-style anchor for heading text                                                             |
+| `require("markwright.lists").expr_enter()` / `expr_open(below)` / `expr_checkbox()` / `expr_tab(dir)`             | `expr` mappings for insert `<CR>`, `o`/`O`, the checkbox key and insert `<Tab>` (tables + lists) |
+| `require("markwright.lists").toggle_range(srow, erow)` / `renumber(buf, row)`                                     | Check or uncheck a range of 0-based rows / renumber the list around a row                        |
+| `require("markwright.headings").change(buf, srow, erow, delta)`                                                   | Add (`delta > 0`) or remove `#` on 0-based rows                                                  |
 
 ---
 
 ## Health check
 
-```
+```shell
 :checkhealth markwright
 ```
 
@@ -1023,8 +1066,9 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 ## Troubleshooting
 
 **The keymaps don't exist.**
+
 - Make sure the buffer's filetype is `markdown` (`:set ft?`). Keymaps are buffer-local.
-- Check `:Lazy` to see whether the plugin loaded, and that `dir` points at the folder containing `lua/` and `plugin/`.
+- Check `:Lazy` to see whether the plugin loaded (with a local checkout, check that `dir` points at the folder containing `lua/` and `plugin/`).
 - Check for conflicts with `:verbose nmap <leader>mb`.
 
 **The which-key group doesn't show.** The group is registered only when which-key is loaded at the moment the buffer attaches. The keymaps work regardless.
@@ -1040,6 +1084,7 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 **The link key prompts even though I copied a URL.** The clipboard must hold only the URL, on one line. Check with `:echo getreg('+')`. If it's empty, Neovim can't see the system clipboard: run `:checkhealth provider`.
 
 **Links keep the domain instead of the page title.**
+
 - Run `:checkhealth markwright` to confirm `curl` is found.
 - Some sites block non-browser requests or build their title with JavaScript. The domain is kept in that case.
 - A slow site may exceed `links.title_timeout_ms`.
@@ -1052,6 +1097,7 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 **`<Tab>` doesn't accept my completion.** markwright checks for a visible blink.cmp or nvim-cmp menu, the built-in popup and active snippets before touching `<Tab>`. If your completion plugin maps `<Tab>` in a way it can't detect, disable table navigation by overriding it: `vim.keymap.set("i", "<Tab>", "<Tab>", { buffer = true })` in a `FileType markdown` autocmd, or map completion to another key.
 
 **Diagnostics complain about a link that works on GitHub.**
+
 - Anchors are compared with GitHub's slug rules; headings with unusual Unicode punctuation may differ slightly.
 - Relative links are resolved from the file's folder, not the repository root. Root-relative `/docs/x.md` paths are treated as absolute filesystem paths.
 - `:Markwright check` shows the current count after a fix. Diagnostics otherwise refresh on save.
@@ -1072,30 +1118,58 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 
 ---
 
+## Known limitations
+
+- **Image paste is macOS only** for now. On Linux and WSL, `<leader>mp` shows a warning; backends for `wl-paste`, `xclip` and PowerShell are planned.
+- **Neovim 0.10** is the intended minimum, but the plugin has only been tested on 0.11 so far.
+- **Link diagnostics refresh on open and save**, not while typing. `:Markwright check` re-runs them on demand.
+- **Two keymap decisions are provisional** and may change before 1.0: the operator keys (`<leader>mI`, `mB`, …) and the behavior when a selection only partly covers a formatted span (currently the whole span is removed).
+- **If you use the marksman language server** (LazyVim's markdown extra installs it), it has its own link checks. If you ever see the same broken link reported twice, disable one of them (`diagnostics.enabled = false` here).
+
+---
+
 ## Roadmap
 
-Implementation follows [SPEC.md](SPEC.md) §12. Each item links to its spec section.
+The full plan lives in [SPEC.md](SPEC.md): **§0 is a checklist** of what's implemented and what isn't, and **§14** describes every planned feature in detail.
 
-| # | Feature | Highlights | Status |
-|---|---|---|---|
-| 1 | Skeleton | `setup()`, config, buffer attach, `:Markwright`, health | ✅ Done |
-| 2 | Inline formatting (§6) | italic, bold, strike, code, highlight | ✅ Done |
-| 3 | Links (§7) | `<leader>ml` from clipboard or prompt; bare URL → `[Page Title](url)`; remove link keeps text; smart `p` | ✅ Done |
-| 4 | Follow (§8) | `gx` for URLs, `.md` files (created if missing), `#anchors`, images, footnotes | ✅ Done |
-| 5 | Lists & headings (§9.1–9.2) | `<CR>` continuation, `<Tab>` nesting, `<CR>` checkbox toggle, auto-renumber, add/remove `#` | ✅ Done |
-| 6 | Code fences & footnotes (§9.3, §9.5) | fence with typed language; `[^n]` insert and jump | ✅ Done |
-| 7 | Tables (§9.4) | create, CSV → table, row/column edit, cell navigation, align on leaving insert mode | ✅ Done |
-| 8 | TOC & diagnostics (§9.6, §10) | auto-updating TOC between markers; broken link/anchor/footnote warnings on save | ✅ Done |
-| 9 | Docs & CI (§12) | `:help markwright`, GitHub Actions on stable + nightly | ⏳ Planned |
-| 10 | Image paste, macOS (§13.1) | screenshots, copied images, Finder files → `assets/` + `![alt](path)` | ✅ Done |
-| — | Image paste, Linux/WSL | `wl-paste` / `xclip` / `powershell.exe` backends | 💤 Parked |
-| 11 | Formatting while typing (§13.2) | `;;` + `i`/`b`/`s`/`c`/`h`/`l`: pairs, jump out, links in stages | ✅ Done |
+**Done:** inline formatting, formatting while typing, links and titles, smart paste, `gx`, headings, lists and checkboxes, code fences, tables, footnotes, TOC, link diagnostics, image paste (macOS).
+
+**Planned:**
+
+| Priority | Features                                                                                                                                    |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Next     | Text objects (`il`, `ih`, `i\|`, …), heading navigation (`]]`/`[[`, outline picker), rich-text paste (HTML → Markdown)                      |
+| Then     | GitHub callouts, moving list items, checkbox progress `[2/5]`, table sorting, section moves, inline ↔ reference links, footnote renumbering |
+| Later    | Front matter helpers, word count, link completion                                                                                           |
+| Platform | Image paste on Linux/WSL, `:help markwright`, CI                                                                                            |
 
 Out of scope: wiki-style `[[links]]` and rendering or preview. Use `render-markdown.nvim` or `markview.nvim` for rendering.
 
 ---
 
 ## Development
+
+### Working on a local checkout
+
+```sh
+git clone https://github.com/edieguez/markwright ~/code/markwright
+```
+
+Point lazy.nvim at the folder instead of GitHub:
+
+```lua
+{ dir = "~/code/markwright", name = "markwright", ft = "markdown", opts = {} }
+```
+
+lazy.nvim doesn't update `dir` plugins; after editing, run `:Lazy reload markwright` or restart Neovim.
+
+### Contributing
+
+Issues and pull requests are welcome. For changes in behavior, please:
+
+1. Check [SPEC.md](SPEC.md): it records the design decisions, and new features are specified in §14 before they're built.
+2. Add or update cases in `tests/*_spec.lua`, and run `make test`.
+3. Update the README section for the feature.
 
 ### Running the tests
 
@@ -1118,16 +1192,16 @@ Keys can be a list of strings to feed in separate chunks, for example `{ " mb", 
 
 In `tests/links_spec.lua` the clipboard, `vim.ui.input` and the title fetcher are mocked, so the tests are deterministic and need no network. Other specs mock the system opener (`follow_spec.lua`) and prompts, and create real temporary files for path, anchor and diagnostics checks.
 
-| Spec | Covers |
-|---|---|
-| `format_spec.lua` | inline formatting |
-| `links_spec.lua` | link key, titles, smart paste |
-| `follow_spec.lua` | `gx`, slugs |
-| `blocks_spec.lua` | code fences, footnotes |
-| `tables_spec.lua` | tables, `<Tab>` fallback |
-| `doc_spec.lua` | TOC, diagnostics |
-| `lists_spec.lua` | lists, checkboxes, renumbering, headings |
-| `insert_spec.lua` | formatting while typing: pairs, jump out, links, fall-through, code, other triggers |
+| Spec              | Covers                                                                                                      |
+| ----------------- | ----------------------------------------------------------------------------------------------------------- |
+| `format_spec.lua` | inline formatting                                                                                           |
+| `links_spec.lua`  | link key, titles, smart paste                                                                               |
+| `follow_spec.lua` | `gx`, slugs                                                                                                 |
+| `blocks_spec.lua` | code fences, footnotes                                                                                      |
+| `tables_spec.lua` | tables, `<Tab>` fallback                                                                                    |
+| `doc_spec.lua`    | TOC, diagnostics                                                                                            |
+| `lists_spec.lua`  | lists, checkboxes, renumbering, headings                                                                    |
+| `insert_spec.lua` | formatting while typing: pairs, jump out, links, fall-through, code, other triggers                         |
 | `images_spec.lua` | image paste (mocked clipboard; the real macOS backend runs against fake `osascript`/`pngpaste` executables) |
 
 The runner fires `TextChanged` after each key chunk that changed the buffer in normal mode. Real Neovim does this in its main loop between keystrokes, but not while a headless script runs, and the auto-renumbering depends on it.
@@ -1147,9 +1221,9 @@ The runner fires `TextChanged` after each key chunk that changed the buffer in n
 
 ## Project layout
 
-```
-markwright.nvim/
-├── plugin/markwright.lua        :Markwright command
+```shell
+markwright/
+├── plugin/markwright.lua     :Markwright command
 ├── lua/markwright/
 │   ├── init.lua              setup(), attaches to markdown buffers
 │   ├── config.lua            defaults, merge, validation
@@ -1177,7 +1251,16 @@ markwright.nvim/
 │   ├── run.lua               runs every *_spec.lua
 │   ├── helpers.lua           key-feeding test runner, mocks, temp files
 │   └── *_spec.lua            one spec per feature
-├── SPEC.md                   full design and decisions
+├── SPEC.md                   full design, decisions and status checklist
+├── LICENSE                   MPL-2.0
 ├── Makefile
 └── README.md
 ```
+
+---
+
+## License
+
+markwright is licensed under the [Mozilla Public License 2.0](https://mozilla.org/MPL/2.0/) (MPL-2.0). See [LICENSE](LICENSE).
+
+In short: you can use it in any configuration, private or commercial. If you distribute modified versions of markwright's files, those files must stay under the MPL-2.0 and their source must be available. This summary isn't legal advice; the license text is what counts.
