@@ -358,8 +358,12 @@ Decisions (all configurable under `images`):
 - Link path relative to the file, spaces/parens URL-encoded. Alt text from a typed name (default timestamp → empty), or `prompt` / `empty`.
 - Still open: Linux/WSL backends (`wl-paste`, `xclip`, `powershell.exe`), compression/WebP, cleanup of unreferenced images.
 
-### 13.2 Insert-mode formatting keys — **parked**
-Keys that insert `**|**` around the cursor, or close the pair if already inside one. Key choice must avoid `<C-i>` (= `<Tab>`) and LazyVim insert mappings.
+### 13.2 Insert-mode formatting keys — **implemented (2026-09-30)**
+- Trigger `;;` (config `insert.trigger`: 2+ characters, a key like `<C-g>`, or `""` to disable), then `i` `b` `s` `c` `h` `l`. Chosen for portability: plain characters work in every terminal and layout; `<C-m>` (= Enter), `<C-i>` (= Tab), Option/Meta keys and completion-plugin keys were ruled out.
+- No timeout: only the trigger's last character is mapped, and it fires only when the preceding characters were just typed in sequence (tracked with InsertCharPre). The menu then waits for the key with no time limit (`getcharstr`) and shows a hint.
+- Unknown key → the trigger text plus that key are typed as-is; `<Esc>` restores the trigger and leaves insert mode. Key triggers pass unknown keys to their previous meaning (`<C-g>u`, plugin mappings).
+- Pressing the same format again right before its closing marker jumps out (tracked with extmarks; falls back to the text shape for pairs typed by hand). Links go text → URL → out; a clipboard URL skips the URL stage.
+- Off in code blocks; in inline code only `c` (jump out) right before the closing backtick.
 
 ### 13.3 `<Tab>` conflict with completion/snippets — **resolved for tables (2026-09-29)**
 Implemented in `tables.lua`: insert-mode `<Tab>`/`<S-Tab>` act only when the cursor is in a table and no completion menu (blink.cmp, nvim-cmp, pum) or snippet is active. Otherwise they call the mapping that existed when the buffer attached (captured with `maparg`), or insert a native `<Tab>`. blink.cmp wrapping our mapping as its fallback also works. Lists (9.2) must reuse the same helper.

@@ -4,7 +4,7 @@ Markdown editing for Neovim that feels native: one key adds a format, the same k
 
 Built for LazyVim, and it works with any Neovim ≥ 0.10 setup.
 
-> **Status: all core features are complete and tested:** inline formatting, links, `gx`, lists, checkboxes, headings, code fences, footnotes, tables, TOC, link diagnostics and image paste (macOS). See [Roadmap](#roadmap).
+> **Status: all core features are complete and tested:** inline formatting (also while typing), links, `gx`, lists, checkboxes, headings, code fences, footnotes, tables, TOC, link diagnostics and image paste (macOS). See [Roadmap](#roadmap).
 
 ---
 
@@ -16,6 +16,7 @@ Built for LazyVim, and it works with any Neovim ≥ 0.10 setup.
 - [Quick start](#quick-start)
 - [Keymaps](#keymaps)
 - [Inline formatting in detail](#inline-formatting-in-detail)
+- [Formatting while typing](#formatting-while-typing)
 - [Links in detail](#links-in-detail)
 - [Following links with gx](#following-links-with-gx)
 - [Code fences](#code-fences)
@@ -58,6 +59,7 @@ All five share one engine, so they behave the same way:
 - **Knows Markdown structure.** List markers, checkboxes, `>` and `#` are never wrapped.
 - **Skips code.** Nothing gets broken inside code blocks or code spans.
 - **Behaves like a native command.** Every action is dot-repeatable (`.`) and undoes in a single `u`.
+- **While typing, too.** In insert mode, type `;;` then `b` for `**|**` (or `i`, `s`, `c`, `h`, `l`). The same keys jump past the closing marker. There's no delay on normal `;` typing, and it works in any terminal.
 
 **Links** (`<leader>ml`) follow the same toggle idea:
 
@@ -174,6 +176,13 @@ u               undo it (one step)
 
 On an empty line or on whitespace, `<leader>mb` inserts `****` and puts you in insert mode between the markers, so you can type the bold text right away.
 
+While typing, you don't need to leave insert mode:
+
+```
+typed exactly:   ;;bbold;;b           →  **bold**|      (;;b opens the pair, ;;b again jumps out)
+                 ;;ldocs;;lurl;;l     →  [docs](url)|
+```
+
 For links, copy a URL in your browser, then:
 
 ```
@@ -228,6 +237,7 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `<leader>mS` + motion | normal | Strikethrough operator |
 | `<leader>mC` + motion | normal | Inline code operator |
 | `<leader>mH` + motion | normal | Highlight operator |
+| `;;` then `i` `b` `s` `c` `h` `l` | insert | **Formatting while typing**: open a pair, or jump out of it (see below) |
 | `<leader>ml` | normal, visual | **Link**: create, convert a bare URL, or remove |
 | `p` | visual | Paste; a URL over the selection makes `[selection](url)` |
 | `p` / `P` | normal | Paste; a bare URL becomes `[Page Title](url)` |
@@ -368,6 +378,58 @@ With the cursor on whitespace or an empty line in normal mode, the key inserts a
 - After a visual or operator toggle, the cursor moves to the start of the text.
 - `.` repeats the last toggle on the word or text under the new cursor position.
 - Each toggle is a single undo step, even when it changes many lines.
+
+---
+
+## Formatting while typing
+
+In insert mode, type **`;;`** and then a letter:
+
+| Key | Inserts | Again (cursor before the closing marker) |
+|---|---|---|
+| `i` | `*\|*` | jumps past `*` |
+| `b` | `**\|**` | jumps past `**` |
+| `s` | `~~\|~~` | jumps past `~~` |
+| `c` | `` `\|` `` | jumps past the backtick |
+| `h` | `==\|==` | jumps past `==` |
+| `l` | `[\|]()`, or `[\|](url)` when the clipboard holds a URL | 1st: into the `()`; 2nd: past `)` |
+
+(`|` is the cursor.)
+
+Keys typed exactly as shown:
+
+```
+;;bimportant;;b and ;;ialso;;i this   →   **important** and *also* this
+;;lthe docs;;lhttps://x.io;;l         →   [the docs](https://x.io)
+;;bbold ;;iboth;;i;;b                 →   **bold *both***
+```
+
+### How it waits
+
+- **No time limit.** After `;;` the command line shows the options (`i italic · b bold · …`) and waits as long as you like for the letter.
+- **No lag when typing a single `;`.** The plugin doesn't use a Vim mapping for `;;`, which would pause after every semicolon for `timeoutlen`. Only the second `;` is checked, and only if the first one was typed right before it. An existing `;` you moved the cursor next to doesn't count.
+- **Nothing you type is lost.** If the key after `;;` isn't one of the letters, you get `;;` plus that key, exactly as typed: `;;x` stays `;;x`, `;;;` stays `;;;`, and `;;<CR>` inserts `;;` and then does whatever Enter does (including continuing a list). `<Esc>` puts back the `;;` and leaves insert mode normally.
+
+### Jumping out
+
+- **Nesting works.** Each pair remembers where its closing marker is, so pressing the same key again always jumps past the right one, even inside other formats.
+- **Pairs typed by hand.** It also works on text you typed yourself: with the cursor right before a closing `**`, `;;b` jumps past it.
+- **Links** go in stages: text, then URL, then out. If the clipboard held a URL when you opened the link, the URL stage is skipped.
+
+### Code
+
+- **Code blocks:** the trigger is off, so `for (;;)` or OCaml's `;;` type normally.
+- **Inline code:** the trigger only works right before the closing backtick, where the only option is `c` (jump out). Typing `;;` anywhere else inside inline code is literal.
+
+### Choosing another trigger
+
+`insert.trigger` accepts:
+
+- **Any two or more characters:** `;;`, `jj`, `,,`, `qq`… The same no-lag detection applies.
+- **A key like `"<C-g>"`:** press it, then the letter. Other keys after it keep their Vim meaning, so `<C-g>u` and `<C-g>j` still work, as do plugin mappings like nvim-surround's `<C-g>s`.
+- **`""`:** turns the feature off.
+
+Avoid `<C-m>` (it's Enter in most terminals) and `<C-i>` (it's Tab).
 
 ---
 
@@ -800,6 +862,10 @@ require("mdtools").setup({
     warn_in_code = true,            -- notify when formatting is skipped inside code
   },
 
+  insert = {
+    trigger = ";;",                 -- insert-mode prefix: 2+ characters, a key like "<C-g>", or "" to disable
+  },
+
   links = {
     use_clipboard = true,           -- link key uses a URL from the clipboard (else prompts)
     fetch_title = true,             -- bare URL → [Page Title](url); false keeps the domain
@@ -998,6 +1064,8 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 
 **`<leader>mp` says "the clipboard has no image".** Check what's on the clipboard with `osascript -e 'clipboard info'` in a terminal. It should list `«class PNGf»` or `TIFF picture` for image data, or `«class furl»` for a copied file. Some apps copy images in formats macOS can't convert to PNG; `brew install pngpaste` handles more of them.
 
+**`;;` shows the menu when I wanted two semicolons.** Press `;` again: `;;` then any key that isn't a command types `;;` plus that key. If you type `;;` often, pick another trigger with `insert.trigger` (for example `",,"` or `"<C-g>"`).
+
 **Pasted images land in the wrong folder.** The folder is relative to the Markdown file, not the working directory (unsaved buffers use the working directory). Set `images.dir` to an absolute path or a function to use one shared folder.
 
 **A nested ordered item didn't become a sublist.** In CommonMark a nested ordered list can only start inside a paragraph if its first number is 1. `<Tab>` resets the first nested item to `1.` for you. If you type the indentation by hand, start with `1.`.
@@ -1021,7 +1089,7 @@ Implementation follows [SPEC.md](SPEC.md) §12. Each item links to its spec sect
 | 9 | Docs & CI (§12) | `:help mdtools`, GitHub Actions on stable + nightly | ⏳ Planned |
 | 10 | Image paste, macOS (§13.1) | screenshots, copied images, Finder files → `assets/` + `![alt](path)` | ✅ Done |
 | — | Image paste, Linux/WSL | `wl-paste` / `xclip` / `powershell.exe` backends | 💤 Parked |
-| — | Insert-mode formatting keys (§13.2) | `**\|**` pairs while typing | 💤 Parked |
+| 11 | Formatting while typing (§13.2) | `;;` + `i`/`b`/`s`/`c`/`h`/`l`: pairs, jump out, links in stages | ✅ Done |
 
 Out of scope: wiki-style `[[links]]` and rendering or preview. Use `render-markdown.nvim` or `markview.nvim` for rendering.
 
@@ -1059,6 +1127,7 @@ In `tests/links_spec.lua` the clipboard, `vim.ui.input` and the title fetcher ar
 | `tables_spec.lua` | tables, `<Tab>` fallback |
 | `doc_spec.lua` | TOC, diagnostics |
 | `lists_spec.lua` | lists, checkboxes, renumbering, headings |
+| `insert_spec.lua` | formatting while typing: pairs, jump out, links, fall-through, code, other triggers |
 | `images_spec.lua` | image paste (mocked clipboard; the real macOS backend runs against fake `osascript`/`pngpaste` executables) |
 
 The runner fires `TextChanged` after each key chunk that changed the buffer in normal mode. Real Neovim does this in its main loop between keystrokes, but not while a headless script runs, and the auto-renumbering depends on it.
@@ -1095,6 +1164,7 @@ mdtools.nvim/
 │   ├── lists.lua             list continuation, nesting, checkboxes, renumbering
 │   ├── headings.lua          add / remove #
 │   ├── images.lua            image paste (macOS backend)
+│   ├── insert.lua            formatting while typing (;; trigger)
 │   ├── toc.lua               table of contents
 │   ├── diagnostics.lua       broken-link diagnostics
 │   ├── doc.lua               headings, definitions, footnotes, code rows
