@@ -4,7 +4,7 @@ Markdown editing for Neovim that feels native: one key adds a format, the same k
 
 Built for LazyVim, and it works with any Neovim ≥ 0.10 setup.
 
-> **Status: early development.** Inline formatting and links are complete and tested. `gx` following, lists, headings, tables, footnotes, TOC and diagnostics are designed (see [SPEC.md](SPEC.md)) and are being implemented in that order. See [Roadmap](#roadmap).
+> **Status: early development.** Inline formatting, links, `gx` following, code fences, footnotes, tables, TOC and link diagnostics are complete and tested. Lists and headings are next. See [Roadmap](#roadmap).
 
 ---
 
@@ -17,6 +17,12 @@ Built for LazyVim, and it works with any Neovim ≥ 0.10 setup.
 - [Keymaps](#keymaps)
 - [Inline formatting in detail](#inline-formatting-in-detail)
 - [Links in detail](#links-in-detail)
+- [Following links with gx](#following-links-with-gx)
+- [Code fences](#code-fences)
+- [Footnotes](#footnotes)
+- [Tables](#tables)
+- [Table of contents](#table-of-contents)
+- [Link diagnostics](#link-diagnostics)
 - [Commands](#commands)
 - [Configuration](#configuration)
 - [Custom keymaps and Lua API](#custom-keymaps-and-lua-api)
@@ -57,9 +63,22 @@ All five share one engine, so they behave the same way:
 - **On an existing link** it removes the link and keeps the text.
 - **Smart paste.** `p` with a URL over a selection makes a link; `p` of a bare URL in normal mode inserts a titled link. Anything else pastes normally.
 
+**Navigation and structure:**
+
+- **`gx` follows anything.** It opens URLs, opens local `.md` files (creating missing ones) and images, jumps to `#anchors` (including `file.md#anchor`), resolves reference links, and jumps between a footnote and its definition. `<C-o>` takes you back.
+- **Code fences** (`<leader>mf`): type a language and get an empty block, or wrap selected lines.
+- **Footnotes** (`<leader>mn`): inserts `[^n]` with the next number, adds the definition at the end of the file and puts you there.
+- **Tables** (`<leader>mt…`):
+  - create from a `rows x cols` size, or convert CSV/TSV lines
+  - add and delete rows and columns
+  - `<Tab>`/`<S-Tab>` move between cells
+  - columns realign when you leave insert mode, accounting for accents, CJK text and alignment markers
+- **Table of contents** (`<leader>mT`): a nested list of heading links between `<!-- toc -->` markers, updated on every save.
+- **Link diagnostics:** on save, broken file links, missing anchors, undefined references and orphan footnotes show up as warnings.
+
 ### Coming next
 
-`gx` link following, list continuation, checkboxes, heading levels, code fences, tables, footnotes, TOC and broken-link diagnostics. Details are in [Roadmap](#roadmap).
+List continuation, checkboxes, heading levels. Details are in [Roadmap](#roadmap).
 
 ---
 
@@ -155,6 +174,16 @@ vip<leader>ml   link the selection
 viwp            paste URL over a word   here  →  [here](https://copied.url)
 ```
 
+And for structure:
+
+```
+gx              follow the link, anchor or footnote under the cursor (<C-o> to come back)
+<leader>mf      code fence (asks for the language)
+<leader>mn      footnote: inserts [^1], jumps to its definition
+<leader>mtt     new table (asks for rows x cols); <Tab> moves between cells
+<leader>mT      insert or refresh the table of contents
+```
+
 ---
 
 ## Keymaps
@@ -176,6 +205,17 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `<leader>ml` | normal, visual | **Link**: create, convert a bare URL, or remove |
 | `p` | visual | Paste; a URL over the selection makes `[selection](url)` |
 | `p` / `P` | normal | Paste; a bare URL becomes `[Page Title](url)` |
+| `gx` | normal | **Follow** link, anchor, file, image or footnote |
+| `<leader>mf` | normal | Insert a **code fence** |
+| `<leader>mf` | visual | Wrap the selected lines in a code fence |
+| `<leader>mn` | normal | Insert a **footnote** |
+| `<leader>mtt` | normal | Create a **table** |
+| `<leader>mtc` | visual | Convert CSV/TSV lines to a table |
+| `<leader>mtr` / `<leader>mtR` | normal | Add row below / delete row |
+| `<leader>mtk` / `<leader>mtK` | normal | Add column right / delete column |
+| `<leader>mta` | normal | Align the table now |
+| `<Tab>` / `<S-Tab>` | insert | Next / previous table cell (native `<Tab>` elsewhere) |
+| `<leader>mT` | normal | Insert or update the **table of contents** |
 
 **Operator examples:**
 
@@ -187,7 +227,7 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `<leader>mBip` | the whole paragraph, wrapped line by line |
 | `<leader>mIi"` | inside the quotes (with a quote text object) |
 
-If which-key is installed (it is in LazyVim), the prefix is registered as a **markdown** group so the keys show up in the popup.
+If which-key is installed (it is in LazyVim), the prefix is registered as a **markdown** group, and `<leader>mt` as a **table** subgroup, so the keys show up in the popup.
 
 ---
 
@@ -370,6 +410,171 @@ LazyVim sets `clipboard=unnamedplus`, so a URL copied in the browser is what pla
 
 ---
 
+## Following links with gx
+
+`gx` in a Markdown buffer looks at what's under the cursor and does the right thing:
+
+| Under the cursor | Action |
+|---|---|
+| Footnote reference `[^n]` | Jump to its definition `[^n]: …` |
+| Footnote definition `[^n]:` | Jump back to the first reference |
+| `[text](#anchor)` | Jump to the heading with that anchor |
+| `[text](other.md)` | Open the file in a buffer |
+| `[text](other.md#anchor)` | Open the file and jump to the heading |
+| `[text](missing.md)` | Open a new buffer for it; parent folders are created when you `:w` |
+| `[text](notes)` (no extension) | Open `notes.md` if it exists |
+| `![alt](pic.png)`, `.pdf`, media | Open with the system viewer (`open` on macOS) |
+| `[text](https://…)`, bare URL, `<autolink>`, `www.…` | Open in the browser |
+| `<me@x.io>`, `mailto:` | Open the mail client |
+| `[text][ref]`, `[ref][]`, `[ref]` | Resolve the `[ref]: url` definition, then follow it |
+| A `[ref]: url` definition line | Follow its URL |
+| Other schemes (`zotero://`, `obsidian://`, `file://`…) | Hand them to the system opener |
+| Anything else | The default `gx`: open the file or URL under the cursor |
+
+Details:
+
+- **Paths** are relative to the current file's folder. Absolute paths and `~` work too, and `%20` style escapes are decoded (`my%20notes.md` → `my notes.md`).
+- **Anchors** use GitHub's rules: lowercase, punctuation removed, spaces become `-`, accents kept, and duplicate headings get `-1`, `-2` suffixes. `## Café Olé!` is `#café-olé`, and the second one is `#café-olé-1`. Headings inside code blocks are ignored.
+- **Jumps** are added to the jumplist, so `<C-o>` / `<C-i>` move back and forth. That includes jumps into other files.
+- **Warnings** appear when the target can't be found (missing anchor, missing image, undefined reference). Nothing moves in that case.
+
+Change the key with `follow.key`, or set it to `""` to keep your own `gx`. Set `follow.create_missing_md = false` to get a warning instead of a new buffer.
+
+---
+
+## Code fences
+
+`<leader>mf` asks for a language (type it; empty is fine, `<Esc>` cancels):
+
+- **On an empty line** the line becomes an empty block and you're in insert mode inside it.
+- **On a line with text** the block is inserted below it.
+- **In a list item or blockquote** the block is indented or prefixed to stay inside it:
+
+````
+- item          <leader>mf  sh  →  - item
+                                     ```sh
+                                     |
+                                     ```
+````
+
+- **In visual mode** the selected lines are wrapped. The fence uses their shared indentation and grows to four backticks when the content already contains a ` ``` ` line.
+- **Inside a code block** it does nothing (warning).
+
+The same is available as `:Mdtools fence`, or `:'<,'>Mdtools fence` for a range.
+
+---
+
+## Footnotes
+
+`<leader>mn`:
+
+1. Inserts `[^n]` after the cursor. `n` is one more than the highest numbered footnote in the file; named ones like `[^note]` don't affect the numbering.
+2. Adds `[^n]: ` at the end of the file, grouped right after existing definitions (or after a blank line if there are none).
+3. Jumps there in insert mode so you can type the note.
+4. `<C-o>` brings you back to the reference.
+
+```
+Text here.       <leader>mn  →   Text here.[^1]
+
+                                 [^1]: |
+```
+
+Use `gx` on a reference or definition to jump between them. Link diagnostics warn about references without a definition and definitions nobody references.
+
+---
+
+## Tables
+
+### Creating
+
+- **`<leader>mtt`** asks for a size such as `3x4` (`3 x 4`, `3,4` and `3*4` work too): 3 body rows and 4 columns. The table goes on the current line if it's empty, otherwise below it, and you start typing in the first header cell.
+- **`<leader>mtc`** in visual mode converts the selected lines from CSV, TSV or semicolon-separated text. The separator is detected from the first line, and quoted fields (`"Doe, J"`, `""` escapes) are handled. The first line becomes the header, and `|` inside values is escaped.
+
+```
+name,age              V<leader>mtc     | name   | age |
+"Doe, J",42              →             | ------ | --- |
+                                       | Doe, J | 42  |
+```
+
+### Editing
+
+| Keys | Action |
+|---|---|
+| `<Tab>` (insert) | Next cell. From the last cell, a new row is added |
+| `<S-Tab>` (insert) | Previous cell |
+| `<leader>mtr` | Add a row below; on the header, the row goes below the delimiter |
+| `<leader>mtR` | Delete the current row (not the header or the delimiter) |
+| `<leader>mtk` | Add a column to the right |
+| `<leader>mtK` | Delete the current column (not the last remaining one) |
+| `<leader>mta` | Align now |
+
+The navigation skips the delimiter row and puts the cursor at the end of the cell's text.
+
+### Alignment
+
+Tables are realigned automatically when you leave insert mode inside one. The realignment joins the same undo step as your typing, so one `u` undoes both. It:
+
+- pads cells so the pipes line up, measuring **display width** so `ñandú` and `日本` line up correctly
+- keeps alignment markers and pads accordingly (`:---` left, `:---:` centered, `---:` right)
+- adds missing leading and trailing pipes, and fills short rows with empty cells
+- keeps `\|` escaped pipes inside cells
+- works for tables nested in list items, keeping their indentation
+- keeps the cursor in the same cell
+
+Set `tables.align_on_insert_leave = false` to align only with `<leader>mta`.
+
+### `<Tab>` and completion
+
+`<Tab>` in insert mode only moves between cells when the cursor is in a table **and** no completion menu (blink.cmp, nvim-cmp, the built-in popup) or snippet is active. Otherwise it does exactly what it did before mdtools: the mapping that existed when the buffer attached is called, or a plain `<Tab>` is inserted. LazyVim's completion and snippet jumping keep working.
+
+---
+
+## Table of contents
+
+`<leader>mT` inserts a table of contents at the cursor:
+
+```markdown
+<!-- toc -->
+- [Installation](#installation)
+  - [LazyVim](#lazyvim)
+- [Usage](#usage)
+<!-- tocstop -->
+```
+
+- Entries are nested by heading level. The range comes from `toc.min_level` and `toc.max_level` (default: levels 2–4, so the `#` document title is left out).
+- Headings in code blocks are skipped. Links inside headings become plain text, so the entries never contain nested links.
+- The anchors follow the same GitHub rules as `gx`, including `-1` suffixes for duplicate headings.
+- If the markers already exist, `<leader>mT` regenerates the list in place.
+- **On every save** the TOC between the markers is refreshed. If nothing changed, the buffer isn't touched. Turn this off with `toc.update_on_save = false`.
+
+The marker text is configurable (`toc.marker_start` / `toc.marker_end`).
+
+---
+
+## Link diagnostics
+
+When a Markdown buffer is opened and every time it's saved, mdtools checks its links and shows problems as regular Neovim diagnostics (source `mdtools`). They appear in the sign column, `]d`/`[d` navigation, and pickers like Trouble or `<leader>sd`:
+
+| Problem | Example message |
+|---|---|
+| Local file doesn't exist | `file not found: missing.md` |
+| `#anchor` has no matching heading | `no heading for #nope` |
+| Anchor missing in another file | `no heading #zzz in exists.md` |
+| Missing image | `file not found: gone.png` |
+| `[text][ref]` without a `[ref]:` definition | `undefined reference [ref]` |
+| `[^n]` without a definition | `no definition for [^n]` |
+| Footnote defined but never used | `footnote [^n] is never referenced` |
+
+What is **not** checked:
+
+- external URLs (no network requests)
+- anything inside code blocks or code spans
+- relative paths in unsaved buffers, which have no folder to resolve against
+
+The diagnostics stay until the next save, even if you fix the link in the meantime. `:Mdtools check` re-runs the check immediately and reports the count. Disable with `diagnostics.enabled = false`, or keep only the check on open with `diagnostics.on_save = false`. `diagnostics.severity` sets the level.
+
+---
+
 ## Commands
 
 | Command | Description |
@@ -380,9 +585,19 @@ LazyVim sets `clipboard=unnamedplus`, so a URL copied in the browser is what pla
 | `:Mdtools code` | Toggle inline code |
 | `:Mdtools highlight` | Toggle highlight |
 | `:Mdtools link` | Same as `<leader>ml` on the cursor position |
+| `:Mdtools follow` | Same as `gx` |
+| `:Mdtools fence` | Insert a code fence; with a range (`:'<,'>Mdtools fence`) wrap those lines |
+| `:Mdtools footnote` | Insert a footnote |
+| `:Mdtools toc` | Insert or update the table of contents |
+| `:Mdtools check` | Run link diagnostics now and report the count |
+| `:Mdtools table create` | Create a table |
+| `:'<,'>Mdtools table csv` | Convert the range from CSV/TSV |
+| `:Mdtools table align` | Align the table under the cursor |
+| `:Mdtools table row` / `delrow` | Add a row below / delete the row |
+| `:Mdtools table col` / `delcol` | Add a column right / delete the column |
 | `:Mdtools health` | Run `:checkhealth mdtools` |
 
-Subcommands tab-complete. New subcommands (`toc`, `table create`, `check`, …) will be added as features land.
+Subcommands tab-complete, including the `table` actions.
 
 ---
 
@@ -419,31 +634,32 @@ require("mdtools").setup({
     smart_paste_normal = true,      -- normal p/P with a URL → [Title](url)
   },
 
-  -- The sections below are accepted now and used by upcoming features.
   follow = {
-    key = "gx",
+    key = "gx",                     -- "" keeps your own gx
     create_missing_md = true,       -- gx on a missing .md opens a new buffer
   },
+  tables = {
+    align_on_insert_leave = true,   -- realign when leaving insert mode in a table
+  },
+  toc = {
+    update_on_save = true,          -- refresh the TOC between the markers on :w
+    marker_start = "<!-- toc -->",
+    marker_end = "<!-- tocstop -->",
+    min_level = 2,                  -- heading levels included
+    max_level = 4,
+  },
+  diagnostics = {
+    enabled = true,                 -- check links on open (and on save, see below)
+    on_save = true,
+    severity = vim.diagnostic.severity.WARN,
+  },
+
+  -- Accepted now, used by the upcoming lists feature.
   lists = {
     continue_on_enter = true,
     tab_indent = true,
     auto_renumber = true,
     checkbox_add = true,
-  },
-  tables = {
-    align_on_insert_leave = true,
-  },
-  toc = {
-    update_on_save = true,
-    marker_start = "<!-- toc -->",
-    marker_end = "<!-- tocstop -->",
-    min_level = 2,
-    max_level = 4,
-  },
-  diagnostics = {
-    enabled = true,
-    on_save = true,
-    severity = vim.diagnostic.severity.WARN,
   },
 })
 ```
@@ -518,6 +734,21 @@ Link entry points (all `expr = true` except where noted):
 | `require("mdtools.links").is_url(s)` / `url_at(line, col)` | Plain helpers (not mappings) |
 | `require("mdtools.title").fetch(url, cb)` | Async title fetch; `cb(title | nil)` runs on the main loop |
 
+Other features are plain functions, suitable for normal (non-`expr`) mappings:
+
+| Function | Use |
+|---|---|
+| `require("mdtools.follow").follow()` | `gx` behavior at the cursor |
+| `require("mdtools.follow").open_target(buf, dest)` | Follow a destination string (`#anchor`, path, URL) |
+| `require("mdtools.fence").insert()` / `wrap(buf, srow, erow)` | Code fence at the cursor / around 0-based rows |
+| `require("mdtools.footnotes").insert()` | Footnote at the cursor |
+| `require("mdtools.tables").create()` / `align()` / `add_row()` / `delete_row()` / `add_col()` / `delete_col()` | Table commands at the cursor |
+| `require("mdtools.tables").from_csv(buf, srow, erow)` | Convert 0-based rows from CSV/TSV |
+| `require("mdtools.tables").expr_tab(dir)` | `expr` mapping for insert-mode cell navigation (`1` / `-1`) |
+| `require("mdtools.toc").insert()` / `update(buf)` | Insert or refresh the TOC |
+| `require("mdtools.diagnostics").check(buf)` / `collect(buf)` | Publish / just compute link diagnostics |
+| `require("mdtools.slug").slug(text)` | GitHub-style anchor for heading text |
+
 ---
 
 ## Health check
@@ -565,6 +796,17 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 
 **My `p` behaves differently in Markdown.** Only a single-line URL in the register triggers smart paste; everything else is native. If you use yanky.nvim, mdtools' buffer-local `p`/`P` take priority in Markdown buffers. Disable them with `links.smart_paste_normal = false` and `links.smart_paste_visual = false`.
 
+**`gx` does something different from before.** In Markdown buffers mdtools owns `gx` and falls back to the default behavior when the cursor isn't on a link. To keep your own mapping, set `follow.key = ""` (or another key).
+
+**`<Tab>` doesn't accept my completion.** mdtools checks for a visible blink.cmp or nvim-cmp menu, the built-in popup and active snippets before touching `<Tab>`. If your completion plugin maps `<Tab>` in a way it can't detect, disable table navigation by overriding it: `vim.keymap.set("i", "<Tab>", "<Tab>", { buffer = true })` in a `FileType markdown` autocmd, or map completion to another key.
+
+**Diagnostics complain about a link that works on GitHub.**
+- Anchors are compared with GitHub's slug rules; headings with unusual Unicode punctuation may differ slightly.
+- Relative links are resolved from the file's folder, not the repository root. Root-relative `/docs/x.md` paths are treated as absolute filesystem paths.
+- `:Mdtools check` shows the current count after a fix. Diagnostics otherwise refresh on save.
+
+**The TOC isn't updated.** It only updates between an exact `<!-- toc -->` … `<!-- tocstop -->` pair (or your configured markers), each on its own line.
+
 ---
 
 ## Roadmap
@@ -576,11 +818,12 @@ Implementation follows [SPEC.md](SPEC.md) §12. Each item links to its spec sect
 | 1 | Skeleton | `setup()`, config, buffer attach, `:Mdtools`, health | ✅ Done |
 | 2 | Inline formatting (§6) | italic, bold, strike, code, highlight | ✅ Done |
 | 3 | Links (§7) | `<leader>ml` from clipboard or prompt; bare URL → `[Page Title](url)`; remove link keeps text; smart `p` | ✅ Done |
-| 4 | Follow (§8) | `gx` for URLs, `.md` files (created if missing), `#anchors`, images, footnotes | ⏳ Next |
-| 5 | Lists & headings (§9.1–9.2) | `<CR>` continuation, `<Tab>` nesting, checkbox toggle, auto-renumber, promote/demote headings | ⏳ Planned |
-| 6 | Code fences & footnotes (§9.3, §9.5) | fence with typed language; `[^n]` insert and jump | ⏳ Planned |
-| 7 | Tables (§9.4) | create, CSV → table, row/column edit, cell navigation, align on leaving insert mode | ⏳ Planned |
-| 8 | TOC & diagnostics (§9.6, §10) | auto-updating TOC between markers; broken link/anchor/footnote warnings on save | ⏳ Planned |
+| 4 | Follow (§8) | `gx` for URLs, `.md` files (created if missing), `#anchors`, images, footnotes | ✅ Done |
+| 5 | Lists & headings (§9.1–9.2) | `<CR>` continuation, `<Tab>` nesting, checkbox toggle, auto-renumber, promote/demote headings | ⏳ Next |
+| 6 | Code fences & footnotes (§9.3, §9.5) | fence with typed language; `[^n]` insert and jump | ✅ Done |
+| 7 | Tables (§9.4) | create, CSV → table, row/column edit, cell navigation, align on leaving insert mode | ✅ Done |
+| 8 | TOC & diagnostics (§9.6, §10) | auto-updating TOC between markers; broken link/anchor/footnote warnings on save | ✅ Done |
+| 9 | Docs & CI (§12) | `:help mdtools`, GitHub Actions on stable + nightly | ⏳ Planned |
 | — | Image paste (§13.1) | clipboard images → file + `![](path)` | 💤 Parked |
 | — | Insert-mode formatting keys (§13.2) | `**\|**` pairs while typing | 💤 Parked |
 
@@ -609,7 +852,16 @@ A test case is one table row, for example in `tests/format_spec.lua`:
 
 Keys can be a list of strings to feed in separate chunks, for example `{ " mb", " mi", "u" }`. A case can also carry `setup = function() … end`, run just before the keys. Plain unit checks use `{ "name", fn = function() … end }`.
 
-In `tests/links_spec.lua` the clipboard, `vim.ui.input` and the title fetcher are mocked, so the tests are deterministic and need no network.
+In `tests/links_spec.lua` the clipboard, `vim.ui.input` and the title fetcher are mocked, so the tests are deterministic and need no network. Other specs mock the system opener (`follow_spec.lua`) and prompts, and create real temporary files for path, anchor and diagnostics checks.
+
+| Spec | Covers |
+|---|---|
+| `format_spec.lua` | inline formatting |
+| `links_spec.lua` | link key, titles, smart paste |
+| `follow_spec.lua` | `gx`, slugs |
+| `blocks_spec.lua` | code fences, footnotes |
+| `tables_spec.lua` | tables, `<Tab>` fallback |
+| `doc_spec.lua` | TOC, diagnostics |
 
 ### Design notes
 
@@ -619,6 +871,8 @@ In `tests/links_spec.lua` the clipboard, `vim.ui.input` and the title fetcher ar
 - **One undo step.** An explicit undo break starts each action, because API edits would otherwise merge with the previous change.
 - **Async titles.** A titled link is inserted at once with the domain as a placeholder, tracked by an extmark. When `curl` returns, the placeholder is replaced only if it is still intact, joined to the same undo step with `:undojoin`.
 - **Bare URLs** aren't in the `markdown_inline` grammar (no GFM autolink extension), so they're found with a line scan that trims sentence punctuation and balances parentheses.
+- **Footnotes and reference definitions** use a line scan too. The grammar has no footnote support, and a `[ref]: url` line right after a footnote definition gets swallowed into a paragraph. Code blocks and code spans are excluded from the scan.
+- **Tables** are located with the `pipe_table` node, then split into cells by hand (unescaped `|`, as GFM does) and re-rendered from a model. Rendering records where each cell starts, which is how the cursor stays in its cell.
 
 ---
 
@@ -634,15 +888,22 @@ mdtools.nvim/
 │   ├── format.lua            formatting toggle engine
 │   ├── links.lua             link key, bare URLs, unlink, smart paste
 │   ├── title.lua             async page-title fetching (curl)
+│   ├── follow.lua            gx: files, anchors, URLs, images, footnotes
+│   ├── fence.lua             code fences
+│   ├── footnotes.lua         footnote insertion
+│   ├── tables.lua            tables: parse, render, edit, navigate
+│   ├── toc.lua               table of contents
+│   ├── diagnostics.lua       broken-link diagnostics
+│   ├── doc.lua               headings, definitions, footnotes, code rows
+│   ├── slug.lua              GitHub-style anchors
 │   ├── ts.lua                Treesitter helpers
 │   ├── util.lua              prefixes, edit tracker, undo, notify
 │   └── health.lua            :checkhealth mdtools
 ├── tests/
 │   ├── minimal_init.lua
 │   ├── run.lua               runs every *_spec.lua
-│   ├── helpers.lua           key-feeding test runner
-│   ├── format_spec.lua       formatting cases
-│   └── links_spec.lua        link cases (mocked clipboard/prompt/network)
+│   ├── helpers.lua           key-feeding test runner, mocks, temp files
+│   └── *_spec.lua            one spec per feature
 ├── SPEC.md                   full design and decisions
 ├── Makefile
 └── README.md

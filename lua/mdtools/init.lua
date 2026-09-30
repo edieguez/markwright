@@ -4,19 +4,55 @@ local M = {}
 
 M._attached = {} ---@type table<integer, true>
 
+local function attach_autocmds(buf)
+  local group = vim.api.nvim_create_augroup("mdtools_buf_" .. buf, { clear = true })
+  vim.api.nvim_create_autocmd("InsertLeave", {
+    group = group,
+    buffer = buf,
+    callback = function()
+      require("mdtools.tables").on_insert_leave()
+    end,
+  })
+  vim.api.nvim_create_autocmd("BufWritePre", {
+    group = group,
+    buffer = buf,
+    callback = function()
+      require("mdtools.toc").on_save(buf)
+    end,
+  })
+  local d = config.options.diagnostics
+  if d.enabled then
+    if d.on_save then
+      vim.api.nvim_create_autocmd("BufWritePost", {
+        group = group,
+        buffer = buf,
+        callback = function()
+          require("mdtools.diagnostics").check(buf)
+        end,
+      })
+    end
+    vim.schedule(function()
+      require("mdtools.diagnostics").check(buf)
+    end)
+  end
+  vim.api.nvim_create_autocmd("BufWipeout", {
+    group = group,
+    buffer = buf,
+    once = true,
+    callback = function()
+      M._attached[buf] = nil
+      pcall(vim.api.nvim_del_augroup_by_id, group)
+    end,
+  })
+end
+
 function M.attach(buf)
   if M._attached[buf] then
     return
   end
   M._attached[buf] = true
   require("mdtools.keymaps").attach(buf)
-  vim.api.nvim_create_autocmd("BufWipeout", {
-    buffer = buf,
-    once = true,
-    callback = function()
-      M._attached[buf] = nil
-    end,
-  })
+  attach_autocmds(buf)
 end
 
 ---@param opts? mdtools.Config

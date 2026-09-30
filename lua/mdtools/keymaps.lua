@@ -52,9 +52,52 @@ function M.attach(buf)
     map("x", "p", links.expr_paste_visual, "Paste (URL over selection → link)", { expr = true })
   end
 
+  -- follow
+  local fkey = config.options.follow.key
+  if fkey and fkey ~= "" then
+    map("n", fkey, function()
+      require("mdtools.follow").follow()
+    end, "Follow link / anchor / footnote")
+  end
+
+  -- code fences & footnotes
+  map("n", P .. "f", function()
+    require("mdtools.fence").insert()
+  end, "Insert code fence")
+  map("x", P .. "f", "<Esc><Cmd>lua require('mdtools.fence').wrap_visual()<CR>", "Wrap in code fence")
+  map("n", P .. "n", function()
+    require("mdtools.footnotes").insert()
+  end, "Insert footnote")
+
+  -- tables
+  local tables = require("mdtools.tables")
+  map("n", P .. "tt", tables.create, "Create table")
+  map("x", P .. "tc", "<Esc><Cmd>lua require('mdtools.tables').from_csv_visual()<CR>", "CSV → table")
+  map("n", P .. "tr", tables.add_row, "Add row below")
+  map("n", P .. "tR", tables.delete_row, "Delete row")
+  map("n", P .. "tk", tables.add_col, "Add column right")
+  map("n", P .. "tK", tables.delete_col, "Delete column")
+  map("n", P .. "ta", function()
+    tables.align()
+  end, "Align table")
+  for _, t in ipairs({ { "<Tab>", 1, "Next table cell" }, { "<S-Tab>", -1, "Previous table cell" } }) do
+    tables.save_fallback(buf, t[1])
+    map("i", t[1], function()
+      return tables.expr_tab(t[2])
+    end, t[3], { expr = true })
+  end
+
+  -- toc
+  map("n", P .. "T", function()
+    require("mdtools.toc").insert()
+  end, "Insert / update TOC")
+
   local ok, wk = pcall(require, "which-key")
   if ok and wk.add then
-    wk.add({ { P, group = "markdown", buffer = buf, mode = { "n", "x" } } })
+    wk.add({
+      { P, group = "markdown", buffer = buf, mode = { "n", "x" } },
+      { P .. "t", group = "table", buffer = buf, mode = { "n", "x" } },
+    })
   end
 end
 
