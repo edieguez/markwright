@@ -116,6 +116,9 @@ function M.attach(buf)
   map("x", P .. "=", "<Esc><Cmd>lua require('mdtools.headings').change_visual(1)<CR>", "Heading: add #")
   map("x", P .. "-", "<Esc><Cmd>lua require('mdtools.headings').change_visual(-1)<CR>", "Heading: remove #")
 
+  -- insert-mode formatting trigger (";;" by default)
+  require("mdtools.insert").attach(buf)
+
   -- images
   map("n", P .. "p", function()
     require("mdtools.images").paste()

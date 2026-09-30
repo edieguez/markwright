@@ -17,6 +17,11 @@ M.defaults = {
     multiline = "per_line", -- only mode for now
     warn_in_code = true, -- notify when formatting inside code is skipped
   },
+  insert = {
+    -- Insert mode: type the trigger, then i/b/s/c/h/l. Two or more characters
+    -- (";;", "jj", ",,") or a key like "<C-g>". "" disables.
+    trigger = ";;",
+  },
   links = {
     use_clipboard = true,
     fetch_title = true,
@@ -72,6 +77,13 @@ local function validate(opts)
   end
   if f.multiline ~= "per_line" then
     error("mdtools: format.multiline only supports 'per_line'")
+  end
+  local t = opts.insert and opts.insert.trigger
+  if type(t) ~= "string" then
+    error("mdtools: insert.trigger must be a string")
+  end
+  if t ~= "" and not t:match("^<.+>$") and vim.fn.strchars(t) < 2 then
+    error("mdtools: insert.trigger must be at least two characters (or a key like '<C-g>')")
   end
   if type(opts.filetypes) ~= "table" then
     error("mdtools: filetypes must be a list")
