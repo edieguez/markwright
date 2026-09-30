@@ -570,7 +570,7 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 - Decided 2026-09-30: link text uses **`ik`/`ak`** (not `il`/`al`, which mini.ai uses as its "last" prefix); `k` also became the link key everywhere (`<P>k`, `;;k`).
 - Operator-pending and visual modes, buffer-local in Markdown. Implemented as `expr` mappings: the range is computed, then selected through a `<Cmd>` that recomputes it at execution time, so dot-repeat works at the new cursor position.
 - Counts climb outward: `2ah` parent section, `2aL` parent item, `2i*` next enclosing span.
-- Links, bare URLs and emphasis fall back to the first match after the cursor on the same line (like `ci"`).
+- Not inside an object → the **next** one after the cursor, across lines (like mini.ai's default `cover_or_next`), within `textobjects.search_lines` (default 500) lines; never backwards; nothing found → the operator is cancelled. Implemented with per-object anchor lists (start positions of links/bare URLs, code spans and blocks, headings, tables, list items, emphasis and `==` spans); the object is evaluated at the first anchor after the cursor. ~6–8 ms per search over 500 lines of the README. (Fixed 2026-09-30: the first version only searched the rest of the current line.)
 - Empty objects (`[](u)`, empty fence, empty cell): the operator is cancelled; for `c`, insert mode starts at the spot.
 - Section, code-block and around-item objects are line-wise; the rest are character-wise.
 - Config `textobjects = { enabled, link, url, code, section, cell, item, emphasis }` (letters; `false`/`""` disables one). In Markdown buffers `ic`/`ac` and `iu` take priority over LazyVim mini.ai's class / function-call objects.

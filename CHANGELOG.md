@@ -7,7 +7,7 @@ All notable changes to markwright are documented here. The format follows [Keep 
 ### Added
 
 - **Heading navigation**: `]]`/`[[` next/previous heading (skipping code blocks), `][`/`[]` next/previous heading of the same level, `[u` parent heading — with counts, jumplist entries, visual mode and operators — and `<leader>mo` / `:Markwright outline` to pick a heading from the document outline. Keys configurable under `nav`.
-- **Text objects** for operators and visual mode, in Markdown buffers: `ik`/`ak` link text / whole link (images, autolinks and bare URLs too), `iu` link URL, `ic`/`ac` inline code or code block, `ih`/`ah` heading section, `i|`/`a|` table cell, `iL`/`aL` list item / item with children, `i*`/`a*` bold, italic, strikethrough or highlight. Counts reach outward (`2ah` = parent section), links and emphasis are found forward on the line, `.` repeats. Letters configurable under `textobjects`.
+- **Text objects** for operators and visual mode, in Markdown buffers: `ik`/`ak` link text / whole link (images, autolinks and bare URLs too), `iu` link URL, `ic`/`ac` inline code or code block, `ih`/`ah` heading section, `i|`/`a|` table cell, `iL`/`aL` list item / item with children, `i*`/`a*` bold, italic, strikethrough or highlight. Counts reach outward (`2ah` = parent section), when the cursor isn't inside one, the next one is used, even on later lines (like mini.ai, up to `textobjects.search_lines` = 500), `.` repeats. Letters configurable under `textobjects`.
 
 ### Fixed
 
