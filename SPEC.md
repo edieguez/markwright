@@ -317,7 +317,9 @@ On `BufWritePost` (and on attach), publish `vim.diagnostic` entries in namespace
 - Footnote references without definitions, and definitions never referenced.
 - Reference links `[text][ref]` with no `[ref]:` definition.
 
-External URLs are **not** checked. Skip code blocks/spans. Clear on buffer change? **[OPEN]** proposed: keep until next save.
+External URLs are **not** checked. Skip code blocks/spans. Diagnostics are kept until the next save (decided 2026-09-29).
+
+Implementation note: the markdown grammar has no footnotes, and a `[ref]: url` line directly after a footnote definition is parsed as paragraph text, so footnotes and link reference definitions are found by a line scan that skips code rows and code spans.
 
 ---
 
@@ -360,11 +362,8 @@ Agreed in principle, details deferred. To decide:
 ### 13.2 Insert-mode formatting keys — **parked**
 Keys that insert `**|**` around the cursor, or close the pair if already inside one. Key choice must avoid `<C-i>` (= `<Tab>`) and LazyVim insert mappings.
 
-### 13.3 `<Tab>` conflict with completion/snippets — **must solve before lists/tables ship**
-LazyVim's blink.cmp and snippets use `<Tab>`. Options:
-- mdtools `<Tab>` checks `require("blink.cmp").is_visible()` and `vim.snippet.active()` first and falls through to the previous mapping otherwise (capture existing mapping with `vim.fn.maparg` and chain).
-- Or integrate as a blink.cmp keymap fallback.
-Decide approach during implementation.
+### 13.3 `<Tab>` conflict with completion/snippets — **resolved for tables (2026-09-29)**
+Implemented in `tables.lua`: insert-mode `<Tab>`/`<S-Tab>` act only when the cursor is in a table and no completion menu (blink.cmp, nvim-cmp, pum) or snippet is active. Otherwise they call the mapping that existed when the buffer attached (captured with `maparg`), or insert a native `<Tab>`. blink.cmp wrapping our mapping as its fallback also works. Lists (9.2) must reuse the same helper.
 
 ### 13.4 Open questions collected
 - Operator keymap names (section 5).
@@ -372,9 +371,9 @@ Decide approach during implementation.
 - Partial-overlap selection behavior (6.9).
 - ~~Link key on whitespace (7.1)~~ — resolved: prompt URL, then text; empty text → page title.
 - Checkbox key on a non-list line (9.2).
-- Fence language prompt completion (9.3).
-- TOC default level range (4 / 9.6).
-- Diagnostics lifetime between saves (10).
+- Fence language prompt completion (9.3) — not implemented; plain prompt for now.
+- TOC default level range (4 / 9.6) — shipped with 2–4.
+- ~~Diagnostics lifetime between saves (10)~~ — implemented as proposed: kept until the next save; `:Mdtools check` re-runs on demand.
 - Checkbox 3-state (`[-]`) — declined for now; could be optional later.
 - External URL checking in diagnostics — declined for now; could be an on-demand async command later.
 
