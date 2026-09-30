@@ -136,7 +136,7 @@ return {
 }
 ```
 
-To pin releases instead of following the main branch, add `version = "*"` (uses the latest git tag).
+To stay on tagged releases instead of the latest commit on `master`, add `version = "*"` (lazy.nvim then uses the newest `v*` tag).
 
 ### mini.deps
 
@@ -181,7 +181,7 @@ Then add `require("markwright").setup()` to your `init.lua`.
 
 ### Updating
 
-With lazy.nvim, `:Lazy update markwright`. Changes are listed in the [commit history](https://github.com/edieguez/markwright/commits/main) and, from the first tagged release on, in the release notes.
+With lazy.nvim, `:Lazy update markwright`. What changed in each release is in [CHANGELOG.md](CHANGELOG.md); every change is in the [commit history](https://github.com/edieguez/markwright/commits/master).
 
 ---
 
