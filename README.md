@@ -1,4 +1,4 @@
-# mdtools.nvim
+# markwright.nvim
 
 Markdown editing for Neovim that feels native: one key adds a format, the same key removes it. It works on the word under the cursor, on a visual selection or with any motion. It also understands the Markdown structure through Treesitter instead of guessing with regular expressions.
 
@@ -103,7 +103,7 @@ Image paste on Linux/WSL, `:help` docs and CI. Details are in [Roadmap](#roadmap
 | `curl` *(optional)* | Fetching page titles for links. Preinstalled on macOS; without it, links use the domain name as text |
 | A clipboard provider *(optional)* | Creating links from a copied URL. Built in on macOS (`pbcopy`/`pbpaste`) |
 
-Run `:checkhealth mdtools` to verify everything.
+Run `:checkhealth markwright` to verify everything.
 
 ---
 
@@ -111,28 +111,28 @@ Run `:checkhealth mdtools` to verify everything.
 
 ### LazyVim / lazy.nvim, local checkout
 
-Create `~/.config/nvim/lua/plugins/mdtools.lua`:
+Create `~/.config/nvim/lua/plugins/markwright.lua`:
 
 ```lua
 return {
   {
-    dir = "~/code/mdtools.nvim", -- the folder that contains lua/ and plugin/
-    name = "mdtools.nvim",
+    dir = "~/code/markwright.nvim", -- the folder that contains lua/ and plugin/
+    name = "markwright.nvim",
     ft = "markdown",
     opts = {},
   },
 }
 ```
 
-Restart Neovim and open any `.md` file. lazy.nvim does not auto-update `dir` plugins. After editing the plugin, run `:Lazy reload mdtools.nvim` or restart.
+Restart Neovim and open any `.md` file. lazy.nvim does not auto-update `dir` plugins. After editing the plugin, run `:Lazy reload markwright.nvim` or restart.
 
 ### LazyVim / lazy.nvim, from a Git repository
 
-Once the repo is on GitHub (replace `you/mdtools.nvim`):
+Once the repo is on GitHub (replace `you/markwright.nvim`):
 
 ```lua
 return {
-  { "you/mdtools.nvim", ft = "markdown", opts = {} },
+  { "you/markwright.nvim", ft = "markdown", opts = {} },
 }
 ```
 
@@ -140,22 +140,22 @@ return {
 
 ```lua
 -- init.lua
-vim.opt.rtp:prepend(vim.fn.expand("~/code/mdtools.nvim"))
-require("mdtools").setup({})
+vim.opt.rtp:prepend(vim.fn.expand("~/code/markwright.nvim"))
+require("markwright").setup({})
 ```
 
 Or clone it into a native package directory:
 
 ```sh
-git clone <repo> ~/.local/share/nvim/site/pack/local/start/mdtools.nvim
+git clone <repo> ~/.local/share/nvim/site/pack/local/start/markwright.nvim
 ```
 
-Then call `require("mdtools").setup({})` in your config.
+Then call `require("markwright").setup({})` in your config.
 
 ### Verifying the install
 
-1. `:Lazy` lists `mdtools.nvim` as loaded (lazy.nvim users).
-2. `:checkhealth mdtools` shows all parsers as OK.
+1. `:Lazy` lists `markwright.nvim` as loaded (lazy.nvim users).
+2. `:checkhealth markwright` shows all parsers as OK.
 3. In a Markdown buffer, `<leader>m` opens the which-key **markdown** group.
 
 ---
@@ -556,7 +556,7 @@ Change the key with `follow.key`, or set it to `""` to keep your own `gx`. Set `
 - **In visual mode** the selected lines are wrapped. The fence uses their shared indentation and grows to four backticks when the content already contains a ` ``` ` line.
 - **Inside a code block** it does nothing (warning).
 
-The same is available as `:Mdtools fence`, or `:'<,'>Mdtools fence` for a range.
+The same is available as `:Markwright fence`, or `:'<,'>Markwright fence` for a range.
 
 ---
 
@@ -621,7 +621,7 @@ Set `tables.align_on_insert_leave = false` to align only with `<leader>mta`.
 
 ### `<Tab>` and completion
 
-`<Tab>` in insert mode only moves between cells when the cursor is in a table **and** no completion menu (blink.cmp, nvim-cmp, the built-in popup) or snippet is active. Otherwise it does exactly what it did before mdtools: the mapping that existed when the buffer attached is called, or a plain `<Tab>` is inserted. LazyVim's completion and snippet jumping keep working.
+`<Tab>` in insert mode only moves between cells when the cursor is in a table **and** no completion menu (blink.cmp, nvim-cmp, the built-in popup) or snippet is active. Otherwise it does exactly what it did before markwright: the mapping that existed when the buffer attached is called, or a plain `<Tab>` is inserted. LazyVim's completion and snippet jumping keep working.
 
 ---
 
@@ -649,7 +649,7 @@ The marker text is configurable (`toc.marker_start` / `toc.marker_end`).
 
 ## Link diagnostics
 
-When a Markdown buffer is opened and every time it's saved, mdtools checks its links and shows problems as regular Neovim diagnostics (source `mdtools`). They appear in the sign column, `]d`/`[d` navigation, and pickers like Trouble or `<leader>sd`:
+When a Markdown buffer is opened and every time it's saved, markwright checks its links and shows problems as regular Neovim diagnostics (source `markwright`). They appear in the sign column, `]d`/`[d` navigation, and pickers like Trouble or `<leader>sd`:
 
 | Problem | Example message |
 |---|---|
@@ -667,7 +667,7 @@ What is **not** checked:
 - anything inside code blocks or code spans
 - relative paths in unsaved buffers, which have no folder to resolve against
 
-The diagnostics stay until the next save, even if you fix the link in the meantime. `:Mdtools check` re-runs the check immediately and reports the count. Disable with `diagnostics.enabled = false`, or keep only the check on open with `diagnostics.on_save = false`. `diagnostics.severity` sets the level.
+The diagnostics stay until the next save, even if you fix the link in the meantime. `:Markwright check` re-runs the check immediately and reports the count. Disable with `diagnostics.enabled = false`, or keep only the check on open with `diagnostics.on_save = false`. `diagnostics.severity` sets the level.
 
 ---
 
@@ -690,7 +690,7 @@ In insert mode, `<CR>` on a list item starts the next item:
 - **At the very start of the line**, `<CR>` behaves like a plain `<CR>` and opens a blank line above.
 - **`o` and `O`** in normal mode do the same: open a new item below or above the current one. Elsewhere they are the normal `o`/`O`, counts included.
 - **Lazily numbered lists** (`1.` `1.` `1.`) keep using the same number.
-- **Outside list items** (and in code blocks), `<CR>` is whatever it was before mdtools, such as the mini.pairs / nvim-autopairs behavior. When the completion menu is open, `<CR>` belongs to the completion.
+- **Outside list items** (and in code blocks), `<CR>` is whatever it was before markwright, such as the mini.pairs / nvim-autopairs behavior. When the completion menu is open, `<CR>` belongs to the completion.
 
 ### Nesting
 
@@ -796,7 +796,7 @@ Other details:
 
 - Inside code blocks nothing is pasted.
 - One `u` removes the link; the saved file stays.
-- `:Mdtools image` does the same as `<leader>mp`.
+- `:Markwright image` does the same as `<leader>mp`.
 
 ### Under the hood (macOS)
 
@@ -814,24 +814,24 @@ With `images.smart_paste = true`, pressing `p` (with `clipboard=unnamedplus`, as
 
 | Command | Description |
 |---|---|
-| `:Mdtools bold` | Toggle bold on the word under the cursor |
-| `:Mdtools italic` | Toggle italic |
-| `:Mdtools strike` | Toggle strikethrough |
-| `:Mdtools code` | Toggle inline code |
-| `:Mdtools highlight` | Toggle highlight |
-| `:Mdtools link` | Same as `<leader>ml` on the cursor position |
-| `:Mdtools follow` | Same as `gx` |
-| `:Mdtools fence` | Insert a code fence; with a range (`:'<,'>Mdtools fence`) wrap those lines |
-| `:Mdtools footnote` | Insert a footnote |
-| `:Mdtools image` | Paste the clipboard image (macOS) |
-| `:Mdtools toc` | Insert or update the table of contents |
-| `:Mdtools check` | Run link diagnostics now and report the count |
-| `:Mdtools table create` | Create a table |
-| `:'<,'>Mdtools table csv` | Convert the range from CSV/TSV |
-| `:Mdtools table align` | Align the table under the cursor |
-| `:Mdtools table row` / `delrow` | Add a row below / delete the row |
-| `:Mdtools table col` / `delcol` | Add a column right / delete the column |
-| `:Mdtools health` | Run `:checkhealth mdtools` |
+| `:Markwright bold` | Toggle bold on the word under the cursor |
+| `:Markwright italic` | Toggle italic |
+| `:Markwright strike` | Toggle strikethrough |
+| `:Markwright code` | Toggle inline code |
+| `:Markwright highlight` | Toggle highlight |
+| `:Markwright link` | Same as `<leader>ml` on the cursor position |
+| `:Markwright follow` | Same as `gx` |
+| `:Markwright fence` | Insert a code fence; with a range (`:'<,'>Markwright fence`) wrap those lines |
+| `:Markwright footnote` | Insert a footnote |
+| `:Markwright image` | Paste the clipboard image (macOS) |
+| `:Markwright toc` | Insert or update the table of contents |
+| `:Markwright check` | Run link diagnostics now and report the count |
+| `:Markwright table create` | Create a table |
+| `:'<,'>Markwright table csv` | Convert the range from CSV/TSV |
+| `:Markwright table align` | Align the table under the cursor |
+| `:Markwright table row` / `delrow` | Add a row below / delete the row |
+| `:Markwright table col` / `delcol` | Add a column right / delete the column |
+| `:Markwright health` | Run `:checkhealth markwright` |
 
 Subcommands tab-complete, including the `table` actions.
 
@@ -842,7 +842,7 @@ Subcommands tab-complete, including the `table` actions.
 Pass options to `setup()`, or through `opts` with lazy.nvim. Everything is optional and these are the defaults.
 
 ```lua
-require("mdtools").setup({
+require("markwright").setup({
   -- Filetypes the plugin attaches to
   filetypes = { "markdown" },
 
@@ -945,11 +945,11 @@ To choose your own keys, disable the defaults and map the entry points yourself.
 ```lua
 opts = { keymaps = { enabled = false } },
 config = function(_, opts)
-  require("mdtools").setup(opts)
+  require("markwright").setup(opts)
   vim.api.nvim_create_autocmd("FileType", {
     pattern = "markdown",
     callback = function(ev)
-      local f = require("mdtools.format")
+      local f = require("markwright.format")
       local map = function(mode, lhs, fn, desc)
         vim.keymap.set(mode, lhs, fn, { buffer = ev.buf, expr = true, desc = desc })
       end
@@ -963,10 +963,10 @@ end,
 
 | Function | Use |
 |---|---|
-| `require("mdtools.format").expr_normal(fmt)` | Normal-mode `expr` mapping: word under the cursor, or empty markers on whitespace |
-| `require("mdtools.format").expr_operator(fmt)` | `expr` mapping for visual mode, or a normal-mode operator that waits for a motion |
-| `require("mdtools.format").toggle(fmt)` | Toggle on the word under the cursor from any Lua code (not an `expr` mapping) |
-| `require("mdtools.format").apply(buf, fmt, mtype, srow, scol, erow, ecol)` | Low-level: toggle over a range. Rows and columns are 0-based bytes, `ecol` is inclusive, `mtype` is `"char"`, `"line"` or `"block"` |
+| `require("markwright.format").expr_normal(fmt)` | Normal-mode `expr` mapping: word under the cursor, or empty markers on whitespace |
+| `require("markwright.format").expr_operator(fmt)` | `expr` mapping for visual mode, or a normal-mode operator that waits for a motion |
+| `require("markwright.format").toggle(fmt)` | Toggle on the word under the cursor from any Lua code (not an `expr` mapping) |
+| `require("markwright.format").apply(buf, fmt, mtype, srow, scol, erow, ecol)` | Low-level: toggle over a range. Rows and columns are 0-based bytes, `ecol` is inclusive, `mtype` is `"char"`, `"line"` or `"block"` |
 
 `fmt` is one of `"italic"`, `"bold"`, `"strike"`, `"code"`, `"highlight"`.
 
@@ -974,37 +974,37 @@ Link entry points (all `expr = true` except where noted):
 
 | Function | Use |
 |---|---|
-| `require("mdtools.links").expr_normal()` | Normal-mode link key |
-| `require("mdtools.links").expr_visual()` | Visual-mode link key |
-| `require("mdtools.links").expr_paste(after)` | Normal `p` (`after = true`) or `P` (`false`) |
-| `require("mdtools.links").expr_paste_visual()` | Visual `p` |
-| `require("mdtools.links").is_url(s)` / `url_at(line, col)` | Plain helpers (not mappings) |
-| `require("mdtools.title").fetch(url, cb)` | Async title fetch; `cb(title | nil)` runs on the main loop |
+| `require("markwright.links").expr_normal()` | Normal-mode link key |
+| `require("markwright.links").expr_visual()` | Visual-mode link key |
+| `require("markwright.links").expr_paste(after)` | Normal `p` (`after = true`) or `P` (`false`) |
+| `require("markwright.links").expr_paste_visual()` | Visual `p` |
+| `require("markwright.links").is_url(s)` / `url_at(line, col)` | Plain helpers (not mappings) |
+| `require("markwright.title").fetch(url, cb)` | Async title fetch; `cb(title | nil)` runs on the main loop |
 
 Other features are plain functions, suitable for normal (non-`expr`) mappings:
 
 | Function | Use |
 |---|---|
-| `require("mdtools.follow").follow()` | `gx` behavior at the cursor |
-| `require("mdtools.follow").open_target(buf, dest)` | Follow a destination string (`#anchor`, path, URL) |
-| `require("mdtools.fence").insert()` / `wrap(buf, srow, erow)` | Code fence at the cursor / around 0-based rows |
-| `require("mdtools.footnotes").insert()` | Footnote at the cursor |
-| `require("mdtools.tables").create()` / `align()` / `add_row()` / `delete_row()` / `add_col()` / `delete_col()` | Table commands at the cursor |
-| `require("mdtools.tables").from_csv(buf, srow, erow)` | Convert 0-based rows from CSV/TSV |
-| `require("mdtools.tables").expr_tab(dir)` | `expr` mapping for insert-mode cell navigation (`1` / `-1`) |
-| `require("mdtools.toc").insert()` / `update(buf)` | Insert or refresh the TOC |
-| `require("mdtools.diagnostics").check(buf)` / `collect(buf)` | Publish / just compute link diagnostics |
-| `require("mdtools.slug").slug(text)` | GitHub-style anchor for heading text |
-| `require("mdtools.lists").expr_enter()` / `expr_open(below)` / `expr_checkbox()` / `expr_tab(dir)` | `expr` mappings for insert `<CR>`, `o`/`O`, the checkbox key and insert `<Tab>` (tables + lists) |
-| `require("mdtools.lists").toggle_range(srow, erow)` / `renumber(buf, row)` | Check or uncheck a range of 0-based rows / renumber the list around a row |
-| `require("mdtools.headings").change(buf, srow, erow, delta)` | Add (`delta > 0`) or remove `#` on 0-based rows |
+| `require("markwright.follow").follow()` | `gx` behavior at the cursor |
+| `require("markwright.follow").open_target(buf, dest)` | Follow a destination string (`#anchor`, path, URL) |
+| `require("markwright.fence").insert()` / `wrap(buf, srow, erow)` | Code fence at the cursor / around 0-based rows |
+| `require("markwright.footnotes").insert()` | Footnote at the cursor |
+| `require("markwright.tables").create()` / `align()` / `add_row()` / `delete_row()` / `add_col()` / `delete_col()` | Table commands at the cursor |
+| `require("markwright.tables").from_csv(buf, srow, erow)` | Convert 0-based rows from CSV/TSV |
+| `require("markwright.tables").expr_tab(dir)` | `expr` mapping for insert-mode cell navigation (`1` / `-1`) |
+| `require("markwright.toc").insert()` / `update(buf)` | Insert or refresh the TOC |
+| `require("markwright.diagnostics").check(buf)` / `collect(buf)` | Publish / just compute link diagnostics |
+| `require("markwright.slug").slug(text)` | GitHub-style anchor for heading text |
+| `require("markwright.lists").expr_enter()` / `expr_open(below)` / `expr_checkbox()` / `expr_tab(dir)` | `expr` mappings for insert `<CR>`, `o`/`O`, the checkbox key and insert `<Tab>` (tables + lists) |
+| `require("markwright.lists").toggle_range(srow, erow)` / `renumber(buf, row)` | Check or uncheck a range of 0-based rows / renumber the list around a row |
+| `require("markwright.headings").change(buf, srow, erow, delta)` | Add (`delta > 0`) or remove `#` on 0-based rows |
 
 ---
 
 ## Health check
 
 ```
-:checkhealth mdtools
+:checkhealth markwright
 ```
 
 It checks:
@@ -1031,7 +1031,7 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 
 **Nothing happens and a warning says "formatting skipped inside code".** The cursor is inside a code block or code span, which is intended. Use `<leader>mc` to remove a code span first.
 
-**Toggling doesn't detect an existing format.** Detection relies on the `markdown_inline` parser. Run `:checkhealth mdtools`, and `:TSInstall markdown markdown_inline` if they are missing. Without the parsers, the plugin falls back to a simpler text check.
+**Toggling doesn't detect an existing format.** Detection relies on the `markdown_inline` parser. Run `:checkhealth markwright`, and `:TSInstall markdown markdown_inline` if they are missing. Without the parsers, the plugin falls back to a simpler text check.
 
 **The wrong word boundaries are used.** Normal mode uses Vim's `iw`, which follows `'iskeyword'`. To target something else, use visual mode or an operator with a motion (`<leader>mBiW` for a WORD).
 
@@ -1040,21 +1040,21 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 **The link key prompts even though I copied a URL.** The clipboard must hold only the URL, on one line. Check with `:echo getreg('+')`. If it's empty, Neovim can't see the system clipboard: run `:checkhealth provider`.
 
 **Links keep the domain instead of the page title.**
-- Run `:checkhealth mdtools` to confirm `curl` is found.
+- Run `:checkhealth markwright` to confirm `curl` is found.
 - Some sites block non-browser requests or build their title with JavaScript. The domain is kept in that case.
 - A slow site may exceed `links.title_timeout_ms`.
 - You can test a URL from the shell with `curl -sL <url> | grep -i '<title'`.
 
-**My `p` behaves differently in Markdown.** Only a single-line URL in the register triggers smart paste; everything else is native. If you use yanky.nvim, mdtools' buffer-local `p`/`P` take priority in Markdown buffers. Disable them with `links.smart_paste_normal = false` and `links.smart_paste_visual = false`.
+**My `p` behaves differently in Markdown.** Only a single-line URL in the register triggers smart paste; everything else is native. If you use yanky.nvim, markwright' buffer-local `p`/`P` take priority in Markdown buffers. Disable them with `links.smart_paste_normal = false` and `links.smart_paste_visual = false`.
 
-**`gx` does something different from before.** In Markdown buffers mdtools owns `gx` and falls back to the default behavior when the cursor isn't on a link. To keep your own mapping, set `follow.key = ""` (or another key).
+**`gx` does something different from before.** In Markdown buffers markwright owns `gx` and falls back to the default behavior when the cursor isn't on a link. To keep your own mapping, set `follow.key = ""` (or another key).
 
-**`<Tab>` doesn't accept my completion.** mdtools checks for a visible blink.cmp or nvim-cmp menu, the built-in popup and active snippets before touching `<Tab>`. If your completion plugin maps `<Tab>` in a way it can't detect, disable table navigation by overriding it: `vim.keymap.set("i", "<Tab>", "<Tab>", { buffer = true })` in a `FileType markdown` autocmd, or map completion to another key.
+**`<Tab>` doesn't accept my completion.** markwright checks for a visible blink.cmp or nvim-cmp menu, the built-in popup and active snippets before touching `<Tab>`. If your completion plugin maps `<Tab>` in a way it can't detect, disable table navigation by overriding it: `vim.keymap.set("i", "<Tab>", "<Tab>", { buffer = true })` in a `FileType markdown` autocmd, or map completion to another key.
 
 **Diagnostics complain about a link that works on GitHub.**
 - Anchors are compared with GitHub's slug rules; headings with unusual Unicode punctuation may differ slightly.
 - Relative links are resolved from the file's folder, not the repository root. Root-relative `/docs/x.md` paths are treated as absolute filesystem paths.
-- `:Mdtools check` shows the current count after a fix. Diagnostics otherwise refresh on save.
+- `:Markwright check` shows the current count after a fix. Diagnostics otherwise refresh on save.
 
 **The TOC isn't updated.** It only updates between an exact `<!-- toc -->` … `<!-- tocstop -->` pair (or your configured markers), each on its own line.
 
@@ -1078,7 +1078,7 @@ Implementation follows [SPEC.md](SPEC.md) §12. Each item links to its spec sect
 
 | # | Feature | Highlights | Status |
 |---|---|---|---|
-| 1 | Skeleton | `setup()`, config, buffer attach, `:Mdtools`, health | ✅ Done |
+| 1 | Skeleton | `setup()`, config, buffer attach, `:Markwright`, health | ✅ Done |
 | 2 | Inline formatting (§6) | italic, bold, strike, code, highlight | ✅ Done |
 | 3 | Links (§7) | `<leader>ml` from clipboard or prompt; bare URL → `[Page Title](url)`; remove link keeps text; smart `p` | ✅ Done |
 | 4 | Follow (§8) | `gx` for URLs, `.md` files (created if missing), `#anchors`, images, footnotes | ✅ Done |
@@ -1086,7 +1086,7 @@ Implementation follows [SPEC.md](SPEC.md) §12. Each item links to its spec sect
 | 6 | Code fences & footnotes (§9.3, §9.5) | fence with typed language; `[^n]` insert and jump | ✅ Done |
 | 7 | Tables (§9.4) | create, CSV → table, row/column edit, cell navigation, align on leaving insert mode | ✅ Done |
 | 8 | TOC & diagnostics (§9.6, §10) | auto-updating TOC between markers; broken link/anchor/footnote warnings on save | ✅ Done |
-| 9 | Docs & CI (§12) | `:help mdtools`, GitHub Actions on stable + nightly | ⏳ Planned |
+| 9 | Docs & CI (§12) | `:help markwright`, GitHub Actions on stable + nightly | ⏳ Planned |
 | 10 | Image paste, macOS (§13.1) | screenshots, copied images, Finder files → `assets/` + `![alt](path)` | ✅ Done |
 | — | Image paste, Linux/WSL | `wl-paste` / `xclip` / `powershell.exe` backends | 💤 Parked |
 | 11 | Formatting while typing (§13.2) | `;;` + `i`/`b`/`s`/`c`/`h`/`l`: pairs, jump out, links in stages | ✅ Done |
@@ -1148,9 +1148,9 @@ The runner fires `TextChanged` after each key chunk that changed the buffer in n
 ## Project layout
 
 ```
-mdtools.nvim/
-├── plugin/mdtools.lua        :Mdtools command
-├── lua/mdtools/
+markwright.nvim/
+├── plugin/markwright.lua        :Markwright command
+├── lua/markwright/
 │   ├── init.lua              setup(), attaches to markdown buffers
 │   ├── config.lua            defaults, merge, validation
 │   ├── keymaps.lua           buffer-local mappings + which-key group
@@ -1171,7 +1171,7 @@ mdtools.nvim/
 │   ├── slug.lua              GitHub-style anchors
 │   ├── ts.lua                Treesitter helpers
 │   ├── util.lua              prefixes, edit tracker, undo, notify
-│   └── health.lua            :checkhealth mdtools
+│   └── health.lua            :checkhealth markwright
 ├── tests/
 │   ├── minimal_init.lua
 │   ├── run.lua               runs every *_spec.lua

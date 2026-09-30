@@ -1,5 +1,5 @@
 -- Async page-title fetching for links. Spec: SPEC.md section 7.3.
-local config = require("mdtools.config")
+local config = require("markwright.config")
 
 local M = {}
 

@@ -1,7 +1,7 @@
 local M = {}
 
 function M.notify(msg, level)
-  vim.notify("mdtools: " .. msg, level or vim.log.levels.INFO)
+  vim.notify("markwright: " .. msg, level or vim.log.levels.INFO)
 end
 
 function M.warn(msg)
@@ -36,7 +36,7 @@ function M.prefix_len(line)
 end
 
 --- Tracks byte-column edits so a saved position can follow them.
----@class mdtools.EditTracker
+---@class markwright.EditTracker
 local Tracker = {}
 Tracker.__index = Tracker
 
@@ -62,7 +62,7 @@ end
 
 --- Replace text in the buffer and record it in the tracker.
 ---@param buf integer
----@param tr mdtools.EditTracker
+---@param tr markwright.EditTracker
 function M.set_text(buf, tr, row, scol, ecol, text)
   vim.api.nvim_buf_set_text(buf, row, scol, row, ecol, { text })
   tr:add(row, scol, #text - (ecol - scol))
@@ -75,7 +75,7 @@ function M.undo_break(buf)
 end
 
 -- Key fallbacks ------------------------------------------------------------
--- mdtools overrides keys like <Tab>/<CR> only in specific contexts; everywhere
+-- markwright overrides keys like <Tab>/<CR> only in specific contexts; everywhere
 -- else the mapping that existed before (completion, autopairs...) must run.
 
 --- Completion menu or snippet active? Then the key belongs to them.
@@ -127,7 +127,7 @@ function M.fallback(buf, mode, lhs)
     if m.expr == 1 then
       return m.callback() or ""
     end
-    return ("<Cmd>lua require('mdtools.util')._run_fallback(%q)<CR>"):format(key)
+    return ("<Cmd>lua require('markwright.util')._run_fallback(%q)<CR>"):format(key)
   end
   if m.rhs and m.rhs ~= "" then
     if m.expr == 1 then

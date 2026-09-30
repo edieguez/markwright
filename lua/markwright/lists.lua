@@ -1,8 +1,8 @@
 -- Lists: continuation, nesting, checkboxes, renumbering. Spec: SPEC.md section 9.2.
 local api = vim.api
-local config = require("mdtools.config")
-local ts = require("mdtools.ts")
-local util = require("mdtools.util")
+local config = require("markwright.config")
+local ts = require("markwright.ts")
+local util = require("markwright.util")
 
 local M = {}
 
@@ -19,7 +19,7 @@ local function is_hr(line)
   return s:match("^%-%-%-+$") or s:match("^%*%*%*+$") or s:match("^___+$")
 end
 
----@class mdtools.ListItem
+---@class markwright.ListItem
 ---@field bq string blockquote prefix
 ---@field indent string
 ---@field marker string "-", "*", "+", "1.", "2)" ...
@@ -33,7 +33,7 @@ end
 ---@field text_col integer where the text starts
 
 --- Parse a list item line, or nil.
----@return mdtools.ListItem?
+---@return markwright.ListItem?
 function M.parse(line)
   if is_hr(line) then
     return nil
@@ -495,7 +495,7 @@ end
 -- Keymap entry points -------------------------------------------------------------
 
 local function cmd(fn, arg)
-  return ("<Cmd>lua require('mdtools.lists').%s(%s)<CR>"):format(fn, arg or "")
+  return ("<Cmd>lua require('markwright.lists').%s(%s)<CR>"):format(fn, arg or "")
 end
 
 local function cursor_item()
@@ -538,9 +538,9 @@ function M.expr_tab(dir)
   if util.completion_active(dir) then
     return util.fallback(buf, "i", lhs)
   end
-  local tables = require("mdtools.tables")
+  local tables = require("markwright.tables")
   if tables.at_cursor(buf) then
-    return ("<Cmd>lua require('mdtools.tables').next_cell(%d)<CR>"):format(dir)
+    return ("<Cmd>lua require('markwright.tables').next_cell(%d)<CR>"):format(dir)
   end
   if opts().tab_indent and cursor_item() then
     return cmd("indent", tostring(dir))

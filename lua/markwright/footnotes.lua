@@ -1,8 +1,8 @@
 -- Footnotes. Spec: SPEC.md section 9.5 (navigation lives in follow.lua).
 local api = vim.api
-local ts = require("mdtools.ts")
-local util = require("mdtools.util")
-local doc = require("mdtools.doc")
+local ts = require("markwright.ts")
+local util = require("markwright.util")
+local doc = require("markwright.doc")
 
 local M = {}
 

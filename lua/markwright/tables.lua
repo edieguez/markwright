@@ -1,9 +1,9 @@
 -- Tables: create, CSV → table, row/column edits, cell navigation, alignment.
 -- Spec: SPEC.md section 9.4.
 local api = vim.api
-local config = require("mdtools.config")
-local ts = require("mdtools.ts")
-local util = require("mdtools.util")
+local config = require("markwright.config")
+local ts = require("markwright.ts")
+local util = require("markwright.util")
 
 local M = {}
 
@@ -17,14 +17,14 @@ end
 
 -- Parsing -----------------------------------------------------------------
 
----@class mdtools.Cell
+---@class markwright.Cell
 ---@field text string trimmed content
 ---@field rs integer raw segment start (0-based byte)
 ---@field re integer raw segment end (exclusive; the next pipe sits here)
 ---@field s integer trimmed content start
 
 --- Split a table row into cells. Pipes escaped with `\|` stay in the cell.
----@return mdtools.Cell[]
+---@return markwright.Cell[]
 function M.split_row(line)
   local indent = #line:match("^%s*")
   local segs, start, k = {}, indent, indent + 1
@@ -92,14 +92,14 @@ function M.find(buf, row)
   return sr, er
 end
 
----@class mdtools.Table
+---@class markwright.Table
 ---@field sr integer
 ---@field er integer
 ---@field indent string
 ---@field rows string[][] cell texts; rows[2] is the delimiter row
 ---@field aligns string[]
 
----@return mdtools.Table?
+---@return markwright.Table?
 function M.read(buf, sr, er)
   local lines = api.nvim_buf_get_lines(buf, sr, er + 1, false)
   local t = { sr = sr, er = er, indent = lines[1]:match("^%s*"), rows = {}, aligns = {} }
@@ -525,7 +525,7 @@ function M.expr_tab(dir)
   if util.completion_active(dir) or not M.at_cursor(buf) then
     return util.fallback(buf, "i", lhs)
   end
-  return ("<Cmd>lua require('mdtools.tables').next_cell(%d)<CR>"):format(dir)
+  return ("<Cmd>lua require('markwright.tables').next_cell(%d)<CR>"):format(dir)
 end
 
 --- InsertLeave: realign if the cursor is in a table (joined to the insert's undo step).

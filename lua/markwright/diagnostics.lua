@@ -1,13 +1,13 @@
 -- Broken link diagnostics. Spec: SPEC.md section 10.
 local api = vim.api
-local config = require("mdtools.config")
-local ts = require("mdtools.ts")
-local doc = require("mdtools.doc")
-local links = require("mdtools.links")
+local config = require("markwright.config")
+local ts = require("markwright.ts")
+local doc = require("markwright.doc")
+local links = require("markwright.links")
 
 local M = {}
 
-M.ns = api.nvim_create_namespace("mdtools")
+M.ns = api.nvim_create_namespace("markwright")
 
 local function url_decode(s)
   return (s:gsub("%%(%x%x)", function(h)
@@ -34,7 +34,7 @@ function M.collect(buf)
       col = col,
       end_col = ecol,
       severity = o.severity,
-      source = "mdtools",
+      source = "markwright",
       message = msg,
     })
   end
@@ -49,7 +49,7 @@ function M.collect(buf)
   local defs = doc.definitions(buf, code)
   local named = api.nvim_buf_get_name(buf) ~= ""
   local other_files = {}
-  local follow = require("mdtools.follow")
+  local follow = require("markwright.follow")
 
   local function check_dest(dest, row, col, ecol)
     dest = vim.trim(dest):gsub("^<(.*)>$", "%1")

@@ -23,7 +23,7 @@ local cases = {
   { "wrap escalates fence", { "text", "```", "x" }, { 1, 0 }, "Vjj mf", { "````md", "text", "```", "x", "````" },
     setup = A("md") },
   { "wrap cancelled", { "a" }, { 1, 0 }, "V mf", { "a" }, setup = A(nil) },
-  { ":Mdtools fence with range", { "a", "b" }, { 1, 0 }, ":1,2Mdtools fence<CR>", { "```", "a", "b", "```" },
+  { ":Markwright fence with range", { "a", "b" }, { 1, 0 }, ":1,2Markwright fence<CR>", { "```", "a", "b", "```" },
     setup = A("") },
 
   -- footnotes

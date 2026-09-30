@@ -2,8 +2,8 @@
 -- the real macOS backend runs against fake osascript/pngpaste executables.
 local H = dofile(vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h") .. "/helpers.lua")
 local api = vim.api
-local images = require("mdtools.images")
-local config = require("mdtools.config")
+local images = require("markwright.images")
+local config = require("markwright.config")
 local eq = H.eq
 local A = H.answers
 

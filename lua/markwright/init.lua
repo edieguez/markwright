@@ -1,17 +1,17 @@
-local config = require("mdtools.config")
+local config = require("markwright.config")
 
 local M = {}
 
 M._attached = {} ---@type table<integer, true>
 
 local function attach_autocmds(buf)
-  local group = vim.api.nvim_create_augroup("mdtools_buf_" .. buf, { clear = true })
+  local group = vim.api.nvim_create_augroup("markwright_buf_" .. buf, { clear = true })
   vim.api.nvim_create_autocmd("InsertLeave", {
     group = group,
     buffer = buf,
     callback = function()
-      require("mdtools.tables").on_insert_leave()
-      require("mdtools.lists").on_change()
+      require("markwright.tables").on_insert_leave()
+      require("markwright.lists").on_change()
     end,
   })
   vim.api.nvim_create_autocmd("TextChanged", {
@@ -21,7 +21,7 @@ local function attach_autocmds(buf)
       -- not after undo/redo: that would re-apply what the user just undid
       local ut = vim.fn.undotree()
       if ut.seq_cur == ut.seq_last then
-        require("mdtools.lists").on_change()
+        require("markwright.lists").on_change()
       end
     end,
   })
@@ -29,7 +29,7 @@ local function attach_autocmds(buf)
     group = group,
     buffer = buf,
     callback = function()
-      require("mdtools.toc").on_save(buf)
+      require("markwright.toc").on_save(buf)
     end,
   })
   local d = config.options.diagnostics
@@ -39,12 +39,12 @@ local function attach_autocmds(buf)
         group = group,
         buffer = buf,
         callback = function()
-          require("mdtools.diagnostics").check(buf)
+          require("markwright.diagnostics").check(buf)
         end,
       })
     end
     vim.schedule(function()
-      require("mdtools.diagnostics").check(buf)
+      require("markwright.diagnostics").check(buf)
     end)
   end
   vim.api.nvim_create_autocmd("BufWipeout", {
@@ -63,14 +63,14 @@ function M.attach(buf)
     return
   end
   M._attached[buf] = true
-  require("mdtools.keymaps").attach(buf)
+  require("markwright.keymaps").attach(buf)
   attach_autocmds(buf)
 end
 
----@param opts? mdtools.Config
+---@param opts? markwright.Config
 function M.setup(opts)
   config.setup(opts)
-  local group = vim.api.nvim_create_augroup("mdtools", { clear = true })
+  local group = vim.api.nvim_create_augroup("markwright", { clear = true })
   vim.api.nvim_create_autocmd("FileType", {
     group = group,
     pattern = config.options.filetypes,

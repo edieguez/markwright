@@ -1,7 +1,7 @@
 -- Table specs (SPEC.md section 9.4).
 local H = dofile(vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h") .. "/helpers.lua")
 local api = vim.api
-local tables = require("mdtools.tables")
+local tables = require("markwright.tables")
 local eq = H.eq
 local A = H.answers
 
@@ -59,7 +59,7 @@ local cases = {
   { "CSV → table", { 'name,age', '"Doe, J",42', "a|b;x,1" }, { 1, 0 }, "Vjj mtc",
     { "| name   | age |", "| ------ | --- |", "| Doe, J | 42  |", "| a\\|b;x | 1   |" } },
   { "TSV → table", { "a\tb", "1\t2" }, { 1, 0 }, "Vj mtc", T3_ALIGNED },
-  { ":Mdtools table csv with range", { "x;y", "1;2" }, { 1, 0 }, ":%Mdtools table csv<CR>",
+  { ":Markwright table csv with range", { "x;y", "1;2" }, { 1, 0 }, ":%Markwright table csv<CR>",
     { "| x   | y   |", "| --- | --- |", "| 1   | 2   |" } },
 
   -- rows / columns
@@ -88,12 +88,12 @@ local cases = {
   -- markdown ftplugin sets expandtab + softtabstop=4, so native <Tab> inserts spaces
   { "<Tab> outside a table is native", { "x" }, { 1, 0 }, "A<Tab><Esc>", { "x   " } },
   { "<Tab> falls back to an existing mapping", fn = function()
-    vim.g.mdtools_tab_hit = 0
-    vim.keymap.set("i", "<Tab>", "<Cmd>let g:mdtools_tab_hit = 1<CR>")
+    vim.g.markwright_tab_hit = 0
+    vim.keymap.set("i", "<Tab>", "<Cmd>let g:markwright_tab_hit = 1<CR>")
     local ok, err = pcall(function()
       H.buf({ "x" }, { 1, 0 })
       H.feed("A<Tab><Esc>")
-      eq(vim.g.mdtools_tab_hit, 1)
+      eq(vim.g.markwright_tab_hit, 1)
       eq(api.nvim_buf_get_lines(0, 0, -1, false), { "x" })
       -- ...but still moves between cells in a table
       H.buf(T3, { 1, 2 })
