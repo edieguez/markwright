@@ -4,7 +4,7 @@ Markdown editing for Neovim that feels native: one key adds a format, the same k
 
 Built for LazyVim, and it works with any Neovim ≥ 0.10 setup.
 
-> **Status: early development.** Inline formatting, links, `gx` following, code fences, footnotes, tables, TOC and link diagnostics are complete and tested. Lists and headings are next. See [Roadmap](#roadmap).
+> **Status: all core features are complete and tested:** inline formatting, links, `gx`, lists, checkboxes, headings, code fences, footnotes, tables, TOC and link diagnostics. Image paste is parked. See [Roadmap](#roadmap).
 
 ---
 
@@ -23,6 +23,8 @@ Built for LazyVim, and it works with any Neovim ≥ 0.10 setup.
 - [Tables](#tables)
 - [Table of contents](#table-of-contents)
 - [Link diagnostics](#link-diagnostics)
+- [Lists and checkboxes](#lists-and-checkboxes)
+- [Headings](#headings)
 - [Commands](#commands)
 - [Configuration](#configuration)
 - [Custom keymaps and Lua API](#custom-keymaps-and-lua-api)
@@ -75,10 +77,16 @@ All five share one engine, so they behave the same way:
   - columns realign when you leave insert mode, accounting for accents, CJK text and alignment markers
 - **Table of contents** (`<leader>mT`): a nested list of heading links between `<!-- toc -->` markers, updated on every save.
 - **Link diagnostics:** on save, broken file links, missing anchors, undefined references and orphan footnotes show up as warnings.
+- **Lists:**
+  - `<CR>` and `o`/`O` continue a list (bullets, numbers, checkboxes); `<CR>` on an empty item ends it.
+  - `<Tab>`/`<S-Tab>` nest and un-nest items together with their children.
+  - Ordered lists renumber themselves.
+- **Checkboxes:** **`<CR>` in normal mode** toggles `[ ]` ↔ `[x]`, and adds a checkbox to a plain list item.
+- **Headings:** `<leader>m=` adds a `#`, `<leader>m-` removes one. They take counts and convert setext headings.
 
 ### Coming next
 
-List continuation, checkboxes, heading levels. Details are in [Roadmap](#roadmap).
+Image paste (parked), `:help` docs and CI. Details are in [Roadmap](#roadmap).
 
 ---
 
@@ -184,6 +192,16 @@ gx              follow the link, anchor or footnote under the cursor (<C-o> to c
 <leader>mT      insert or refresh the table of contents
 ```
 
+And for lists and headings:
+
+```
+- [ ] buy milk  <CR> (normal)     →  - [x] buy milk
+1. first        A<CR>             →  1. first
+                                     2. |
+- child         i<Tab>            →    - child      (nested under the item above)
+Title           <leader>m=        →  # Title       (again: ## Title; <leader>m- goes back)
+```
+
 ---
 
 ## Keymaps
@@ -214,8 +232,14 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `<leader>mtr` / `<leader>mtR` | normal | Add row below / delete row |
 | `<leader>mtk` / `<leader>mtK` | normal | Add column right / delete column |
 | `<leader>mta` | normal | Align the table now |
-| `<Tab>` / `<S-Tab>` | insert | Next / previous table cell (native `<Tab>` elsewhere) |
+| `<Tab>` / `<S-Tab>` | insert | Next / previous table cell; nest / un-nest a list item (native `<Tab>` elsewhere) |
 | `<leader>mT` | normal | Insert or update the **table of contents** |
+| `<CR>` | normal | **Toggle checkbox** on a list item (native `<CR>` elsewhere) |
+| `<CR>` | visual | Check all list items in the selection (or uncheck if all are checked) |
+| `<CR>` | insert | **Continue the list** (native `<CR>` elsewhere) |
+| `o` / `O` | normal | Open a line below / above; continues the list on list items |
+| `<leader>m=` | normal, visual | **Heading**: add a `#` (count works: `2<leader>m=`) |
+| `<leader>m-` | normal, visual | **Heading**: remove a `#` |
 
 **Operator examples:**
 
@@ -575,6 +599,98 @@ The diagnostics stay until the next save, even if you fix the link in the meanti
 
 ---
 
+## Lists and checkboxes
+
+### Continuing lists
+
+In insert mode, `<CR>` on a list item starts the next item:
+
+| On this line | `<CR>` gives |
+|---|---|
+| `- one` | `- ` (same bullet: `-`, `*` or `+`, same spacing) |
+| `1. one` / `3) c` | `2. ` / `4) ` |
+| `- [x] done` | `- [ ] ` (new checkboxes start unchecked) |
+| `  - nested` | `  - ` (same indentation) |
+| `> - quoted` | `> - ` (inside the blockquote) |
+| `- ` (empty item) | Ends the list: the marker is removed and you keep typing on a plain line |
+
+- **In the middle of an item**, `<CR>` splits it: `- hello|world` becomes `- hello` and `- world`.
+- **At the very start of the line**, `<CR>` behaves like a plain `<CR>` and opens a blank line above.
+- **`o` and `O`** in normal mode do the same: open a new item below or above the current one. Elsewhere they are the normal `o`/`O`, counts included.
+- **Lazily numbered lists** (`1.` `1.` `1.`) keep using the same number.
+- **Outside list items** (and in code blocks), `<CR>` is whatever it was before mdtools, such as the mini.pairs / nvim-autopairs behavior. When the completion menu is open, `<CR>` belongs to the completion.
+
+### Nesting
+
+`<Tab>` / `<S-Tab>` in insert mode on a list item:
+
+- **`<Tab>`** nests the item under the one above. It's indented to that item's content column, which is what CommonMark requires: 2 columns under `- `, 3 under `1. `.
+- **`<S-Tab>`** moves it back to its parent's level.
+- **Children and continuation lines move with it.**
+- **An ordered item that becomes the first of a new sublist restarts at `1.`**, and both lists renumber.
+- **The cursor stays on the same text.**
+
+```
+- a              - a
+- b      <Tab>     - b
+  - c    →           - c
+```
+
+`<Tab>` checks completion and snippets first, then tables, then lists. Anywhere else it's the native `<Tab>`, which in markdown buffers inserts spaces (the ftplugin sets `expandtab`).
+
+### Renumbering
+
+Ordered lists are renumbered automatically in these cases:
+
+- after `<CR>`, `o`/`O`, `<Tab>`/`<S-Tab>`
+- after normal-mode edits such as `dd`, `p` or `x`
+- when leaving insert mode
+
+Other details:
+
+- **The renumbering joins the same undo step** as the edit that caused it, so `u` undoes both.
+- **The first item's number is where the list starts.** `5.` `6.` `7.` stays a list starting at 5. Deleting item `1.` therefore leaves `2.` `3.`: renumber from 1 by changing the first number.
+- **Nested lists are renumbered too.** When a number gets wider (`9.` → `10.`), the item's continuation lines shift to stay aligned.
+- **Lazily numbered lists** (all the same number) are left alone.
+- **Changes from undo and redo** never trigger renumbering, so undo always works.
+
+Set `lists.auto_renumber = false` to turn it off.
+
+### Checkboxes
+
+**`<CR>` in normal mode** on a list item:
+
+| Line | After `<CR>` |
+|---|---|
+| `- [ ] task` | `- [x] task` |
+| `- [x] task` or `- [X] task` | `- [ ] task` |
+| `- task` | `- [ ] task` (set `lists.checkbox_add = false` to skip this) |
+| Plain text, code blocks | Native `<CR>` (moves down) |
+
+In visual mode `<CR>` checks every list item in the selection, or unchecks them all if they're already all checked. The cursor doesn't move, and each toggle is one undo step. Pick another key with `lists.checkbox_key` (normal and visual), or `""` for none.
+
+---
+
+## Headings
+
+`<leader>m=` adds a `#`, `<leader>m-` removes one:
+
+```
+Title       <leader>m=   →   # Title
+# Title     <leader>m=   →   ## Title
+## Title    <leader>m-   →   # Title
+# Title     <leader>m-   →   Title
+Title       3<leader>m=  →   ### Title
+```
+
+- **Counts** work (`3<leader>m=`). The level stops at 6.
+- **Setext headings** (`Title` over `===` or `---`) are converted to `#` style first.
+- **Closing hashes** (`## Title ##`) are kept.
+- **Visual mode** changes every non-blank line in the selection. Lines in code blocks are skipped.
+- **Only the current line changes**; sub-headings don't shift with it.
+
+---
+
 ## Commands
 
 | Command | Description |
@@ -654,12 +770,12 @@ require("mdtools").setup({
     severity = vim.diagnostic.severity.WARN,
   },
 
-  -- Accepted now, used by the upcoming lists feature.
   lists = {
-    continue_on_enter = true,
-    tab_indent = true,
-    auto_renumber = true,
-    checkbox_add = true,
+    continue_on_enter = true,       -- <CR> / o / O continue lists
+    tab_indent = true,              -- <Tab> / <S-Tab> nest list items
+    auto_renumber = true,           -- keep ordered lists numbered
+    checkbox_add = true,            -- checkbox key adds [ ] to plain items
+    checkbox_key = "<CR>",          -- normal/visual key that toggles checkboxes; "" = none
   },
 })
 ```
@@ -748,6 +864,9 @@ Other features are plain functions, suitable for normal (non-`expr`) mappings:
 | `require("mdtools.toc").insert()` / `update(buf)` | Insert or refresh the TOC |
 | `require("mdtools.diagnostics").check(buf)` / `collect(buf)` | Publish / just compute link diagnostics |
 | `require("mdtools.slug").slug(text)` | GitHub-style anchor for heading text |
+| `require("mdtools.lists").expr_enter()` / `expr_open(below)` / `expr_checkbox()` / `expr_tab(dir)` | `expr` mappings for insert `<CR>`, `o`/`O`, the checkbox key and insert `<Tab>` (tables + lists) |
+| `require("mdtools.lists").toggle_range(srow, erow)` / `renumber(buf, row)` | Check or uncheck a range of 0-based rows / renumber the list around a row |
+| `require("mdtools.headings").change(buf, srow, erow, delta)` | Add (`delta > 0`) or remove `#` on 0-based rows |
 
 ---
 
@@ -807,6 +926,12 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 
 **The TOC isn't updated.** It only updates between an exact `<!-- toc -->` … `<!-- tocstop -->` pair (or your configured markers), each on its own line.
 
+**`<CR>` in normal mode toggles checkboxes, but I use it for something else.** It only acts on list items; elsewhere your previous `<CR>` mapping (or the native one) runs. To move it, set `lists.checkbox_key = "<leader>mx"` (or `""` to disable).
+
+**`o`, `<CR>` or `<Tab>` interfere with another plugin.** Turn the list behaviors off individually with `lists.continue_on_enter = false` (`<CR>`, `o`, `O`) and `lists.tab_indent = false` (`<Tab>` for lists; tables keep it).
+
+**A nested ordered item didn't become a sublist.** In CommonMark a nested ordered list can only start inside a paragraph if its first number is 1. `<Tab>` resets the first nested item to `1.` for you. If you type the indentation by hand, start with `1.`.
+
 ---
 
 ## Roadmap
@@ -819,7 +944,7 @@ Implementation follows [SPEC.md](SPEC.md) §12. Each item links to its spec sect
 | 2 | Inline formatting (§6) | italic, bold, strike, code, highlight | ✅ Done |
 | 3 | Links (§7) | `<leader>ml` from clipboard or prompt; bare URL → `[Page Title](url)`; remove link keeps text; smart `p` | ✅ Done |
 | 4 | Follow (§8) | `gx` for URLs, `.md` files (created if missing), `#anchors`, images, footnotes | ✅ Done |
-| 5 | Lists & headings (§9.1–9.2) | `<CR>` continuation, `<Tab>` nesting, checkbox toggle, auto-renumber, promote/demote headings | ⏳ Next |
+| 5 | Lists & headings (§9.1–9.2) | `<CR>` continuation, `<Tab>` nesting, `<CR>` checkbox toggle, auto-renumber, add/remove `#` | ✅ Done |
 | 6 | Code fences & footnotes (§9.3, §9.5) | fence with typed language; `[^n]` insert and jump | ✅ Done |
 | 7 | Tables (§9.4) | create, CSV → table, row/column edit, cell navigation, align on leaving insert mode | ✅ Done |
 | 8 | TOC & diagnostics (§9.6, §10) | auto-updating TOC between markers; broken link/anchor/footnote warnings on save | ✅ Done |
@@ -862,6 +987,9 @@ In `tests/links_spec.lua` the clipboard, `vim.ui.input` and the title fetcher ar
 | `blocks_spec.lua` | code fences, footnotes |
 | `tables_spec.lua` | tables, `<Tab>` fallback |
 | `doc_spec.lua` | TOC, diagnostics |
+| `lists_spec.lua` | lists, checkboxes, renumbering, headings |
+
+The runner fires `TextChanged` after each key chunk that changed the buffer in normal mode. Real Neovim does this in its main loop between keystrokes, but not while a headless script runs, and the auto-renumbering depends on it.
 
 ### Design notes
 
@@ -892,6 +1020,8 @@ mdtools.nvim/
 │   ├── fence.lua             code fences
 │   ├── footnotes.lua         footnote insertion
 │   ├── tables.lua            tables: parse, render, edit, navigate
+│   ├── lists.lua             list continuation, nesting, checkboxes, renumbering
+│   ├── headings.lua          add / remove #
 │   ├── toc.lua               table of contents
 │   ├── diagnostics.lua       broken-link diagnostics
 │   ├── doc.lua               headings, definitions, footnotes, code rows

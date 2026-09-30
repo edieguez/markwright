@@ -33,6 +33,7 @@ M.defaults = {
     tab_indent = true,
     auto_renumber = true,
     checkbox_add = true,
+    checkbox_key = "<CR>", -- normal mode; "" to disable
   },
   tables = {
     align_on_insert_leave = true,

@@ -18,9 +18,18 @@ local function fresh_buf(lines, name)
   return buf
 end
 
+--- Feed keys chunk by chunk. After each chunk, fire TextChanged if the buffer
+--- changed in normal mode: the main loop does this between real keystrokes,
+--- but not while a headless script is running.
 local function feed(keys)
   for _, k in ipairs(type(keys) == "table" and keys or { keys }) do
+    local buf = api.nvim_get_current_buf()
+    local tick = api.nvim_buf_get_changedtick(buf)
     api.nvim_feedkeys(api.nvim_replace_termcodes(k, true, false, true), "mx", false)
+    buf = api.nvim_get_current_buf()
+    if vim.fn.mode() == "n" and api.nvim_buf_get_changedtick(buf) ~= tick then
+      api.nvim_exec_autocmds("TextChanged", { buffer = buf, modeline = false })
+    end
   end
 end
 
