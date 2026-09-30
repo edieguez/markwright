@@ -4,6 +4,15 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Fixed
+
+- CSV → table (`<leader>mtc`) put each line in a single cell when the data used a separator other than comma, tab or semicolon (for example `|` or `:`), including CSV exported by `<leader>mtx` with a custom separator.
+
+### Changed
+
+- CSV → table now asks for the separator, prefilled with the detected one (Enter accepts it), like table → CSV. Detection also recognizes `|` and `:`, and looks at all selected lines instead of only the first.
+- CSV separators can be several characters long (`::`, `; `).
+
 ## [0.1.0] - 2026-09-30
 
 First public release. Requires Neovim 0.10 or later (tested on 0.10.0, 0.10.4 and 0.11).

@@ -33,6 +33,15 @@ local cases = {
       eq(tables.detect_sep("a\tb\tc"), "\t")
       eq(tables.detect_sep("a;b;c,d"), ";")
       eq(tables.detect_sep('"x;y",z'), ",")
+      -- whole blocks: a separator that splits every line the same way wins
+      eq(tables.detect_sep({ "name;note", "Ana;a, b" }), ";")
+      eq(tables.detect_sep({ "10:30,Ana", "11:00,Bob" }), ",")
+      eq(tables.detect_sep({ "name|age", "Ana|35" }), "|")
+      eq(tables.detect_sep({ "name | age", "Ana | 35" }), "|")
+      eq(tables.detect_sep({ "key:value", "a:1" }), ":")
+      eq(tables.detect_sep({ "single" }), ",")
+      eq(tables.csv_fields("a::b::c", "::"), { "a", "b", "c" })
+      eq(tables.csv_fields('"x::y"::z', "::"), { "x::y", "z" })
     end,
   },
 
@@ -122,14 +131,30 @@ local cases = {
     { 1, 0 },
     "Vjj mtc",
     { "| name   | age |", "| ------ | --- |", "| Doe, J | 42  |", "| a\\|b;x | 1   |" },
+    setup = A(""),
   },
-  { "TSV → table", { "a\tb", "1\t2" }, { 1, 0 }, "Vj mtc", T3_ALIGNED },
+  { "TSV → table", { "a\tb", "1\t2" }, { 1, 0 }, "Vj mtc", T3_ALIGNED, setup = A("") },
+  { "pipe-separated → table", { "a|b", "1|2" }, { 1, 0 }, "Vj mtc", T3_ALIGNED, setup = A("") },
+  { "pipe with spaces → table", { "a | b", "1 | 2" }, { 1, 0 }, "Vj mtc", T3_ALIGNED, setup = A("") },
+  { "colon-separated → table", { "a:b", "1:2" }, { 1, 0 }, "Vj mtc", T3_ALIGNED, setup = A("") },
+  { "typed multi-character separator", { "a::b", "1::2" }, { 1, 0 }, "Vj mtc", T3_ALIGNED, setup = A("::") },
+  { "typed \\t for tab", { "a\tb", "1\t2" }, { 1, 0 }, "Vj mtc", T3_ALIGNED, setup = A("\\t") },
+  {
+    "typed separator overrides detection",
+    { "a;b,c", "1;2,3" },
+    { 1, 0 },
+    "Vj mtc",
+    { "| a   | b,c |", "| --- | --- |", "| 1   | 2,3 |" },
+    setup = A(";"),
+  },
+  { "CSV → table cancelled", { "a,b", "1,2" }, { 1, 0 }, "Vj mtc", { "a,b", "1,2" }, setup = A(nil) },
   {
     ":Markwright table csv with range",
     { "x;y", "1;2" },
     { 1, 0 },
     ":%Markwright table csv<CR>",
     { "| x   | y   |", "| --- | --- |", "| 1   | 2   |" },
+    setup = A(""),
   },
 
   -- rows / columns
@@ -214,7 +239,16 @@ local cases = {
     { 1, 0 },
     { "Vj mtc", " mtx" },
     { "name,age", '"Doe, J",42' },
-    setup = A(","),
+    setup = A("", ","),
+  },
+
+  {
+    "table → pipe CSV → table round trip",
+    T3,
+    { 1, 2 },
+    { " mtx", "Vj mtc" },
+    T3_ALIGNED,
+    setup = A("|", ""),
   },
 
   -- cell navigation
