@@ -40,6 +40,16 @@ M.defaults = {
     checkbox_add = true,
     checkbox_key = "<CR>", -- normal mode; "" to disable
   },
+  nav = {
+    -- heading motions (normal, visual and operator-pending); false or "" disables one
+    enabled = true,
+    next = "]]",
+    prev = "[[",
+    next_sibling = "][", -- same level, within the parent section
+    prev_sibling = "[]",
+    parent = "[u",
+    outline = nil, -- nil: <prefix>o; false or "" disables
+  },
   textobjects = {
     -- letters after i/a in operator-pending and visual mode; false or "" disables one
     enabled = true,

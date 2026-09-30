@@ -117,6 +117,9 @@ function M.attach(buf)
   map("x", P .. "=", "<Esc><Cmd>lua require('markwright.headings').change_visual(1)<CR>", "Heading: add #")
   map("x", P .. "-", "<Esc><Cmd>lua require('markwright.headings').change_visual(-1)<CR>", "Heading: remove #")
 
+  -- heading navigation and outline
+  require("markwright.nav").attach(buf)
+
   -- text objects
   require("markwright.textobjects").attach(buf)
 
