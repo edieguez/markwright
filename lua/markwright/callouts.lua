@@ -159,6 +159,82 @@ function M.remove(buf, row)
   return true
 end
 
+-- Continuing quotes -------------------------------------------------------------
+-- <CR>, o and O on a blockquote line (callouts included) keep the `>`; <CR> on an
+-- empty quote line removes one `>` level instead.
+
+--- The `>` prefix of a quote line (e.g. "> ", "> > ", ">"), or nil.
+function M.quote_prefix(line)
+  return line:match("^( ? ? ?>[> ]*)")
+end
+
+--- Should quote continuation apply at `row`? Not inside a code block unless
+--- that code block is itself inside a blockquote.
+function M.continues(buf, row)
+  if not config.options.blockquotes.continue_on_enter then
+    return false
+  end
+  if not M.quote_prefix(get_line(buf, row)) then
+    return false
+  end
+  local p = ts.parse(buf, row)
+  if not p then
+    return true
+  end
+  local node = ts.block_node(p, row, 0)
+  if ts.ancestor(node, { fenced_code_block = true, indented_code_block = true, html_block = true }) then
+    return ts.ancestor(node, { block_quote = true }) ~= nil
+  end
+  return true
+end
+
+--- The prefix with its last `>` level removed ("> > " -> "> ", ">" -> "").
+local function outer(prefix)
+  local without = prefix:gsub(">%s*$", "")
+  return without
+end
+
+--- Insert-mode <CR> on a quote line.
+function M.enter()
+  local buf = api.nvim_get_current_buf()
+  local row, col = unpack(api.nvim_win_get_cursor(0))
+  row = row - 1
+  local line = get_line(buf, row)
+  local prefix = M.quote_prefix(line)
+  if not prefix then
+    return
+  end
+  if line:match("^[%s>]*$") then
+    -- empty quote line: drop one `>` level, no new line
+    local new = outer(prefix)
+    api.nvim_buf_set_lines(buf, row, row + 1, false, { new })
+    api.nvim_win_set_cursor(0, { row + 1, #new })
+    return
+  end
+  local cont = prefix:match(" $") and prefix or (prefix .. " ")
+  col = math.max(col, #prefix)
+  local before = line:sub(1, col):gsub("%s+$", "")
+  local after = line:sub(col + 1):gsub("^%s+", "")
+  api.nvim_buf_set_lines(buf, row, row + 1, false, { before, cont .. after })
+  api.nvim_win_set_cursor(0, { row + 2, #cont })
+end
+
+--- Normal-mode o / O on a quote line.
+function M.open(below)
+  local buf = api.nvim_get_current_buf()
+  local row = api.nvim_win_get_cursor(0)[1] - 1
+  local prefix = M.quote_prefix(get_line(buf, row))
+  if not prefix then
+    return
+  end
+  local cont = prefix:match(" $") and prefix or (prefix .. " ")
+  local at = below and row + 1 or row
+  util.undo_break(buf)
+  api.nvim_buf_set_lines(buf, at, at, false, { cont })
+  api.nvim_win_set_cursor(0, { at + 1, #cont })
+  vim.cmd("startinsert!")
+end
+
 -- Entry points --------------------------------------------------------------------
 
 local function valid_type(typ)
