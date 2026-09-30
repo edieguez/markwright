@@ -21,6 +21,7 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
   - [x] backtick escalation for inline code; code guard
   - [x] dot-repeat; one undo step per action
 - [x] **Formatting while typing** — `;;` + `i`/`b`/`s`/`c`/`h`/`k`, jump out, configurable trigger (§13.2)
+- [x] **Text objects** — `ik`/`ak` link, `iu` URL, `ic`/`ac` code, `ih`/`ah` section, `i|`/`a|` cell, `iL`/`aL` list item, `i*`/`a*` emphasis; counts, empty objects, dot-repeat (§14.8)
 - [x] **Links** (§7)
   - [x] link key: clipboard URL / prompt / bare URL → titled link / unlink
   - [x] async page titles (curl), domain fallback
@@ -40,7 +41,7 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 - [x] **TOC** — markers, nested entries, refresh on save (§9.6)
 - [x] **Link diagnostics** — files, anchors, references, footnotes; on open/save; `:Markwright check` (§10)
 - [x] **Image paste, macOS** — screenshots, Finder files, paths, URLs; `assets/`; alt text (§13.1)
-- [x] **Tests** — 314 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
+- [x] **Tests** — 381 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
 - [x] **Verified on macOS + LazyVim** (2026-09-30): clipboard links, live titles, `gx`, image paste (screenshot / Finder / browser), `<CR>` with blink.cmp + mini.pairs, `<Tab>` in snippets/lists/tables, `;;` hint with noice, no duplicate diagnostics
 
 ### Release 0.1.0
@@ -68,7 +69,6 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 - [ ] Decide partial-overlap selection behavior (§14.7)
 
 **New features — priority 1**
-- [ ] Text objects: link, code block, heading section, table cell, list item, emphasis (§14.8)
 - [ ] Heading navigation `]]`/`[[` + outline picker (§14.9)
 - [ ] Rich-text paste (HTML → Markdown) (§14.10)
 
@@ -261,8 +261,9 @@ All buffer-local, Markdown only. `<P>` = configured prefix (default `<leader>m`)
 | n | `<P>T` | Insert/update TOC |
 | n, x | `<P>p` | Paste image (visual: selection = alt text) |
 | i | `;;` + `i`/`b`/`s`/`c`/`h`/`k` | Formatting while typing (trigger configurable) |
+| o, x | `ik`/`ak`, `iu`, `ic`/`ac`, `ih`/`ah`, `i\|`/`a\|`, `iL`/`aL`, `i*`/`a*` | Text objects (§14.8; letters configurable under `textobjects`) |
 
-**Planned keys** (§14; all **[OPEN]** until implemented): text objects `il`/`al`, `ic`/`ac`, `ih`/`ah`, `i\|`/`a\|`, `iL`/`aL`, `i*`/`a*`; `]]`/`[[` headings; `<P>o` outline; `<P>v` rich paste; `<P>a`/`<P>A` callouts; `<M-j>`/`<M-k>` move list items/sections; `<P>*` cycle bullet; `<P>L`/`<P>N` lines ↔ bullet/numbered list; `<P>+`/`<P>_` promote/demote with children; `<P>ts` sort table; `<P>t<`/`<P>t>` move column; `<P>r` inline ↔ reference link.
+**Planned keys** (§14; all **[OPEN]** until implemented): `]]`/`[[` headings; `<P>o` outline; `<P>v` rich paste; `<P>a`/`<P>A` callouts; `<M-j>`/`<M-k>` move list items/sections; `<P>*` cycle bullet; `<P>L`/`<P>N` lines ↔ bullet/numbered list; `<P>+`/`<P>_` promote/demote with children; `<P>ts` sort table; `<P>t<`/`<P>t>` move column; `<P>r` inline ↔ reference link.
 
 Keys already taken under `<P>`: `i b s c h I B S C H l = - f n p T tt tc tr tR tk tK ta`.
 
@@ -456,7 +457,7 @@ Implementation note: the markdown grammar has no footnotes, and a `[ref]: url` l
 - [x] 8. `toc.lua`, `diagnostics.lua`.
 - [x] 9. `images.lua` (macOS), `insert.lua`.
 - [x] 10. Rename to markwright.nvim (§14.4).
-- [ ] 11. Priority-1 features: text objects, heading navigation, rich-text paste (§14.8–14.10).
+- [ ] 11. Priority-1 features: ~~text objects~~ (done), heading navigation, rich-text paste (§14.8–14.10).
 - [ ] 12. Priority-2 features (§14.11–14.18).
 - [ ] 13. Linux/WSL image paste, image extras, fence completion (§14.1, §14.5, §14.6).
 - [x] 10b. Release 0.1.0 preparation: Neovim 0.10 check, stylua/selene, CHANGELOG, tag (see §0 Release 0.1.0).
@@ -552,22 +553,26 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 - **Operator keys**: currently `<P>I`/`<P>B`/`<P>S`/`<P>C`/`<P>H` + motion. Options: keep; or `gm` + format letter + motion (`gmbiw`), freeing uppercase `<P>` keys for the features below.
 - **Partial-overlap selections** (selection covers part of a span): currently removes the whole span. Alternative: shrink the span to exclude the selection (`**hello world**`, select `world` → `**hello** world`). Decide, then test both edge directions.
 
-### 14.8 Text objects (priority 1)
+### 14.8 Text objects — **implemented (2026-09-30)**
 
-| Object | `i` (inner) | `a` (around) | Key **[OPEN]** |
+| Object | `i` (inner) | `a` (around) | Keys |
 |---|---|---|---|
-| Link | link text | whole `[text](url)` / `![alt](src)` / `<url>` | `il` / `al` |
-| Link URL | destination only | — | `iu` |
-| Code block | fence content | whole block incl. fences | `ic` / `ac` |
-| Heading section | content under the heading, up to the next heading of the same or higher level | heading line + content | `ih` / `ah` |
-| Table cell | trimmed cell text | cell incl. padding | `i\|` / `a\|` |
-| List item | item text (no marker/checkbox) | item + its children | `iL` / `aL` |
-| Emphasis | text inside `*`, `**`, `~~`, `==` (innermost) | including markers | `i*` / `a*` |
+| Link | link text; image alt text; the URL inside `<…>`; a bare URL | whole `[text](url)` / `![alt](src)` / `<url>` / reference link | `ik` / `ak` |
+| Link URL | destination (inside `<…>` if bracketed); for reference links, the URL on the `[ref]:` line | — | `iu` |
+| Code | inline code: content (without padding spaces) · block: lines between the fences | with backticks · whole block (trailing blank lines excluded) | `ic` / `ac` |
+| Heading section | content under the heading, blank lines at both ends trimmed | heading + content up to the next heading of the same or higher level | `ih` / `ah` |
+| Table cell | trimmed cell text | cell incl. padding (between the pipes) | `i\|` / `a\|` |
+| List item | item text (no marker/checkbox), incl. continuation lines of its paragraph | item + its children (line-wise) | `iL` / `aL` |
+| Emphasis | inside `*`, `**`, `~~`, `==` (innermost) | including the markers | `i*` / `a*` |
 
-- Operator-pending and visual modes; counts select outer levels (`2ih` = parent section, `2a*` = next enclosing span).
-- Built on Treesitter nodes (`inline_link`, `fenced_code_block`, `section`, `pipe_table_cell`, `list_item`, `emphasis`…).
-- Conflicts to check with LazyVim: mini.ai defines `c` (class) globally and mini.indentscope defines `ii`/`ai` — buffer-local Markdown objects override them only in Markdown; `ii` is avoided on purpose. Each object can be remapped or disabled (`textobjects = { link = "l", ... }`).
-- Examples: `cil` change link text; `yiu` copy the URL; `dah` delete a section; `vaL` select an item with children; `ci*` change emphasized text.
+- Decided 2026-09-30: link text uses **`ik`/`ak`** (not `il`/`al`, which mini.ai uses as its "last" prefix); `k` also became the link key everywhere (`<P>k`, `;;k`).
+- Operator-pending and visual modes, buffer-local in Markdown. Implemented as `expr` mappings: the range is computed, then selected through a `<Cmd>` that recomputes it at execution time, so dot-repeat works at the new cursor position.
+- Counts climb outward: `2ah` parent section, `2aL` parent item, `2i*` next enclosing span.
+- Links, bare URLs and emphasis fall back to the first match after the cursor on the same line (like `ci"`).
+- Empty objects (`[](u)`, empty fence, empty cell): the operator is cancelled; for `c`, insert mode starts at the spot.
+- Section, code-block and around-item objects are line-wise; the rest are character-wise.
+- Config `textobjects = { enabled, link, url, code, section, cell, item, emphasis }` (letters; `false`/`""` disables one). In Markdown buffers `ic`/`ac` and `iu` take priority over LazyVim mini.ai's class / function-call objects.
+- Built on Treesitter nodes (`inline_link`, `image`, `link_text`, `image_description`, `link_destination`, `code_span`, `fenced_code_block`, `indented_code_block`, `list_item`, `emphasis`, `strong_emphasis`, `strikethrough`), `doc.headings()` for sections, `tables.split_row()` for cells, and a line scan for `==highlight==`.
 
 ### 14.9 Heading navigation (priority 1)
 - `]]` / `[[`: next / previous heading (any level), counts, skips code blocks, adds a jumplist entry. Overrides the simpler mappings in Neovim's markdown ftplugin.
