@@ -117,6 +117,9 @@ function M.attach(buf)
   map("x", P .. "=", "<Esc><Cmd>lua require('markwright.headings').change_visual(1)<CR>", "Heading: add #")
   map("x", P .. "-", "<Esc><Cmd>lua require('markwright.headings').change_visual(-1)<CR>", "Heading: remove #")
 
+  -- text objects
+  require("markwright.textobjects").attach(buf)
+
   -- insert-mode formatting trigger (";;" by default)
   require("markwright.insert").attach(buf)
 

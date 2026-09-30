@@ -4,6 +4,10 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **Text objects** for operators and visual mode, in Markdown buffers: `ik`/`ak` link text / whole link (images, autolinks and bare URLs too), `iu` link URL, `ic`/`ac` inline code or code block, `ih`/`ah` heading section, `i|`/`a|` table cell, `iL`/`aL` list item / item with children, `i*`/`a*` bold, italic, strikethrough or highlight. Counts reach outward (`2ah` = parent section), links and emphasis are found forward on the line, `.` repeats. Letters configurable under `textobjects`.
+
 ### Fixed
 
 - CSV → table (`<leader>mtc`) put each line in a single cell when the data used a separator other than comma, tab or semicolon (for example `|` or `:`), including CSV exported by `<leader>mtx` with a custom separator.

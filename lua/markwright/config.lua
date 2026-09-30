@@ -40,6 +40,17 @@ M.defaults = {
     checkbox_add = true,
     checkbox_key = "<CR>", -- normal mode; "" to disable
   },
+  textobjects = {
+    -- letters after i/a in operator-pending and visual mode; false or "" disables one
+    enabled = true,
+    link = "k", -- ik/ak: link text / whole link (images and autolinks too)
+    url = "u", -- iu: link destination
+    code = "c", -- ic/ac: inline code or code block content / whole
+    section = "h", -- ih/ah: heading section content / heading + content
+    cell = "|", -- i|/a|: table cell text / cell with padding
+    item = "L", -- iL/aL: list item text / item with its children
+    emphasis = "*", -- i*/a*: inside / around *, **, ~~, ==
+  },
   tables = {
     align_on_insert_leave = true,
     csv_separator = ",", -- default offered by table → CSV (<P>tx); "\t" for tab
