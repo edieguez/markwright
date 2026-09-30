@@ -197,17 +197,17 @@ With lazy.nvim, `:Lazy update markwright`. What changed in each release is in [C
 
 Besides the `<leader>m…` keys, markwright maps a few everyday keys **in Markdown buffers only**. Each one does something extra in a specific place and behaves exactly as before everywhere else (it calls whatever mapping existed before, such as blink.cmp or mini.pairs, or the built-in key):
 
-| Key                                            | Mode                             | Extra behavior                                                                                                                                 | Only when                                                          | Turn off with                                                          |
-| ---------------------------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------- |
-| `<CR>`                                         | normal, visual                   | Toggle checkboxes                                                                                                                              | On a list item                                                     | `lists.checkbox_key = ""`                                              |
-| `<CR>`                                         | insert                           | Continue the list                                                                                                                              | On a list item, no completion menu open                            | `lists.continue_on_enter = false`                                      |
-| `o` / `O`                                      | normal                           | Start a new list item                                                                                                                          | On a list item                                                     | `lists.continue_on_enter = false`                                      |
-| `<Tab>` / `<S-Tab>`                            | insert                           | Next/previous table cell; nest/un-nest list item                                                                                               | In a table or on a list item, no completion menu or snippet active | `lists.tab_indent = false` (lists)                                     |
-| `p` / `P`                                      | normal, visual                   | Paste a URL as a link                                                                                                                          | The register holds a single URL                                    | `links.smart_paste_normal = false`, `links.smart_paste_visual = false` |
-| `gx`                                           | normal                           | Follow anchors, local files, footnotes, references                                                                                             | On a link or footnote (otherwise the default `gx`)                 | `follow.key = ""`                                                      |
-| `ik` `iu` `ic` `ih` `i\|` `iL` `i*` (and `a…`) | operator-pending, visual         | Markdown text objects (see [Text objects](#text-objects)); `ic`/`ac`, `iu` replace mini.ai's class / function-call objects in Markdown buffers | Always, in Markdown buffers                                        | `textobjects = { enabled = false }` or per object                      |
-| `]]` `[[` `][` `[]` `[u`                       | normal, visual, operator-pending | Heading navigation (see [Heading navigation](#heading-navigation)); replaces the markdown ftplugin's `]]`/`[[`                                 | Always, in Markdown buffers                                        | `nav = { enabled = false }` or per key                                 |
-| `;`                                            | insert                           | `;;` + letter formats while typing                                                                                                             | Right after typing `;` (a single `;` is never delayed)             | `insert.trigger = ""`                                                  |
+| Key                                            | Mode                             | Extra behavior                                                                                                                                 | Only when                                                          | Turn off with                                                               |
+| ---------------------------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| `<CR>`                                         | normal, visual                   | Toggle checkboxes                                                                                                                              | On a list item                                                     | `lists.checkbox_key = ""`                                                   |
+| `<CR>`                                         | insert                           | **Continue the list or blockquote** (native `<CR>` elsewhere)                                                                                  | On a list item or a `>` line, no completion menu open              | `lists.continue_on_enter = false` / `blockquotes.continue_on_enter = false` |
+| `o` / `O`                                      | normal                           | Start a new list item or `>` line                                                                                                              | On a list item or a `>` line                                       | `lists.continue_on_enter = false` / `blockquotes.continue_on_enter = false` |
+| `<Tab>` / `<S-Tab>`                            | insert                           | Next/previous table cell; nest/un-nest list item                                                                                               | In a table or on a list item, no completion menu or snippet active | `lists.tab_indent = false` (lists)                                          |
+| `p` / `P`                                      | normal, visual                   | Paste a URL as a link                                                                                                                          | The register holds a single URL                                    | `links.smart_paste_normal = false`, `links.smart_paste_visual = false`      |
+| `gx`                                           | normal                           | Follow anchors, local files, footnotes, references                                                                                             | On a link or footnote (otherwise the default `gx`)                 | `follow.key = ""`                                                           |
+| `ik` `iu` `ic` `ih` `i\|` `iL` `i*` (and `a…`) | operator-pending, visual         | Markdown text objects (see [Text objects](#text-objects)); `ic`/`ac`, `iu` replace mini.ai's class / function-call objects in Markdown buffers | Always, in Markdown buffers                                        | `textobjects = { enabled = false }` or per object                           |
+| `]]` `[[` `][` `[]` `[u`                       | normal, visual, operator-pending | Heading navigation (see [Heading navigation](#heading-navigation)); replaces the markdown ftplugin's `]]`/`[[`                                 | Always, in Markdown buffers                                        | `nav = { enabled = false }` or per key                                      |
+| `;`                                            | insert                           | `;;` + letter formats while typing                                                                                                             | Right after typing `;` (a single `;` is never delayed)             | `insert.trigger = ""`                                                       |
 
 To opt out of every default key at once, set `keymaps = { enabled = false }` and map only what you want (see [Custom keymaps and Lua API](#custom-keymaps-and-lua-api)).
 
@@ -314,7 +314,7 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `<CR>`                                                             | normal                           | **Toggle checkbox** on a list item (native `<CR>` elsewhere)                      |
 | `<CR>`                                                             | visual                           | Check all list items in the selection (or uncheck if all are checked)             |
 | `<CR>`                                                             | insert                           | **Continue the list** (native `<CR>` elsewhere)                                   |
-| `o` / `O`                                                          | normal                           | Open a line below / above; continues the list on list items                       |
+| `o` / `O` | normal | Open a line below / above; continues lists and blockquotes |
 | `<leader>m=`                                                       | normal, visual                   | **Heading**: add a `#` (count works: `2<leader>m=`)                               |
 | `<leader>m-`                                                       | normal, visual                   | **Heading**: remove a `#`                                                         |
 | `<leader>mp`                                                       | normal                           | **Paste image** from the clipboard (macOS)                                        |
@@ -953,6 +953,24 @@ GitHub renders blockquotes that start with `[!TYPE]` as highlighted callouts (al
 - **Types** are recognized in any case (`[!warning]`) and written in uppercase. A title after the marker (`> [!NOTE] Heads up`, as Obsidian uses) is kept when changing the type, and kept as a line of text when removing.
 - **Undo:** each action is one undo step.
 
+### Typing inside callouts and quotes
+
+`<CR>` in insert mode continues any blockquote, callouts included, the same way lists continue:
+
+```
+> [!NOTE]|            <CR>  →  > [!NOTE]
+                               > |
+> some text|          <CR>  →  > some text
+                               > |
+> |  (empty)          <CR>  →  |           the `>` is removed: the quote ends here
+```
+
+- **In the middle of a line**, `<CR>` splits it and both halves keep the `>`.
+- **Nested quotes** keep their level (`> > `); on an empty `> >` line, `<CR>` removes one level at a time.
+- **`o` / `O`** open a new `> ` line below / above.
+- **Lists inside a quote** (`> - item`) continue as lists, and **code blocks inside a callout** keep the `>`. A line starting with `>` inside an ordinary code block (a shell prompt, say) is left alone.
+- Turn it off with `blockquotes = { continue_on_enter = false }`.
+
 From the command line: `:Markwright callout warning` wraps (or retypes) with that type directly, `:'<,'>Markwright callout tip` wraps a range, and `:Markwright callout remove` unwraps. Types tab-complete.
 
 To skip the picker when wrapping, set a default type: `callouts = { default = "NOTE" }` (changing the type of an existing callout still asks). `callouts.types` sets the list and its order; add your own if your renderer supports more (Obsidian has many).
@@ -1097,6 +1115,9 @@ require("markwright").setup({
     item = "L",                     -- iL / aL
     emphasis = "*",                 -- i* / a*
     search_lines = 500,             -- not inside an object: use the next one within this many lines
+  },
+  blockquotes = {
+    continue_on_enter = true,       -- <CR>/o/O keep the `>`; <CR> on an empty `>` line ends the quote
   },
   callouts = {
     types = { "NOTE", "TIP", "IMPORTANT", "WARNING", "CAUTION" }, -- picker order

@@ -62,6 +62,9 @@ M.defaults = {
     emphasis = "*", -- i*/a*: inside / around *, **, ~~, ==
     search_lines = 500, -- not inside an object: use the next one within this many lines
   },
+  blockquotes = {
+    continue_on_enter = true, -- <CR>, o, O keep the `>`; <CR> on an empty `>` line ends the quote
+  },
   callouts = {
     types = { "NOTE", "TIP", "IMPORTANT", "WARNING", "CAUTION" }, -- order in the picker
     default = nil, -- a type here skips the picker when wrapping (changing a type always asks)

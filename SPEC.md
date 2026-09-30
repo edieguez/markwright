@@ -22,7 +22,7 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
   - [x] dot-repeat; one undo step per action
 - [x] **Formatting while typing** — `;;` + `i`/`b`/`s`/`c`/`h`/`k`, jump out, configurable trigger (§13.2)
 - [x] **External URL checker** — `:Markwright check urls`: async curl HEAD→GET, concurrency/timeout, broken = warning, 401/403/429 = info, diagnostics + quickfix (§14.23)
-- [x] **GitHub callouts** — `<P>a` wrap paragraph / selection / code block (type picker) or change type (picker again), `<P>A` remove, plain quote → callout, `:Markwright callout` (§14.11)
+- [x] **GitHub callouts** — `<P>a` wrap paragraph / selection / code block (type picker) or change type (picker again), `<P>A` remove, plain quote → callout, `:Markwright callout`, `<CR>`/`o`/`O` continue quotes (§14.11)
 - [x] **Heading navigation** — `]]`/`[[`, `][`/`[]` same level, `[u` parent, `<P>o` outline via `vim.ui.select`; counts, jumplist, operators (§14.9)
 - [x] **Text objects** — `ik`/`ak` link, `iu` URL, `ic`/`ac` code, `ih`/`ah` section, `i|`/`a|` cell, `iL`/`aL` list item, `i*`/`a*` emphasis; counts, empty objects, dot-repeat (§14.8)
 - [x] **Links** (§7)
@@ -44,7 +44,7 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 - [x] **TOC** — markers, nested entries, refresh on save (§9.6)
 - [x] **Link diagnostics** — files, anchors, references, footnotes; on open/save; `:Markwright check` (§10)
 - [x] **Image paste, macOS** — screenshots, Finder files, paths, URLs; `assets/`; alt text (§13.1)
-- [x] **Tests** — 472 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
+- [x] **Tests** — 489 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
 - [x] **Verified on macOS + LazyVim** (2026-09-30): clipboard links, live titles, `gx`, image paste (screenshot / Finder / browser), `<CR>` with blink.cmp + mini.pairs, `<Tab>` in snippets/lists/tables, `;;` hint with noice, no duplicate diagnostics
 
 ### Release 0.1.0
@@ -604,6 +604,7 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 - `<P>A`: remove the callout/blockquote under the cursor — drops the marker line (keeping a title as text) and one `>` level from every line (nested quotes keep their inner level).
 - `:Markwright callout [type|remove]` with completion; with a range, wraps those lines.
 - Each action is one undo step. Blockquotes are found by line scan (contiguous `>` lines, up to 3 spaces of indent).
+- **Continuing quotes** (added 2026-09-30): insert `<CR>` on a `>` line (callout or plain quote) continues with the same prefix (`> `, `> > `), splitting the line at the cursor; on an empty `>` line it removes one `>` level without adding a line; `o`/`O` open a `> ` line. Lists inside quotes keep list continuation; code blocks inside a quote continue the `>`, while `>` lines in ordinary code blocks are left alone (Treesitter: code block with a `block_quote` ancestor). Option `blockquotes.continue_on_enter`.
 
 ### 14.12 List tools (priority 2)
 - Move an item with its children: `<M-j>`/`<M-k>` **[OPEN]** on a list item swaps it with the next/previous sibling subtree and renumbers; elsewhere falls back to the existing mapping (LazyVim's move-line). Also `:Markwright list up|down`.
