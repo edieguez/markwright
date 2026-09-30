@@ -4,7 +4,7 @@ Markdown editing for Neovim that feels native: one key adds a format, the same k
 
 Built for LazyVim, and it works with any Neovim ≥ 0.10 setup.
 
-> **Status: early development.** The inline formatting engine is complete and tested. Links, lists, headings, tables, footnotes, TOC and diagnostics are designed (see [SPEC.md](SPEC.md)) and are being implemented in that order. See [Roadmap](#roadmap).
+> **Status: early development.** Inline formatting and links are complete and tested. `gx` following, lists, headings, tables, footnotes, TOC and diagnostics are designed (see [SPEC.md](SPEC.md)) and are being implemented in that order. See [Roadmap](#roadmap).
 
 ---
 
@@ -16,6 +16,7 @@ Built for LazyVim, and it works with any Neovim ≥ 0.10 setup.
 - [Quick start](#quick-start)
 - [Keymaps](#keymaps)
 - [Inline formatting in detail](#inline-formatting-in-detail)
+- [Links in detail](#links-in-detail)
 - [Commands](#commands)
 - [Configuration](#configuration)
 - [Custom keymaps and Lua API](#custom-keymaps-and-lua-api)
@@ -49,9 +50,16 @@ All five share one engine, so they behave the same way:
 - **Skips code.** Nothing gets broken inside code blocks or code spans.
 - **Behaves like a native command.** Every action is dot-repeatable (`.`) and undoes in a single `u`.
 
+**Links** (`<leader>ml`) follow the same toggle idea:
+
+- **On a word or selection** it wraps the text as `[text](url)`. The URL comes from the clipboard if it holds one; otherwise you're prompted.
+- **On a bare URL** it turns the URL into `[Page Title](url)`, fetching the title in the background.
+- **On an existing link** it removes the link and keeps the text.
+- **Smart paste.** `p` with a URL over a selection makes a link; `p` of a bare URL in normal mode inserts a titled link. Anything else pastes normally.
+
 ### Coming next
 
-Links (from the clipboard, with page titles), smart paste, `gx` link following, list continuation, checkboxes, heading levels, code fences, tables, footnotes, TOC and broken-link diagnostics. Details are in [Roadmap](#roadmap).
+`gx` link following, list continuation, checkboxes, heading levels, code fences, tables, footnotes, TOC and broken-link diagnostics. Details are in [Roadmap](#roadmap).
 
 ---
 
@@ -61,8 +69,8 @@ Links (from the clipboard, with page titles), smart paste, `gx` link following, 
 |---|---|
 | Neovim **≥ 0.10** | Modern Treesitter API, `vim.system`, `vim.ui.open` |
 | Treesitter parsers **`markdown`** and **`markdown_inline`** | Structure detection. Bundled with Neovim 0.10+ and also installed by LazyVim's markdown extra |
-| `curl` *(optional, future)* | Fetching page titles for links |
-| A clipboard provider *(optional, future)* | Creating links from a copied URL |
+| `curl` *(optional)* | Fetching page titles for links. Preinstalled on macOS; without it, links use the domain name as text |
+| A clipboard provider *(optional)* | Creating links from a copied URL. Built in on macOS (`pbcopy`/`pbpaste`) |
 
 Run `:checkhealth mdtools` to verify everything.
 
@@ -137,6 +145,16 @@ u               undo it (one step)
 
 On an empty line or on whitespace, `<leader>mb` inserts `****` and puts you in insert mode between the markers, so you can type the bold text right away.
 
+For links, copy a URL in your browser, then:
+
+```
+<leader>ml      link the word           docs  →  [docs](https://copied.url)
+vip<leader>ml   link the selection
+<leader>ml      on a bare URL           https://neovim.io  →  [Neovim — hyperextensible…](https://neovim.io)
+<leader>ml      on a link: remove it    [docs](https://…)  →  docs
+viwp            paste URL over a word   here  →  [here](https://copied.url)
+```
+
 ---
 
 ## Keymaps
@@ -155,6 +173,9 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `<leader>mS` + motion | normal | Strikethrough operator |
 | `<leader>mC` + motion | normal | Inline code operator |
 | `<leader>mH` + motion | normal | Highlight operator |
+| `<leader>ml` | normal, visual | **Link**: create, convert a bare URL, or remove |
+| `p` | visual | Paste; a URL over the selection makes `[selection](url)` |
+| `p` / `P` | normal | Paste; a bare URL becomes `[Page Title](url)` |
 
 **Operator examples:**
 
@@ -276,6 +297,79 @@ With the cursor on whitespace or an empty line in normal mode, the key inserts a
 
 ---
 
+## Links in detail
+
+### What `<leader>ml` does
+
+The link key looks at what's under the cursor (or selected) and picks one action:
+
+| Target | Result |
+|---|---|
+| Existing link (inline, reference, collapsed, shortcut, `<autolink>`) | **Remove** the link, keep the text: `[text](url)` → `text`, `<url>` → `url` |
+| Bare URL (`https://…`, `www.…`, `mailto:…`) | **Convert** to `[Page Title](url)` |
+| Word or selection, clipboard holds a URL | **Wrap** immediately: `[text](url)` |
+| Word or selection, clipboard has no URL | **Prompt** for the URL, then wrap. Relative paths like `./notes.md` are accepted |
+| Whitespace or empty line | **Prompt** for the URL, then for the text. Empty text means "use the page title" |
+| Image `![alt](src)` | Nothing (warning): images aren't links |
+| Inside code | Nothing (warning) |
+
+Removal works from anywhere in the link: the text, the brackets or the URL part.
+
+```
+see docs here        clipboard: https://ex.com/docs    → see [docs](https://ex.com/docs) here
+go https://ex.com/a now                                → go [Example A](https://ex.com/a) now
+a [text *em*](http://x.io) b                           → a text *em* b
+[r][ref]                                               → r
+```
+
+### Targets
+
+Like the formatting keys, the link key works on the word under the cursor, on a visual selection and on linewise selections. In a linewise selection, list markers and other prefixes are skipped: `- item text` → `- [item text](url)`. Spaces at the edges of a selection stay outside the brackets.
+
+### Bare URLs and page titles
+
+When the cursor is on a bare URL, the plugin works out where the URL ends. Trailing sentence punctuation (`.`, `,`, `)` and so on) stays outside the link. Parentheses that are part of the URL are kept, so Wikipedia links work:
+
+```
+see https://ex.com.                             → see [Title](https://ex.com).
+(https://en.wikipedia.org/wiki/Foo_(bar))       → ([Title](https://en.wikipedia.org/wiki/Foo_(bar)))
+www.ex.com                                      → [Title](https://www.ex.com)
+mailto:me@x.io                                  → [me@x.io](mailto:me@x.io)
+```
+
+How the title is filled in:
+
+1. The link is inserted **immediately**, with the domain as a placeholder: `[neovim.io](https://neovim.io)`.
+2. `curl` fetches the page in the background. Editing is never blocked.
+3. When the title arrives, it replaces the placeholder. The plugin reads `<title>`, falls back to `og:title`, and decodes HTML entities (`&amp;`, `&mdash;`, `&#8212;`…).
+4. If the fetch fails or times out (`links.title_timeout_ms`), or you edited or undid the link meanwhile, the placeholder stays as it is.
+
+Brackets in titles are escaped (`\[`, `\]`) so they can't break the link. The link and its title undo together in one `u`. Set `links.fetch_title = false` to always keep the domain as the text.
+
+### Clipboard
+
+The link key reads the system clipboard (the `+` register). On macOS that uses `pbpaste` through Neovim's built-in clipboard provider. If Neovim has no provider, the plugin calls `pbpaste` directly. Set `links.use_clipboard = false` to always be prompted instead.
+
+### Smart paste
+
+`p` and `P` are overridden in Markdown buffers, and fall back to the native commands unless all of these hold:
+
+- the register being pasted holds a **single-line URL**
+- it was copied **characterwise** (a yanked line with `yy` pastes normally)
+- the cursor isn't inside code or an existing link
+
+| Situation | Result |
+|---|---|
+| Visual `p` over text with a URL in the register | `[selection](url)` |
+| Visual `p` over an existing link | Normal paste |
+| Normal `p` / `P` with a URL | `[Page Title](url)` after / before the cursor |
+| Normal `p` right after `(` or `<` | Normal paste, so typing `[text](` then `p` works as expected |
+| Anything else | Normal paste, with registers (`"ap`) and counts (`3p`) respected |
+
+LazyVim sets `clipboard=unnamedplus`, so a URL copied in the browser is what plain `p` pastes. To keep your `p` untouched, set `links.smart_paste_normal = false` and/or `links.smart_paste_visual = false`.
+
+---
+
 ## Commands
 
 | Command | Description |
@@ -285,6 +379,7 @@ With the cursor on whitespace or an empty line in normal mode, the key inserts a
 | `:Mdtools strike` | Toggle strikethrough |
 | `:Mdtools code` | Toggle inline code |
 | `:Mdtools highlight` | Toggle highlight |
+| `:Mdtools link` | Same as `<leader>ml` on the cursor position |
 | `:Mdtools health` | Run `:checkhealth mdtools` |
 
 Subcommands tab-complete. New subcommands (`toc`, `table create`, `check`, …) will be added as features land.
@@ -316,14 +411,15 @@ require("mdtools").setup({
     warn_in_code = true,            -- notify when formatting is skipped inside code
   },
 
-  -- The sections below are accepted now and used by upcoming features.
   links = {
-    use_clipboard = true,           -- link key uses a URL from the clipboard
-    fetch_title = true,             -- bare URL → [Page Title](url)
-    title_timeout_ms = 5000,
+    use_clipboard = true,           -- link key uses a URL from the clipboard (else prompts)
+    fetch_title = true,             -- bare URL → [Page Title](url); false keeps the domain
+    title_timeout_ms = 5000,        -- give up on the title after this long
     smart_paste_visual = true,      -- visual p with a URL → [selection](url)
-    smart_paste_normal = true,      -- normal p with a URL → [Title](url)
+    smart_paste_normal = true,      -- normal p/P with a URL → [Title](url)
   },
+
+  -- The sections below are accepted now and used by upcoming features.
   follow = {
     key = "gx",
     create_missing_md = true,       -- gx on a missing .md opens a new buffer
@@ -411,6 +507,17 @@ end,
 
 `fmt` is one of `"italic"`, `"bold"`, `"strike"`, `"code"`, `"highlight"`.
 
+Link entry points (all `expr = true` except where noted):
+
+| Function | Use |
+|---|---|
+| `require("mdtools.links").expr_normal()` | Normal-mode link key |
+| `require("mdtools.links").expr_visual()` | Visual-mode link key |
+| `require("mdtools.links").expr_paste(after)` | Normal `p` (`after = true`) or `P` (`false`) |
+| `require("mdtools.links").expr_paste_visual()` | Visual `p` |
+| `require("mdtools.links").is_url(s)` / `url_at(line, col)` | Plain helpers (not mappings) |
+| `require("mdtools.title").fetch(url, cb)` | Async title fetch; `cb(title | nil)` runs on the main loop |
+
 ---
 
 ## Health check
@@ -427,7 +534,7 @@ It checks:
 - a clipboard provider
 - `vim.ui.open`
 
-Warnings for `curl` and the clipboard only affect upcoming link features.
+Warnings for `curl` and the clipboard only affect links: without `curl` the link text is the domain name, and without a clipboard the link key always prompts (on macOS the plugin still tries `pbpaste`).
 
 ---
 
@@ -448,6 +555,16 @@ Warnings for `curl` and the clipboard only affect upcoming link features.
 
 **Another plugin's key conflicts with `<leader>m`.** Change `keymaps.prefix`, or disable the defaults and map your own (see [Custom keymaps and Lua API](#custom-keymaps-and-lua-api)).
 
+**The link key prompts even though I copied a URL.** The clipboard must hold only the URL, on one line. Check with `:echo getreg('+')`. If it's empty, Neovim can't see the system clipboard: run `:checkhealth provider`.
+
+**Links keep the domain instead of the page title.**
+- Run `:checkhealth mdtools` to confirm `curl` is found.
+- Some sites block non-browser requests or build their title with JavaScript. The domain is kept in that case.
+- A slow site may exceed `links.title_timeout_ms`.
+- You can test a URL from the shell with `curl -sL <url> | grep -i '<title'`.
+
+**My `p` behaves differently in Markdown.** Only a single-line URL in the register triggers smart paste; everything else is native. If you use yanky.nvim, mdtools' buffer-local `p`/`P` take priority in Markdown buffers. Disable them with `links.smart_paste_normal = false` and `links.smart_paste_visual = false`.
+
 ---
 
 ## Roadmap
@@ -458,8 +575,8 @@ Implementation follows [SPEC.md](SPEC.md) §12. Each item links to its spec sect
 |---|---|---|---|
 | 1 | Skeleton | `setup()`, config, buffer attach, `:Mdtools`, health | ✅ Done |
 | 2 | Inline formatting (§6) | italic, bold, strike, code, highlight | ✅ Done |
-| 3 | Links (§7) | `<leader>ml` from clipboard or prompt; bare URL → `[Page Title](url)`; remove link keeps text; smart `p` | ⏳ Next |
-| 4 | Follow (§8) | `gx` for URLs, `.md` files (created if missing), `#anchors`, images, footnotes | ⏳ Planned |
+| 3 | Links (§7) | `<leader>ml` from clipboard or prompt; bare URL → `[Page Title](url)`; remove link keeps text; smart `p` | ✅ Done |
+| 4 | Follow (§8) | `gx` for URLs, `.md` files (created if missing), `#anchors`, images, footnotes | ⏳ Next |
 | 5 | Lists & headings (§9.1–9.2) | `<CR>` continuation, `<Tab>` nesting, checkbox toggle, auto-renumber, promote/demote headings | ⏳ Planned |
 | 6 | Code fences & footnotes (§9.3, §9.5) | fence with typed language; `[^n]` insert and jump | ⏳ Planned |
 | 7 | Tables (§9.4) | create, CSV → table, row/column edit, cell navigation, align on leaving insert mode | ⏳ Planned |
@@ -481,16 +598,18 @@ make test
 make test NVIM=/path/to/nvim
 ```
 
-The suite starts a headless Neovim with `tests/minimal_init.lua`, sets `<Space>` as leader, and **feeds real keystrokes through the mappings**. The tests therefore cover the keymaps, operators, dot-repeat and undo, not just the internal functions.
+The suite starts a headless Neovim with `tests/minimal_init.lua`, sets `<Space>` as leader, and **feeds real keystrokes through the mappings**. The tests therefore cover the keymaps, operators, dot-repeat and undo, not just the internal functions. `tests/run.lua` runs every `*_spec.lua` file.
 
-A test case is one table row in `tests/format_spec.lua`:
+A test case is one table row, for example in `tests/format_spec.lua`:
 
 ```lua
 { "bold toggles off", { "hello **world**" }, { 1, 9 }, " mb", { "hello world" }, { 1, 7 } },
 --  name              buffer before         cursor   keys   buffer after       cursor after (optional)
 ```
 
-Keys can be a list of strings to feed in separate chunks, for example `{ " mb", " mi", "u" }`.
+Keys can be a list of strings to feed in separate chunks, for example `{ " mb", " mi", "u" }`. A case can also carry `setup = function() … end`, run just before the keys. Plain unit checks use `{ "name", fn = function() … end }`.
+
+In `tests/links_spec.lua` the clipboard, `vim.ui.input` and the title fetcher are mocked, so the tests are deterministic and need no network.
 
 ### Design notes
 
@@ -498,6 +617,8 @@ Keys can be a list of strings to feed in separate chunks, for example `{ " mb", 
 - **Operators everywhere.** Normal, visual and operator mappings all go through `g@` and `operatorfunc`. That is what makes `.` work without depending on vim-repeat.
 - **Bottom-up edits.** Multi-line toggles are applied from the last line up so row numbers stay valid. An edit tracker keeps the cursor on the same character through the column shifts.
 - **One undo step.** An explicit undo break starts each action, because API edits would otherwise merge with the previous change.
+- **Async titles.** A titled link is inserted at once with the domain as a placeholder, tracked by an extmark. When `curl` returns, the placeholder is replaced only if it is still intact, joined to the same undo step with `:undojoin`.
+- **Bare URLs** aren't in the `markdown_inline` grammar (no GFM autolink extension), so they're found with a line scan that trims sentence punctuation and balances parentheses.
 
 ---
 
@@ -511,13 +632,17 @@ mdtools.nvim/
 │   ├── config.lua            defaults, merge, validation
 │   ├── keymaps.lua           buffer-local mappings + which-key group
 │   ├── format.lua            formatting toggle engine
+│   ├── links.lua             link key, bare URLs, unlink, smart paste
+│   ├── title.lua             async page-title fetching (curl)
 │   ├── ts.lua                Treesitter helpers
 │   ├── util.lua              prefixes, edit tracker, undo, notify
 │   └── health.lua            :checkhealth mdtools
 ├── tests/
 │   ├── minimal_init.lua
+│   ├── run.lua               runs every *_spec.lua
 │   ├── helpers.lua           key-feeding test runner
-│   └── format_spec.lua       formatting cases
+│   ├── format_spec.lua       formatting cases
+│   └── links_spec.lua        link cases (mocked clipboard/prompt/network)
 ├── SPEC.md                   full design and decisions
 ├── Makefile
 └── README.md

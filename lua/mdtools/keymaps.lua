@@ -35,6 +35,23 @@ function M.attach(buf)
     end, f.desc .. " (operator)", { expr = true })
   end
 
+  -- links
+  local links = require("mdtools.links")
+  local lopts = config.options.links
+  map("n", P .. "l", links.expr_normal, "Link: create / convert URL / remove", { expr = true })
+  map("x", P .. "l", links.expr_visual, "Link: create / convert URL / remove", { expr = true })
+  if lopts.smart_paste_normal then
+    map("n", "p", function()
+      return links.expr_paste(true)
+    end, "Paste (URL → titled link)", { expr = true })
+    map("n", "P", function()
+      return links.expr_paste(false)
+    end, "Paste before (URL → titled link)", { expr = true })
+  end
+  if lopts.smart_paste_visual then
+    map("x", "p", links.expr_paste_visual, "Paste (URL over selection → link)", { expr = true })
+  end
+
   local ok, wk = pcall(require, "which-key")
   if ok and wk.add then
     wk.add({ { P, group = "markdown", buffer = buf, mode = { "n", "x" } } })
