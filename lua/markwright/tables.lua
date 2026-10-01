@@ -455,6 +455,26 @@ function M.from_csv_prompt(buf, srow, erow)
   end)
 end
 
+--- <P>tc in normal mode: convert the paragraph (non-blank lines) around the cursor.
+function M.from_csv_paragraph()
+  local buf = api.nvim_get_current_buf()
+  local row = api.nvim_win_get_cursor(0)[1] - 1
+  local function blank(r)
+    return (api.nvim_buf_get_lines(buf, r, r + 1, false)[1] or ""):match("^%s*$") ~= nil
+  end
+  if blank(row) then
+    return
+  end
+  local sr, er, last = row, row, api.nvim_buf_line_count(buf) - 1
+  while sr > 0 and not blank(sr - 1) do
+    sr = sr - 1
+  end
+  while er < last and not blank(er + 1) do
+    er = er + 1
+  end
+  M.from_csv_prompt(buf, sr, er)
+end
+
 function M.from_csv_visual()
   local buf = api.nvim_get_current_buf()
   M.from_csv_prompt(buf, api.nvim_buf_get_mark(buf, "<")[1] - 1, api.nvim_buf_get_mark(buf, ">")[1] - 1)

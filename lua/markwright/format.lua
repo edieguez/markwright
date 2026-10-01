@@ -290,10 +290,11 @@ function M.expr_normal(fmt)
   return "g@iw"
 end
 
---- Operator (normal, awaits a motion) and visual mode.
+--- Operator (normal, awaits a motion) and visual mode. In normal mode the
+--- cursor stays on the same character instead of jumping to the range start.
 function M.expr_operator(fmt)
   M._pending = fmt
-  M._cursor = nil
+  M._cursor = api.nvim_get_mode().mode == "n" and api.nvim_win_get_cursor(0) or nil
   vim.o.operatorfunc = OPFUNC
   return "g@"
 end
@@ -322,7 +323,11 @@ end
 
 --- Programmatic entry: toggle the word under the cursor (used by :Markwright).
 function M.toggle(fmt)
-  local keys = api.nvim_replace_termcodes(M.expr_normal(fmt), true, false, true)
+  local expr = M.expr_normal(fmt)
+  if expr ~= "g@iw" then -- whitespace: call directly so insert mode survives
+    return M.insert_empty(fmt)
+  end
+  local keys = api.nvim_replace_termcodes(expr, true, false, true)
   api.nvim_feedkeys(keys, "nx", false)
 end
 

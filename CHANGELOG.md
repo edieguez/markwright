@@ -14,10 +14,16 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ### Fixed
 
+- `:Markwright bold` (and the other formats) on whitespace or an empty line left insert mode right away, so the empty markers couldn't be typed into.
 - CSV → table (`<leader>mtc`) put each line in a single cell when the data used a separator other than comma, tab or semicolon (for example `|` or `:`), including CSV exported by `<leader>mtx` with a custom separator.
 
 ### Changed
 
+- **Inline keys (formatting and links) are now operators**, like `d` or `gu`. They wait for a motion or text object, `_` is the current line (`3<leader>mb_` for three lines), and visual mode is unchanged. There are no doubled keys, because `<leader>mii` would capture the `i…` text objects.
+  - **Formatting** (`<leader>mi`, `mb`, `ms`, `mc`, `mh`): `<leader>mbiw` for the word, `<leader>mb$` to the end of the line, `<leader>mbik` for a link's text. The uppercase operator keys (`<leader>mI`, `mB`, `mS`, `mC`, `mH`) are gone. Empty markers on whitespace moved to `:Markwright bold` (etc.) and `;;b` in insert mode.
+  - **Links** (`<leader>mk`): `<leader>mkiw` links the word, `<leader>mkak` converts a bare URL or removes a link, and a blank range (`<leader>mk_` on an empty line, `<leader>mkiw` on a space) asks for the URL and text. `:Markwright link` still acts at the cursor.
+  - **CSV → table** (`<leader>mtc`) now also works in normal mode, on the paragraph under the cursor.
+  - Block keys (code fence, callout) and inserts (footnote, table, TOC, image paste) still act right away.
 - **Link keys moved to `k`**, the usual link shortcut in other editors: `<leader>ml` is now `<leader>mk`, and `;;l` (formatting while typing) is now `;;k`. The `l` versions are gone; if you prefer them, map `<leader>ml` yourself to `require("markwright.links").expr_normal()` (see Custom keymaps in the README).
 - CSV → table now asks for the separator, prefilled with the detected one (Enter accepts it), like table → CSV. Detection also recognizes `|` and `:`, and looks at all selected lines instead of only the first.
 - CSV separators can be several characters long (`::`, `; `).
