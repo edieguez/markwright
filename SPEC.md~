@@ -15,14 +15,14 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 - [x] **Skeleton** — `setup()`, config + validation, buffer-local attach, `:Markwright` with completion, `:checkhealth markwright` (§3, §4)
 - [x] **Inline formatting** (§6)
   - [x] italic, bold, strikethrough, inline code, highlight toggles
-  - [x] operator + motion (`<P>biw`, `<P>b$`), `_` = line (`<P>b_`, count = lines), no doubled keys, visual (char/line/block)
+  - [x] operator + motion (`<P>biw`, `<P>b$`), doubled key = line (`<P>bb`, count = lines; italic: `<P>i_`), visual (char/line/block)
   - [x] remove whole span from anywhere inside; `_`/`__` recognized; nesting (`***`)
   - [x] per-line multi-line wrapping, prefix skipping, whitespace trimming
   - [x] backtick escalation for inline code; code guard
   - [x] dot-repeat; one undo step per action
 - [x] **Formatting while typing** — `;;` + `i`/`b`/`s`/`c`/`h`/`k`, jump out, configurable trigger (§13.2)
 - [x] **External URL checker** — `:Markwright check urls`: async curl HEAD→GET, concurrency/timeout, broken = warning, 401/403/429 = info, diagnostics + quickfix (§14.23)
-- [x] **GitHub callouts** — `<P>a` wrap paragraph / selection / code block (type picker) or change type (picker again), `<P>A` remove, plain quote → callout, `:Markwright callout`, `<CR>`/`o`/`O` continue quotes (§14.11)
+- [x] **GitHub callouts** — `<P>a{motion}` (`<P>aip`) / visual wrap lines / code block (type picker) or change type (picker again), `<P>A` remove, plain quote → callout, `:Markwright callout`, `<CR>`/`o`/`O` continue quotes (§14.11)
 - [x] **Heading navigation** — `]]`/`[[`, `][`/`[]` same level, `[u` parent, `<P>o` outline via `vim.ui.select`; counts, jumplist, operators (§14.9)
 - [x] **Text objects** — `ik`/`ak` link, `iu` URL, `ic`/`ac` code, `ih`/`ah` section, `i|`/`a|` cell, `iL`/`aL` list item, `i*`/`a*` emphasis; counts, empty objects, dot-repeat (§14.8)
 - [x] **Links** (§7)
@@ -38,7 +38,7 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
   - [x] checkbox toggle on normal `<CR>` (visual: range)
   - [x] auto-renumber (joined undo, lazy lists kept)
   - [x] completion/snippet-aware `<Tab>`/`<CR>` fallback (§13.3)
-- [x] **Code fences** — typed language, wrap selection, container-aware, fence escalation (§9.3)
+- [x] **Code fences** — typed language, `<P>ff` insert, `<P>f{motion}` / visual wrap, container-aware, fence escalation (§9.3)
 - [x] **Tables** — create, CSV/TSV → table, table → CSV (asks for the separator), add/delete row/column, `<Tab>` cells, align on InsertLeave (§9.4)
 - [x] **Footnotes** — insert + jump (§9.5)
 - [x] **TOC** — markers, nested entries, refresh on save (§9.6)
@@ -237,9 +237,10 @@ All buffer-local, Markdown only. `<P>` = configured prefix (default `<leader>m`)
 | Mode | Key | Action |
 |---|---|---|
 | n | `<P>i` / `<P>b` / `<P>s` / `<P>c` / `<P>h` + motion | Toggle italic / bold / strikethrough / inline code / highlight (operator: `<P>biw`, `<P>c$`) |
-| n | `<P>bb` / `<P>ss` / `<P>cc` / `<P>hh` |  |
+| n | `<P>bb` / `<P>ss` / `<P>cc` / `<P>hh` | Same on the current line (`[count]` lines). No `<P>ii`: it would shadow `<P>i` + `i{object}`; use `<P>i_` |
 | x | `<P>i` / `<P>b` / `<P>s` / `<P>c` / `<P>h` | Toggle on the selection |
-| n | `<P>k` + motion | Link the range (`<P>kiw`, `<P>k$`), convert a bare URL (`<P>kak`), remove the link it starts in (`<P>kik`), prompt for URL + text on a blank range (`<P>k_`) |
+| n | `<P>k` + motion | Link the range (`<P>kiw`, `<P>k$`), or remove the link it starts in |
+| n | `<P>kk` | Link at the cursor: remove link / convert bare URL / link word / prompt on whitespace |
 | x | `<P>k` | Link the selection, or remove the link it's in |
 | x | `p` | Smart paste (URL over selection → link) |
 | n | `p` / `P` | Smart paste (bare URL → titled link) |
@@ -249,10 +250,11 @@ All buffer-local, Markdown only. `<P>` = configured prefix (default `<leader>m`)
 | n, x | `<CR>` | Toggle checkbox on list items (native elsewhere) — `lists.checkbox_key` |
 | i | `<CR>` | List continuation (and `o`/`O` in normal) |
 | i | `<Tab>` / `<S-Tab>` | Indent/outdent list item; next/prev table cell |
-| n, x | `<P>f` | Insert / wrap code fence (block key: acts at once) |
+| n | `<P>ff` | Insert a code fence |
+| n, x | `<P>f` (+ motion in n) | Wrap lines in a code fence (`<P>fip`) |
 | n | `<P>n` | Insert footnote |
 | n | `<P>tt` | Create table |
-| n, x | `<P>tc` | CSV/TSV lines → table: the paragraph under the cursor (n) or the selection (x) |
+| n, x | `<P>tc` (+ motion in n) | CSV/TSV lines → table (`<P>tcip`) |
 | n | `<P>tr` / `<P>tR` | Add row below / delete row |
 | n | `<P>tk` / `<P>tK` | Add column right / delete column |
 | n | `<P>ta` | Align table now |
@@ -261,7 +263,7 @@ All buffer-local, Markdown only. `<P>` = configured prefix (default `<leader>m`)
 | i | `;;` + `i`/`b`/`s`/`c`/`h`/`k` | Formatting while typing (trigger configurable) |
 | n, x, o | `]]`/`[[`, `][`/`[]`, `[u` | Heading navigation (§14.9; configurable under `nav`) |
 | n | `<P>o` | Outline picker (§14.9) |
-| n, x | `<P>a` | Callout: wrap paragraph (n) / selection (x), or change type, both with the type picker (§14.11). Block key: acts at once |
+| n, x | `<P>a` (+ motion in n) | Callout: wrap lines (`<P>aip`) / change type, both with the type picker (§14.11). No `<P>aa`: it would shadow `<P>a` + `a{object}` |
 | n | `<P>A` | Remove callout (§14.11) |
 | o, x | `ik`/`ak`, `iu`, `ic`/`ac`, `ih`/`ah`, `i\|`/`a\|`, `iL`/`aL`, `i*`/`a*` | Text objects (§14.8; letters configurable under `textobjects`) |
 
@@ -285,7 +287,7 @@ Applies to: **italic, bold, strikethrough, inline code, highlight**.
 | Highlight | `==text==` | `==text==` | none in grammar → text scan fallback |
 
 ### 6.2 Targets
-- **Normal mode:** the key is an operator and waits for a motion or text object (`<P>biw`, `<P>b2e`, `<P>c$`, `<P>bip`). `_` is the current line (`<P>b_`, `[count]` lines with a count), like `d_`. No doubled keys on any operator: `<P>ii` would shadow `i{object}`, so for consistency none have one (decided 2026-09-30). The cursor stays on the same character. Dot-repeatable. (Changed 2026-09-30: the key used to act on the word at once, with uppercase `<P>B` etc. as operators.)
+- **Normal mode:** the key is an operator and waits for a motion or text object (`<P>biw`, `<P>b2e`, `<P>c$`, `<P>bip`). The doubled key (`<P>bb`, `<P>ss`, `<P>cc`, `<P>hh`) acts on the current line, `[count]` lines with a count, like `dd`/`gcc`; italic has no doubled key (`<P>ii` would shadow `<P>i` + `i{object}`), `<P>i_` is its line form. The cursor stays on the same character. Dot-repeatable. (Changed 2026-09-30: the key used to act on the word at once, with uppercase `<P>B` etc. as operators.)
 - **Empty markers:** `:Markwright bold` (etc.) on whitespace or an empty line inserts an empty pair and enters insert mode between them; in insert mode, `;;b`.
 - **Visual mode (charwise):** acts on the selection.
 - **Visual line / block:** treated as per-line (see 6.4).
@@ -328,7 +330,7 @@ If the target is inside `code_span`, `fenced_code_block` or `indented_code_block
 ## 7. Links (`links.lua`, `title.lua`)
 
 ### 7.1 Link key (`<P>k`)
-`<P>k` is an operator (`<P>kiw`, `<P>k$`, `<P>kak`); a blank range (`<P>k_` on an empty line, `<P>kiw` on whitespace) prompts for URL and text; visual acts on the selection; `:Markwright link` acts at the cursor (word, bare URL or link). (Changed 2026-09-30: `<P>k` used to act at the cursor directly.)
+`<P>k` is an operator (`<P>kiw`, `<P>k$`, `<P>kik`); `<P>kk` acts at the cursor (word, bare URL or link; whitespace → prompt); visual acts on the selection. (Changed 2026-09-30: `<P>k` used to act at the cursor directly.)
 
 | Situation | Result |
 |---|---|
@@ -402,13 +404,13 @@ GitHub style: lowercase, strip punctuation except `-` and `_`, spaces → `-`, k
   ```
   ````
   with the cursor inside, in insert mode.
-- Visual (line) mode: wrap selected lines. (Considered and rejected 2026-09-30: `<P>f` as an operator. Inserting a new fence is the common case and would become `<P>f_`; keys that insert something new stay direct actions.)
+- `<P>ff`: insert as above. `<P>f{motion}` (`<P>fip`) and visual mode: wrap the lines, blank lines at the range edges excluded; a blank range inserts. (Changed 2026-09-30: `<P>f` used to insert directly.)
 - If content contains ```` ``` ````, use a longer fence (```` ```` ````) or `~~~`.
 - **[OPEN]** Optional completion in the prompt from installed Treesitter parser names.
 
 ### 9.4 Tables (`tables.lua`)
 - **Create** (`<P>tt`): prompt `rows x cols` (e.g. `3x4`), insert header row, delimiter row and empty body rows, cursor in first header cell.
-- **CSV → table** (`<P>tc`: the paragraph under the cursor in normal mode, the selection in visual mode; `:'<,'>Markwright table csv`): the lines; asks `Separator:` prefilled with the detected one (candidates `\t` `,` `;` `|` `:`; a candidate that splits every line into the same number > 1 of fields wins, most fields first; else the one splitting the first line most; else `,`). Any typed separator works, including multi-character ones; `\t`/`tab` = tab; cancel does nothing. Honor quoted fields; trim fields; first line becomes the header; escape `|` in cells. (Changed 2026-09-30: detection used to consider only `\t , ;` on the first line, so other separators produced a single column.)
+- **CSV → table** (`<P>tc{motion}` e.g. `<P>tcip`, visual `<P>tc`, `:'<,'>Markwright table csv`): the range's lines; asks `Separator:` prefilled with the detected one (candidates `\t` `,` `;` `|` `:`; a candidate that splits every line into the same number > 1 of fields wins, most fields first; else the one splitting the first line most; else `,`). Any typed separator works, including multi-character ones; `\t`/`tab` = tab; cancel does nothing. Honor quoted fields; trim fields; first line becomes the header; escape `|` in cells. (Changed 2026-09-30: detection used to consider only `\t , ;` on the first line, so other separators produced a single column.)
 - **Table → CSV** (`<P>tx`, `:Markwright table tocsv`; implemented 2026-09-30): replaces the table under the cursor with CSV lines — the opposite of `<P>tc`. Asks `Separator:` prefilled with `tables.csv_separator` (default `,`); `\t`/`tab` mean a tab, empty input means the default, cancel does nothing. Delimiter row dropped; short rows padded; fields quoted when they contain the separator, a `"` or edge spaces (quotes doubled); `\|` unescaped; indentation kept (tables in list items). One undo step; CSV → table → CSV round-trips.
 - **Row/column editing:** add row below / delete row; add column right / delete column (updates delimiter row).
 - **Cell navigation:** `<Tab>` / `<S-Tab>` in insert mode inside a table → next/previous cell; `<Tab>` in the last cell adds a new row.
@@ -492,7 +494,7 @@ Decisions (all configurable under `images`):
 Shared helper in `util.lua` (`completion_active`, `save_fallback`, `fallback`): insert-mode `<Tab>`/`<S-Tab>`/`<CR>` act only in a table or on a list item and when no completion menu (blink.cmp, nvim-cmp, pum) or snippet is active. Otherwise they call the mapping that existed when the buffer attached (captured with `maparg`, e.g. mini.pairs `<CR>`), or the native key. Verified on macOS with blink.cmp and mini.pairs (2026-09-30).
 
 ### 13.4 Open questions collected
-- ~~Operator keymap names (section 5)~~ — resolved: every range key is an operator, `_` = line, no doubled keys (§14.7).
+- ~~Operator keymap names (section 5)~~ — resolved: the format keys are operators, doubled key = line (§14.7).
 - ~~Heading keys (9.1)~~ — resolved: `<P>=` adds `#`, `<P>-` removes.
 - Partial-overlap selection behavior (6.9) — see §14.7.
 - ~~Link key on whitespace (7.1)~~ — resolved: prompt URL, then text; empty text → page title.
@@ -554,7 +556,7 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 - **Unused images**: `:Markwright images unused` scans Markdown files under the project root (git root, else cwd) for references into the image folders, lists files nothing links to in the quickfix list. Never deletes on its own; `:Markwright images unused!` asks for confirmation per file.
 
 ### 14.7 Pending decisions on built features
-- ~~**Operator keys**~~ — resolved 2026-09-30: `<P>i/b/s/c/h` are operators (`<P>biw`, `<P>c$`), `_` is the current line (`<P>b_`, count = lines), visual mode unchanged. No doubled keys anywhere (`<P>ii` would shadow text objects; the others were dropped for consistency). Rule: **inline keys are operators** (formatting, links); **block keys and inserts act at once** (code fence, callout, CSV → table, footnote, table, TOC, image). Callouts and fences were tried as operators and reverted the same day: their common case (wrap the paragraph, insert a fence) became longer. The uppercase variants are gone, freeing `<P>I`/`<P>B`/`<P>S`/`<P>C`/`<P>H`.
+- ~~**Operator keys**~~ — resolved 2026-09-30: `<P>i/b/s/c/h` are operators (`<P>biw`, `<P>c$`), the doubled key is the current line (`<P>bb`, count = lines; italic uses `<P>i_` because `<P>ii` would shadow `<P>i` + `i{object}`), visual mode unchanged. The uppercase variants are gone, freeing `<P>I`/`<P>B`/`<P>S`/`<P>C`/`<P>H`.
 - **Partial-overlap selections** (selection covers part of a span): currently removes the whole span. Alternative: shrink the span to exclude the selection (`**hello world**`, select `world` → `**hello** world`). Decide, then test both edge directions.
 
 ### 14.8 Text objects — **implemented (2026-09-30)**
@@ -595,7 +597,8 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 - Pasted block is one undo step; relative links in the HTML are resolved against its source URL when the clipboard provides it.
 
 ### 14.11 GitHub callouts — **implemented (2026-09-30)**
-- `<P>a` normal mode:
+- `<P>a{motion}` (operator, changed 2026-09-30; it used to act on the paragraph directly): blank lines at the range edges are dropped (`<P>aap` = `<P>aip`); if the range starts in a quote or callout it behaves as below at that line; a range in a fenced code block grows to the whole block; a blank range inserts an empty callout. No `<P>aa` doubled key, because it would shadow `<P>a` + `a{object}` (`<P>aap`).
+- Per target:
   - on a callout (`> [!TYPE]`, any case) → pick a new type from the same picker, the current one labelled `(current)`; `callouts.default` doesn't apply here; a title after the marker is kept. (Changed 2026-09-30: first version cycled NOTE → TIP → … without a picker.)
   - on a plain blockquote → add the `[!TYPE]` line (type picker);
   - in a fenced code block → wrap the whole block; elsewhere → wrap the paragraph (contiguous non-blank lines); on a blank line → insert an empty callout and start insert mode.

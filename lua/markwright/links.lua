@@ -396,6 +396,13 @@ function M.opfunc(mtype)
   local e = api.nvim_buf_get_mark(buf, "]")
   local srow, scol, erow = s[1] - 1, s[2], e[1] - 1
   local last = get_line(buf, erow)
+  if srow == erow then
+    local text = mtype == "line" and last or last:sub(scol + 1, e[2] + 1)
+    if text:match("^%s*$") then -- nothing to link: ask for URL and text
+      api.nvim_win_set_cursor(0, { srow + 1, mtype == "line" and 0 or scol })
+      return M.prompt_new()
+    end
+  end
   local ecol
   if mtype == "line" then
     local first = get_line(buf, srow)
@@ -436,10 +443,12 @@ function M.expr_normal()
 end
 
 --- Visual-mode link key.
-function M.expr_visual()
+--- Operator (normal mode, waits for a motion) and visual mode.
+function M.expr_operator()
   vim.o.operatorfunc = OPFUNC
   return "g@"
 end
+M.expr_visual = M.expr_operator
 
 -- Smart paste -------------------------------------------------------------
 

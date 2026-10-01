@@ -21,24 +21,26 @@ function M.attach(buf)
     vim.keymap.set(mode, lhs, rhs, opts)
   end
 
+  -- Inline keys (formatting, links) are operators, like d or gu: <P>b{motion}
+  -- (<P>biw, <P>b$), and <P>b_ for the current line ([count] lines). No doubled
+  -- keys: <P>ii would shadow i{object}. Visual mode acts on the selection.
+  local format = require("markwright.format")
   for _, f in ipairs(FORMAT_KEYS) do
-    local format = require("markwright.format")
+    local desc = "Toggle " .. f.desc:lower()
     map("n", P .. f.key, function()
-      return format.expr_normal(f.fmt)
-    end, "Toggle " .. f.desc:lower(), { expr = true })
+      return format.expr_operator(f.fmt)
+    end, desc .. " (operator)", { expr = true })
     map("x", P .. f.key, function()
       return format.expr_operator(f.fmt)
-    end, "Toggle " .. f.desc:lower(), { expr = true })
-    -- operator version: <P>I{motion}, <P>B{motion}, ...  [OPEN] key choice
-    map("n", P .. f.key:upper(), function()
-      return format.expr_operator(f.fmt)
-    end, f.desc .. " (operator)", { expr = true })
+    end, desc, { expr = true })
   end
 
   -- links
   local links = require("markwright.links")
   local lopts = config.options.links
-  map("n", P .. "k", links.expr_normal, "Link: create / convert URL / remove", { expr = true })
+  -- <P>k{motion}: link the range, convert a bare URL (<P>kak), remove the link
+  -- it starts in (<P>kik), or prompt for URL and text on a blank range (<P>k_)
+  map("n", P .. "k", links.expr_operator, "Link: create / convert URL / remove (operator)", { expr = true })
   map("x", P .. "k", links.expr_visual, "Link: create / convert URL / remove", { expr = true })
   if lopts.smart_paste_normal then
     map("n", "p", function()
@@ -61,6 +63,8 @@ function M.attach(buf)
   end
 
   -- code fences & footnotes
+  -- Block keys (fence, callout, CSV → table) and inserts (footnote, table,
+  -- TOC, image) act at once; only inline keys (formatting, links) are operators.
   map("n", P .. "f", function()
     require("markwright.fence").insert()
   end, "Insert code fence")
@@ -72,6 +76,7 @@ function M.attach(buf)
   -- tables
   local tables = require("markwright.tables")
   map("n", P .. "tt", tables.create, "Create table")
+  map("n", P .. "tc", tables.from_csv_paragraph, "CSV → table (paragraph)")
   map("x", P .. "tc", "<Esc><Cmd>lua require('markwright.tables').from_csv_visual()<CR>", "CSV → table")
   map("n", P .. "tx", tables.to_csv, "Table → CSV")
   map("n", P .. "tr", tables.add_row, "Add row below")
@@ -137,7 +142,7 @@ function M.attach(buf)
     "Paste image (selection = alt text)"
   )
 
-  -- callouts
+  -- callouts: block keys act at once on the paragraph (or callout) under the cursor
   map("n", P .. "a", function()
     require("markwright.callouts").toggle()
   end, "Callout: wrap / change type")
