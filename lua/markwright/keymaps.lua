@@ -21,15 +21,17 @@ function M.attach(buf)
     vim.keymap.set(mode, lhs, rhs, opts)
   end
 
-  -- Inline keys (formatting, links) are operators, like d or gu: <P>b{motion}
-  -- (<P>biw, <P>b$), and <P>b_ for the current line ([count] lines). No doubled
-  -- keys: <P>ii would shadow i{object}. Visual mode acts on the selection.
+  -- Inline keys (formatting, links) act at once when there's nothing to choose
+  -- (inside an existing span or link, on a bare URL, on whitespace) and wait
+  -- for a motion on plain text, like d or gu: <P>biw, <P>b$, <P>b_ for the
+  -- line ([count] lines). No doubled keys: <P>ii would shadow i{object}.
+  -- Visual mode acts on the selection.
   local format = require("markwright.format")
   for _, f in ipairs(FORMAT_KEYS) do
     local desc = "Toggle " .. f.desc:lower()
     map("n", P .. f.key, function()
-      return format.expr_operator(f.fmt)
-    end, desc .. " (operator)", { expr = true })
+      return format.expr_smart(f.fmt)
+    end, desc, { expr = true })
     map("x", P .. f.key, function()
       return format.expr_operator(f.fmt)
     end, desc, { expr = true })
@@ -38,9 +40,10 @@ function M.attach(buf)
   -- links
   local links = require("markwright.links")
   local lopts = config.options.links
-  -- <P>k{motion}: link the range, convert a bare URL (<P>kak), remove the link
-  -- it starts in (<P>kik), or prompt for URL and text on a blank range (<P>k_)
-  map("n", P .. "k", links.expr_operator, "Link: create / convert URL / remove (operator)", { expr = true })
+  -- <P>k: on a link remove it, on a bare URL make a titled link, on whitespace
+  -- insert a new link (URL prompt prefilled from the clipboard, then text); on plain text wait
+  -- for a motion (<P>kiw, <P>k$)
+  map("n", P .. "k", links.expr_smart, "Link: create / convert URL / remove", { expr = true })
   map("x", P .. "k", links.expr_visual, "Link: create / convert URL / remove", { expr = true })
   if lopts.smart_paste_normal then
     map("n", "p", function()

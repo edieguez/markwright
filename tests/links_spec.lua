@@ -16,8 +16,12 @@ local function before_each()
   title.fetch = function(_, cb)
     cb(mock.title)
   end
-  vim.ui.input = function(_, cb)
-    cb(table.remove(mock.inputs, 1))
+  vim.ui.input = function(o, cb)
+    local answer = table.remove(mock.inputs, 1)
+    if answer == "<Enter>" then -- accept the prefilled default
+      answer = o.default or ""
+    end
+    cb(answer)
   end
   vim.fn.setreg('"', "")
 end
@@ -335,13 +339,48 @@ local cases = {
     { "https://x.io" },
   },
 
-  -- operator: <leader>mk{motion}
-  { "operator: bare URL via ak", { "go https://x.io now" }, { 1, 5 }, " mkak", { "go [Title](https://x.io) now" } },
+  -- whitespace: the URL prompt is prefilled with a clipboard URL
   {
-    "operator: bare URL, trailing period stays outside",
+    "empty line, clipboard URL: prefilled, Enter accepts it",
+    { "" },
+    { 1, 0 },
+    " mk",
+    { "[C](https://c.io)" },
+    setup = function()
+      clip("https://c.io")()
+      inputs("<Enter>", "C")()
+    end,
+  },
+  {
+    "empty line, clipboard URL accepted, empty text: page title",
+    { "" },
+    { 1, 0 },
+    " mk",
+    { "[Title](https://c.io)" },
+    setup = function()
+      clip("https://c.io")()
+      inputs("<Enter>", "")()
+    end,
+  },
+  {
+    "empty line, clipboard URL replaced in the prompt",
+    { "" },
+    { 1, 0 },
+    " mk",
+    { "[R](https://r.io)" },
+    setup = function()
+      clip("https://c.io")()
+      inputs("https://r.io", "R")()
+    end,
+  },
+  { "empty line, no clipboard URL: empty prompt", { "" }, { 1, 0 }, " mk", { "" }, setup = inputs("<Enter>") },
+  -- operator: <leader>mk{motion}
+  { "bare URL: titled link at once", { "go https://x.io now" }, { 1, 5 }, " mk", { "go [Title](https://x.io) now" } },
+  {
+    "bare URL at once: trailing period stays outside",
     { "see https://ex.com." },
     { 1, 6 },
-    " mkak",
+    " mk",
     { "see [Title](https://ex.com)." },
   },
   {
@@ -353,10 +392,10 @@ local cases = {
     setup = inputs("https://q.io", "Q"),
   },
   {
-    "operator: whitespace prompts URL + text",
+    "whitespace: prompts URL + text at once",
     { "a b" },
     { 1, 1 },
-    " mkiw",
+    " mk",
     { "a [Q](https://q.io) b" },
     setup = inputs("https://q.io", "Q"),
   },
@@ -393,13 +432,13 @@ local cases = {
     setup = inputs("https://p.io"),
   },
   {
-    "operator on a bare URL makes a titled link",
+    "operator on a bare URL makes a titled link (at once)",
     { "go https://x.io now" },
     { 1, 3 },
-    " mkiW",
+    " mk",
     { "go [Title](https://x.io) now" },
   },
-  { "operator removes a link it starts in", { "a [text](http://x.io) b" }, { 1, 4 }, " mkik", { "a text b" } },
+  { "on a link: removes it at once", { "a [text](http://x.io) b" }, { 1, 4 }, " mk", { "a text b" } },
   { "operator with a link text object from outside", { "x [text](http://x.io)" }, { 1, 0 }, " mkak", { "x text" } },
   {
     "operator dot repeat",
@@ -409,7 +448,7 @@ local cases = {
     { "[aa](https://x.io) [bb](https://x.io)" },
     setup = clip("https://x.io"),
   },
-  { "operator in code is skipped", { "`code`" }, { 1, 2 }, " mkiw", { "`code`" }, setup = clip("https://x.io") },
+  { "in code: skipped at once", { "`code`" }, { 1, 2 }, " mk", { "`code`" }, setup = clip("https://x.io") },
 }
 
 local failed, total = H.run("links", cases, { before_each = before_each })

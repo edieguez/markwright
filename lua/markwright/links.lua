@@ -325,7 +325,8 @@ function M.link_range(buf, srow, scol, erow, ecol)
   end)
 end
 
---- Link key on whitespace / empty line: prompt for URL, then text.
+--- Link key on whitespace / empty line: prompt for the URL (prefilled with a
+--- clipboard URL), then for the text (empty = page title).
 function M.prompt_new()
   local buf = api.nvim_get_current_buf()
   local row, col = unpack(api.nvim_win_get_cursor(0))
@@ -336,7 +337,17 @@ function M.prompt_new()
   end
   local at = (line == "") and 0 or col + 1
   local id = track(buf, row, at, row, at)
-  input("URL: ", nil, function(url)
+  -- the URL prompt is prefilled with a clipboard URL, so it's visible before
+  -- it's used: Enter accepts it, or edit / replace it
+  local default
+  if opts().use_clipboard then
+    local clip = trim(M.read_clipboard() or "")
+    default = M.is_url(clip) and clip or nil
+  end
+  local ask_url = function(cb)
+    input("URL: ", default, cb)
+  end
+  ask_url(function(url)
     if not url or trim(url) == "" then
       pcall(api.nvim_buf_del_extmark, buf, ns, id)
       return
@@ -443,6 +454,13 @@ function M.expr_normal()
 end
 
 --- Visual-mode link key.
+--- The normal-mode key: act at once on a link, an image, a bare URL, code or
+--- whitespace (new link); wait for a motion on plain text (`<P>kiw`, `<P>k$`).
+function M.expr_smart()
+  local keys = M.expr_normal()
+  return keys == "g@iw" and "g@" or keys
+end
+
 --- Operator (normal mode, waits for a motion) and visual mode.
 function M.expr_operator()
   vim.o.operatorfunc = OPFUNC
