@@ -44,7 +44,7 @@ Status: **1.0.0 released** — updated 2026-10-02. Sections 1–13 describe what
 - [x] **TOC** — markers, nested entries, refresh on save (§9.6)
 - [x] **Link diagnostics** — files, anchors, references, footnotes; on open/save; `:Markwright check` (§10)
 - [x] **Image paste, macOS** — screenshots, Finder files, paths, URLs; `assets/`; alt text (§13.1)
-- [x] **Tests** — 588 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
+- [x] **Tests** — 634 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
 - [x] **Verified on macOS + LazyVim** (2026-09-30): clipboard links, live titles, `gx`, image paste (screenshot / Finder / browser), `<CR>` with blink.cmp + mini.pairs, `<Tab>` in snippets/lists/tables, `;;` hint with noice, no duplicate diagnostics
 
 ### Release 1.0.0
@@ -71,7 +71,7 @@ Status: **1.0.0 released** — updated 2026-10-02. Sections 1–13 describe what
 - [ ] Decide partial-overlap selection behavior (§14.7)
 
 **New features — priority 2**
-- [ ] List tools: move items with children, sort, cycle bullets, lines ↔ list (§14.12)
+- [x] List tools: move items with children, sort, convert lines ↔ bullets / numbers / checkboxes — `<P>l…` (§14.12)
 - [x] Checkbox progress counters `[2/5]` / `[40%]` (§14.13)
 - [x] Completion dates on checked tasks, with time: `lists.done_date` (§14.14)
 - [x] Table extras: move columns/rows (`<P>tH/tL/tJ/tK`), sort (`<P>ts`), transpose (`<P>tT`), copy as CSV (`<P>ty`) (§14.15)
@@ -267,7 +267,7 @@ All buffer-local, Markdown only. `<P>` = configured prefix (default `<leader>m`)
 | n | `<P>A` | Remove callout (§14.11) |
 | o, x | `ik`/`ak`, `iu`, `ic`/`ac`, `ih`/`ah`, `i\|`/`a\|`, `iL`/`aL`, `i*`/`a*` | Text objects (§14.8; letters configurable under `textobjects`) |
 
-**Planned keys** (§14; all **[OPEN]** until implemented): `<P>v` rich paste (later); `<M-j>`/`<M-k>` move list items/sections; `<P>*` cycle bullet; `<P>L`/`<P>N` lines ↔ bullet/numbered list; `<P>+`/`<P>_` promote/demote with children; `<P>ts` sort table; `<P>t<`/`<P>t>` move column; `<P>r` inline ↔ reference link.
+**Planned keys** (§14; all **[OPEN]** until implemented): `<P>v` rich paste (later); move sections; `<P>+`/`<P>_` promote/demote with children; inline ↔ reference link (`<P>r` is taken by image rename). (List tools ended up under `<P>l…`, table extras under `<P>t…`.)
 
 Keys already taken under `<P>`: `i b s c h I B S C H l = - f n p T tt tc tr tR tk tK ta`.
 
@@ -611,11 +611,12 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 - **Continuing quotes** (added 2026-09-30): insert `<CR>` on a `>` line (callout or plain quote) continues with the same prefix (`> `, `> > `), splitting the line at the cursor; on an empty `>` line it removes one `>` level without adding a line; `o`/`O` open a `> ` line. Lists inside quotes keep list continuation; code blocks inside a quote continue the `>`, while `>` lines in ordinary code blocks are left alone (Treesitter: code block with a `block_quote` ancestor). Option `blockquotes.continue_on_enter`.
 - Tree-sitter parses the marker `[!TYPE]` as a `shortcut_link`. `ts.is_callout_marker(node, src)` (a `shortcut_link` `[!word]` preceded only by `>`/spaces on its line) excludes it from link handling: `<P>k` and `:Markwright link` warn instead of unlinking it (fixed 2026-10-02: it used to turn `[!WARNING]` into `!WARNING`), the `ik`/`ak` text objects and their forward search skip it, and `gx` ignores it.
 
-### 14.12 List tools (priority 2)
-- Move an item with its children: `<M-j>`/`<M-k>` **[OPEN]** on a list item swaps it with the next/previous sibling subtree and renumbers; elsewhere falls back to the existing mapping (LazyVim's move-line). Also `:Markwright list up|down`.
-- Sort: `:Markwright list sort [alpha|checked|reverse]` sorts the siblings under the cursor (children move with their parent; `checked` puts done tasks last).
-- Cycle bullet style for the list under the cursor: `<P>*` **[OPEN]** `-` → `*` → `+` → `1.` → `-`.
-- Lines ↔ list: `<P>L` **[OPEN]** toggles plain lines ↔ bullet list, `<P>N` **[OPEN]** plain lines ↔ numbered list (visual or current paragraph).
+### 14.12 List tools (priority 2) — **implemented (2026-10-02)**
+Keys chosen 2026-10-02: a `<P>l` submenu (which-key group "list"), like `<P>t` for tables. New module `listtools.lua`, built on the tree-sitter `list_item` tree.
+- `<P>lj` / `<P>lk` (`:Markwright list down|up`): move the item under the cursor, with its children, past `[count]` siblings; clamped at the first/last sibling (a child never leaves its parent). Item blocks exclude trailing blank lines; the blank gaps between items stay in place. Ordered lists are renumbered from the list's original first number (re-indenting children when a number's width changes). Cursor follows. Opt-in `lists.move_keys = { down = "<M-j>", up = "<M-k>" }`: on list items they move the item, elsewhere they run the previously defined mapping (LazyVim's move-line).
+- `<P>ls` (`:Markwright list sort`): sort the siblings A→Z (case-insensitive, checkbox and emphasis markers ignored); if already A→Z → Z→A. `<P>ld` (`:Markwright list sort done`): stable partition, done (`[x]`/`[X]`) items last. Children move with their parent; renumbered.
+- Converters `<P>lb` / `<P>ln` / `<P>lc` (normal: the paragraph or list under the cursor; visual: the selection; `:[range]Markwright list bullet|number|checkbox`): lines → bullets / numbers / checkboxes. Plain lines get the style, items of another style switch; if every line already has the style it is removed (plain lines), so each key toggles. Existing bullet characters and number delimiters are kept (a `*` list becomes `* [ ]`, a numbered list stays numbered as `1. [ ]`); new markers come from `lists.bullet` (`-` `*` `+`, default `-`) and `lists.number_delim` (`.` `)`, default `.`). Indented lines nest under the closest less-indented line, re-indented to its new content column; numbering restarts per level. Checkboxes are dropped when converting to bullets or numbers. Blank lines, headings, fences and code blocks are skipped; `>` prefixes kept. (Decided 2026-10-02: replaces the first version's bullet-style cycling `<P>lb` and the `<P>ll`/`<P>ln` toggles.)
+- Each action is one undo step; progress cookies are refreshed.
 
 ### 14.13 Checkbox progress (priority 2) — **implemented (2026-10-02)**
 - A list item whose first line contains a cookie `[/]`, `[n/m]`, `[%]` or `[n%]` (after its own checkbox; a cookie followed by `(` is a link; every cookie on the line is filled, so `[/] [%]` shows both) shows its direct children's progress: `- Release [2/5]` / `- Release [40%]` (percent rounded down; no children → `[0/0]` / `[0%]`).

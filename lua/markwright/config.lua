@@ -44,6 +44,12 @@ M.defaults = {
     done_date = "✅ %Y-%m-%d %H:%M",
     -- fill progress cookies `[/]` / `[%]` on parent items: `- Release [2/5]`
     progress = true,
+    -- markers for new items made by the list converters (<P>lb / <P>ln / <P>lc)
+    bullet = "-", -- "-", "*" or "+"
+    number_delim = ".", -- "." or ")"
+    -- optional keys that move a list item (with its children) on list items and
+    -- run their previous mapping elsewhere, e.g. { down = "<M-j>", up = "<M-k>" }
+    move_keys = nil,
   },
   nav = {
     -- heading motions (normal, visual and operator-pending); false or "" disables one
@@ -127,6 +133,13 @@ local function validate(opts)
   end
   if t ~= "" and not t:match("^<.+>$") and vim.fn.strchars(t) < 2 then
     error("markwright: insert.trigger must be at least two characters (or a key like '<C-g>')")
+  end
+  local lo = opts.lists or {}
+  if not vim.tbl_contains({ "-", "*", "+" }, lo.bullet) then
+    error("markwright: lists.bullet must be '-', '*' or '+'")
+  end
+  if not vim.tbl_contains({ ".", ")" }, lo.number_delim) then
+    error("markwright: lists.number_delim must be '.' or ')'")
   end
   local dd = opts.lists and opts.lists.done_date
   if dd ~= false and dd ~= nil and (type(dd) ~= "string" or dd == "") then
