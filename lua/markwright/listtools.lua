@@ -289,14 +289,28 @@ local function style_of(it)
   return "bullet"
 end
 
---- Convert rows srow..erow to a list `style` ("bullet", "number" or
---- "checkbox"), or back to plain lines when they all already are one.
---- Plain lines get a marker; items of another style change style. Existing
---- bullet characters (`-` `*` `+`) and number delimiters (`.` `)`) are kept;
---- new ones come from `lists.bullet` / `lists.number_delim`. Numbers restart
---- at 1 for each indentation level. Blank lines, headings and code are skipped.
-function M.convert_lines(style, srow, erow)
-  local buf = api.nvim_get_current_buf()
+--- Would converting item `it` remove its checkbox?
+local function loses_box(it, style, to_plain)
+  return it ~= nil and it.check ~= nil and (style ~= "checkbox" or to_plain)
+end
+
+--- Marker for item number `n` of a converted level.
+local function new_marker(style, it, n, o)
+  if style == "number" then
+    return n .. ((it and it.delim) or o.number_delim)
+  elseif it and (not it.num or style == "checkbox") then
+    return it.marker -- keep `*` / `+`; a numbered task list stays numbered
+  end
+  return o.bullet
+end
+
+--- Plan the conversion of rows srow..erow, every level (indentation decides
+--- nesting). Returns new lines and info { boxes, done, others }: the checklist
+--- items that would lose their checkbox (done: how many are checked) and the
+--- other lines that would change. With `keep_checklists`, every list level
+--- holding such an item (a checklist) is left as it is, so a list never mixes
+--- checkboxes with bullets or numbers; nil when there's nothing to convert.
+local function plan_lines(buf, style, srow, erow, keep_checklists)
   local o = require("markwright.config").options.lists
   local lines = api.nvim_buf_get_lines(buf, srow, erow + 1, false)
   local all_same, any = true, false
@@ -309,13 +323,34 @@ function M.convert_lines(style, srow, erow)
     end
   end
   if not any then
-    return
+    return nil
+  end
+  -- the list level (tree-sitter list node) of each item line; checklist levels
+  local group, checklist = {}, {}
+  local info = { boxes = 0, done = 0, others = 0 }
+  for i, l in ipairs(lines) do
+    if not skip(buf, srow + i - 1, l) then
+      local it = lists.parse(l)
+      local node = it and item_node(buf, srow + i - 1)
+      group[i] = node and node:parent() and node:parent():id() or ("line" .. i)
+      if loses_box(it, style, all_same) then
+        checklist[group[i]] = true
+        info.boxes = info.boxes + 1
+        info.done = info.done + (it.check ~= " " and 1 or 0)
+      end
+    end
+  end
+  for i, l in ipairs(lines) do
+    if group[i] and not checklist[group[i]] and not skip(buf, srow + i - 1, l) then
+      info.others = info.others + 1
+    end
   end
   local counters = {} -- number per indentation width
   local stack = {} -- { orig = indent width, content = new content column } of open parents
   for i, l in ipairs(lines) do
     if not skip(buf, srow + i - 1, l) then
       local it = lists.parse(l)
+      local keep = keep_checklists and checklist[group[i]] and it ~= nil
       local q = util.bq_len(l)
       local pre, ind, text
       if it then
@@ -325,7 +360,16 @@ function M.convert_lines(style, srow, erow)
         pre, ind = l:sub(1, q), rest:match("^%s*")
         text = rest:sub(#ind + 1)
       end
-      if all_same then
+      if keep then
+        -- marker and box stay; only re-indented to stay under its parent
+        local depth = #ind
+        while #stack > 0 and stack[#stack].orig >= depth do
+          table.remove(stack)
+        end
+        local new_ind = #stack > 0 and string.rep(" ", stack[#stack].content) or ind
+        lines[i] = pre .. new_ind .. l:sub(#pre + #ind + 1)
+        table.insert(stack, { orig = depth, content = #new_ind + it.content_col - it.marker_col })
+      elseif all_same then
         lines[i] = pre .. ind .. text -- list → plain
       else
         local depth = #ind
@@ -340,41 +384,172 @@ function M.convert_lines(style, srow, erow)
             counters[d] = nil -- a shallower item restarts deeper numbering
           end
         end
-        local marker
-        if style == "number" then
-          counters[depth] = (counters[depth] or 0) + 1
-          marker = counters[depth] .. ((it and it.delim) or o.number_delim)
-        elseif it and (not it.num or style == "checkbox") then
-          marker = it.marker -- keep `*` / `+`; a numbered task list stays numbered
-        else
-          marker = o.bullet
-        end
-        local box = ""
-        if style == "checkbox" then
-          box = "[" .. ((it and it.check) or " ") .. "] "
-        end
+        counters[depth] = (counters[depth] or 0) + 1
+        local marker = new_marker(style, it, counters[depth], o)
+        local box = style == "checkbox" and ("[" .. ((it and it.check) or " ") .. "] ") or ""
         lines[i] = pre .. new_ind .. marker .. " " .. box .. text
         table.insert(stack, { orig = depth, content = #new_ind + #marker + 1 })
       end
     end
   end
-  util.undo_break(buf)
-  api.nvim_buf_set_lines(buf, srow, erow + 1, false, lines)
-  lists.update_progress(buf)
+  return lines, info
 end
 
---- Normal mode: the paragraph (or list) under the cursor.
-function M.convert_paragraph(style)
+--- Plan the conversion of one level: the list item `node` and its siblings.
+--- Their children and continuation lines aren't converted, only re-indented
+--- when the marker width changes, so they stay inside their item. Returns
+--- srow, erow, new lines and info (see plan_lines; a level is all-or-nothing,
+--- so `others` is 0 when it's a checklist).
+local function plan_level(buf, style, node)
+  local o = require("markwright.config").options.lists
+  local sibs = siblings(node)
+  local blocks = {}
+  for _, sib in ipairs(sibs) do
+    local sr, er = rows_of(buf, sib)
+    table.insert(blocks, { sr = sr, er = er })
+  end
+  local srow, erow = blocks[1].sr, blocks[#blocks].er
+  local lines = api.nvim_buf_get_lines(buf, srow, erow + 1, false)
+  local all_same = true
+  for _, b in ipairs(blocks) do
+    if style_of(lists.parse(lines[b.sr - srow + 1])) ~= style then
+      all_same = false
+    end
+  end
+  local info, n = { boxes = 0, done = 0, others = 0 }, 0
+  for _, b in ipairs(blocks) do
+    local k = b.sr - srow + 1
+    local it = lists.parse(lines[k])
+    if loses_box(it, style, all_same) then
+      info.boxes = info.boxes + 1
+      info.done = info.done + (it.check ~= " " and 1 or 0)
+    end
+    local start = #it.bq + #it.indent
+    if all_same then
+      lines[k] = it.bq .. it.indent .. it.text
+    else
+      n = n + 1
+      local marker = new_marker(style, it, n, o)
+      local box = style == "checkbox" and ("[" .. (it.check or " ") .. "] ") or ""
+      lines[k] = it.bq .. it.indent .. marker .. " " .. box .. it.text
+      start = start + #marker + 1
+    end
+    local block = { lines[k] }
+    for r = b.sr + 1, b.er do
+      table.insert(block, lines[r - srow + 1])
+    end
+    shift(block, start - it.content_col)
+    for r = b.sr + 1, b.er do
+      lines[r - srow + 1] = block[r - b.sr + 1]
+    end
+  end
+  if info.boxes == 0 then
+    info.others = #blocks
+  end
+  return srow, erow, lines, info
+end
+
+--- Run a conversion. `plan(keep_checklists)` returns srow, erow, new lines
+--- and info. When checklist items would lose their checkbox, ask: Yes
+--- converts the checklists too; No (only offered when there's something else
+--- to convert) converts the rest and leaves the checklists as they are;
+--- Cancel (or Esc) changes nothing.
+local function run(buf, plan)
+  local srow, erow, new, info = plan(false)
+  if not new then
+    return
+  end
+  local old = api.nvim_buf_get_lines(buf, srow, erow + 1, false)
+  local function go(keep_checklists)
+    if not vim.deep_equal(api.nvim_buf_get_lines(buf, srow, erow + 1, false), old) then
+      return util.warn("the text changed; nothing converted")
+    end
+    if keep_checklists then
+      srow, erow, new = plan(true)
+    end
+    util.undo_break(buf)
+    api.nvim_buf_set_lines(buf, srow, erow + 1, false, new)
+    lists.update_progress(buf)
+  end
+  if info.boxes == 0 then
+    return go(false)
+  end
+  local prompt = ("%d checklist item%s%s would lose %s checkbox. Convert %s?"):format(
+    info.boxes,
+    info.boxes == 1 and "" or "s",
+    info.done > 0 and (" (%d done)"):format(info.done) or "",
+    info.boxes == 1 and "its" or "their",
+    info.boxes == 1 and "it" or "them"
+  )
+  local choices = info.others > 0 and { "Yes", "No", "Cancel" } or { "Yes", "Cancel" }
+  vim.ui.select(choices, { prompt = prompt }, function(choice)
+    if choice == "Yes" then
+      go(false)
+    elseif choice == "No" then
+      go(true)
+    end
+  end)
+end
+
+--- Convert rows srow..erow (every level) to `style` ("bullet", "number" or
+--- "checkbox"), or back to plain lines when they all already have it. Plain
+--- lines get a marker; items of another style switch. Existing bullet
+--- characters and number delimiters are kept; new ones come from
+--- `lists.bullet` / `lists.number_delim`. Numbers restart per level. Blank
+--- lines, headings and code are skipped.
+function M.convert_lines(style, srow, erow)
+  local buf = api.nvim_get_current_buf()
+  run(buf, function(keep_checklists)
+    local new, info = plan_lines(buf, style, srow, erow, keep_checklists)
+    return srow, erow, new, info
+  end)
+end
+
+--- The list item containing `row` (also from a continuation line), or nil.
+local function item_around(buf, row)
+  local node = item_node(buf, row)
+  if node then
+    return node
+  end
+  local p = ts.parser(buf)
+  if not p or blank(get_line(buf, row)) or ts.code_context(ts.parse(buf, row), row, 0) == "block" then
+    return nil
+  end
+  local line = get_line(buf, row)
+  node = ts.block_node(p, row, #line:match("^[%s>]*"))
+  while node and node:type() ~= "list_item" do
+    node = node:parent()
+  end
+  return node
+end
+
+--- Normal mode. On a list: the cursor's level (its item and siblings), or
+--- with `all` that level and every sub-list below it (parents stay as they
+--- are). On plain lines: the paragraph.
+function M.convert(style, all)
   local buf = api.nvim_get_current_buf()
   local row = api.nvim_win_get_cursor(0)[1] - 1
-  local sr, er = paragraph(buf, row)
-  if not sr then
-    return
+  local node = item_around(buf, row)
+  if node and not all then
+    return run(buf, function()
+      return plan_level(buf, style, node)
+    end)
+  end
+  local sr, er
+  if node then
+    local sibs = siblings(node)
+    sr = rows_of(buf, sibs[1])
+    _, er = rows_of(buf, sibs[#sibs])
+  else
+    sr, er = paragraph(buf, row)
+    if not sr then
+      return
+    end
   end
   M.convert_lines(style, sr, er)
 end
 
---- Visual mode: the selected lines.
+--- Visual mode: exactly the selected lines, every level.
 function M.convert_visual(style)
   local buf = api.nvim_get_current_buf()
   M.convert_lines(style, api.nvim_buf_get_mark(buf, "<")[1] - 1, api.nvim_buf_get_mark(buf, ">")[1] - 1)
