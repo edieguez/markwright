@@ -44,7 +44,7 @@ Status: **1.0.0 released** — updated 2026-10-02. Sections 1–13 describe what
 - [x] **TOC** — markers, nested entries, refresh on save (§9.6)
 - [x] **Link diagnostics** — files, anchors, references, footnotes; on open/save; `:Markwright check` (§10)
 - [x] **Image paste, macOS** — screenshots, Finder files, paths, URLs; `assets/`; alt text (§13.1)
-- [x] **Tests** — 560 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
+- [x] **Tests** — 573 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
 - [x] **Verified on macOS + LazyVim** (2026-09-30): clipboard links, live titles, `gx`, image paste (screenshot / Finder / browser), `<CR>` with blink.cmp + mini.pairs, `<Tab>` in snippets/lists/tables, `;;` hint with noice, no duplicate diagnostics
 
 ### Release 1.0.0
@@ -73,7 +73,7 @@ Status: **1.0.0 released** — updated 2026-10-02. Sections 1–13 describe what
 **New features — priority 2**
 - [ ] List tools: move items with children, sort, cycle bullets, lines ↔ list (§14.12)
 - [ ] Checkbox progress counters `[2/5]` / `[40%]` (§14.13)
-- [ ] Completion dates on checked tasks (§14.14)
+- [x] Completion dates on checked tasks, with time: `lists.done_date` (§14.14)
 - [x] Table extras: move columns/rows (`<P>tH/tL/tJ/tK`), sort (`<P>ts`), transpose (`<P>tT`), copy as CSV (`<P>ty`) (§14.15)
 - [ ] Section operations: move heading sections, promote/demote with children (§14.16)
 - [ ] Inline ↔ reference link conversion (§14.17)
@@ -622,8 +622,10 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 - Updated whenever a child checkbox is toggled by the plugin, and on save; nested counts roll up. Items without a cookie are never changed.
 - Config `lists.progress = true`.
 
-### 14.14 Completion dates (priority 2)
-- Opt-in `lists.done_date = false | "✅ %Y-%m-%d"`: checking an item appends the formatted date; unchecking removes it. Compatible with the Obsidian Tasks format.
+### 14.14 Completion dates (priority 2) — **implemented (2026-10-02)**
+- `lists.done_date = "✅ %Y-%m-%d %H:%M"` by default (decided 2026-10-02: on, with the time); `false` turns it off; any `os.date` format (local time). `"✅ %Y-%m-%d"` is the Obsidian Tasks format.
+- Checking an item (`<CR>`, visual `<CR>`) appends `" " .. os.date(fmt)` to the end of the item's first line (trailing spaces dropped); unchecking removes it. Same undo step as the toggle. Not stamped twice; adding a checkbox to a plain item doesn't stamp.
+- Removal recognizes stamps of the current format (converted to a Lua pattern: `%Y %y %m %d %e %H %I %M %S %p %j %F %R %T` → digits, other conversions loosely) and of the default and Obsidian formats, at the end of the line.
 
 ### 14.15 Table extras (priority 2) — **implemented (2026-10-02)**
 Keys chosen 2026-10-02, matching the `h`/`j`/`k`/`l` add keys:

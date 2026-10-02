@@ -1,7 +1,20 @@
 -- Lists + headings specs (SPEC.md sections 9.1, 9.2).
 local H = dofile(vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p:h") .. "/helpers.lua")
 local lists = require("markwright.lists")
+local config = require("markwright.config")
 local eq = H.eq
+
+-- completion stamps: a fixed clock, formatted in the local time zone
+local T0 = os.time({ year = 2026, month = 10, day = 2, hour = 15, min = 52 })
+local STAMP = os.date(" ✅ %Y-%m-%d %H:%M", T0) -- " ✅ 2026-10-02 15:52"
+lists.clock = function()
+  return T0
+end
+local function done_date(fmt)
+  return function()
+    config.options.lists.done_date = fmt
+  end
+end
 
 local cases = {
   -- parsing
@@ -92,12 +105,19 @@ local cases = {
   },
 
   -- checkboxes: <CR> in normal mode
-  { "<CR> checks", { "- [ ] task" }, { 1, 5 }, "<CR>", { "- [x] task" }, { 1, 5 } },
+  {
+    "<CR> checks (and stamps the date and time)",
+    { "- [ ] task" },
+    { 1, 5 },
+    "<CR>",
+    { "- [x] task" .. STAMP },
+    { 1, 5 },
+  },
   { "<CR> unchecks", { "- [x] task" }, { 1, 0 }, "<CR>", { "- [ ] task" } },
   { "<CR> unchecks [X]", { "1. [X] task" }, { 1, 0 }, "<CR>", { "1. [ ] task" } },
   { "<CR> adds a checkbox to a plain item", { "  * task" }, { 1, 4 }, "<CR>", { "  * [ ] task" } },
   { "<CR> on empty item", { "-" }, { 1, 0 }, "<CR>", { "- [ ]" } },
-  { "<CR> in blockquote list", { "> - [ ] q" }, { 1, 0 }, "<CR>", { "> - [x] q" } },
+  { "<CR> in blockquote list", { "> - [ ] q" }, { 1, 0 }, "<CR>", { "> - [x] q" .. STAMP } },
   { "<CR> on plain text moves down (native)", { "text", "next" }, { 1, 0 }, "<CR>", { "text", "next" }, { 2, 0 } },
   {
     "<CR> in code block is native",
@@ -113,9 +133,53 @@ local cases = {
     { "- [ ] a", "- [x] b", "- c", "text" },
     { 1, 0 },
     "Vjjj<CR>",
-    { "- [x] a", "- [x] b", "- [x] c", "text" },
+    { "- [x] a" .. STAMP, "- [x] b", "- [x] c" .. STAMP, "text" },
   },
   { "visual <CR> unchecks when all checked", { "- [x] a", "- [x] b" }, { 1, 0 }, "Vj<CR>", { "- [ ] a", "- [ ] b" } },
+
+  -- completion dates (lists.done_date)
+  { "unchecking removes the stamp", { "- [x] task" .. STAMP }, { 1, 0 }, "<CR>", { "- [ ] task" } },
+  { "check, uncheck: back to the original", { "- [ ] task" }, { 1, 0 }, { "<CR>", "<CR>" }, { "- [ ] task" } },
+  { "trailing spaces before the stamp are dropped", { "- [ ] task  " }, { 1, 0 }, "<CR>", { "- [x] task" .. STAMP } },
+  {
+    "an existing stamp isn't doubled",
+    { "- [ ] task ✅ 2025-01-01" },
+    { 1, 0 },
+    "<CR>",
+    { "- [x] task ✅ 2025-01-01" },
+  },
+  { "Obsidian date-only stamp is removed too", { "- [x] task ✅ 2025-01-01" }, { 1, 0 }, "<CR>", { "- [ ] task" } },
+  { "[X] unchecks and removes", { "* [X] t ✅ 2025-01-01 09:30" }, { 1, 0 }, "<CR>", { "* [ ] t" } },
+  { "multi-line item: stamp on the first line", { "- [ ] a", "  b" }, { 1, 0 }, "<CR>", { "- [x] a" .. STAMP, "  b" } },
+  { "adding a checkbox to a plain item doesn't stamp", { "- task" }, { 1, 0 }, "<CR>", { "- [ ] task" } },
+  { "check is one undo step with its stamp", { "- [ ] task" }, { 1, 0 }, { "<CR>", "u" }, { "- [ ] task" } },
+  {
+    "custom format",
+    { "- [ ] task" },
+    { 1, 0 },
+    "<CR>",
+    { "- [x] task done:" .. os.date("%d/%m/%Y", T0) },
+    setup = done_date("done:%d/%m/%Y"),
+  },
+  {
+    "custom format is removed",
+    { "- [x] task done:02/10/2026" },
+    { 1, 0 },
+    "<CR>",
+    { "- [ ] task" },
+    setup = done_date("done:%d/%m/%Y"),
+  },
+  { "done_date = false: no stamp", { "- [ ] task" }, { 1, 0 }, "<CR>", { "- [x] task" }, setup = done_date(false) },
+  {
+    "stamp pattern",
+    fn = function()
+      eq(("x ✅ 2026-10-02 15:52"):match(lists.stamp_pattern("✅ %Y-%m-%d %H:%M")) ~= nil, true)
+      eq(("x ✅ 2026-10-02"):match(lists.stamp_pattern("✅ %Y-%m-%d %H:%M")), nil)
+      eq(("x (done 2026-10-02)"):match(lists.stamp_pattern("(done %F)")) ~= nil, true)
+      eq(lists.strip_stamp("- [x] a ✅ 2026-10-02 15:52 "), "- [x] a")
+      eq(lists.strip_stamp("- [x] a ✅ tomorrow"), nil)
+    end,
+  },
 
   -- auto-renumber after normal-mode edits
   { "dd renumbers", { "1. a", "2. b", "3. c" }, { 2, 0 }, "dd", { "1. a", "2. c" } },
@@ -147,4 +211,9 @@ local cases = {
   { "heading change is one undo step", { "Title" }, { 1, 0 }, { " m=", "u" }, { "Title" } },
 }
 
-return H.run("lists + headings", cases)
+local default_done = config.options.lists.done_date
+return H.run("lists + headings", cases, {
+  before_each = function()
+    config.options.lists.done_date = default_done
+  end,
+})

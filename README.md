@@ -919,14 +919,34 @@ Set `lists.auto_renumber = false` to turn it off.
 
 **`<CR>` in normal mode** on a list item:
 
-| Line                         | After `<CR>`                                                 |
-| ---------------------------- | ------------------------------------------------------------ |
-| `- [ ] task`                 | `- [x] task`                                                 |
-| `- [x] task` or `- [X] task` | `- [ ] task`                                                 |
-| `- task`                     | `- [ ] task` (set `lists.checkbox_add = false` to skip this) |
-| Plain text, code blocks      | Native `<CR>` (moves down)                                   |
+| Line                       | After `<CR>`                                                 |
+| -------------------------- | ------------------------------------------------------------ |
+| `- [ ] task`               | `- [x] task ✅ 2026-10-02 15:52` (completion date and time)  |
+| `- [x] task ✅ …` or `[X]` | `- [ ] task` (the date goes away)                            |
+| `- task`                   | `- [ ] task` (set `lists.checkbox_add = false` to skip this) |
+| Plain text, code blocks    | Native `<CR>` (moves down)                                   |
 
 In visual mode `<CR>` checks every list item in the selection, or unchecks them all if they're already all checked. The cursor doesn't move, and each toggle is one undo step. Pick another key with `lists.checkbox_key` (normal and visual), or `""` for none.
+
+#### Completion dates
+
+Checking an item appends when it was done, in your local time; unchecking removes it again:
+
+```
+- [ ] Write the README     <CR>  →  - [x] Write the README ✅ 2026-10-02 15:52
+```
+
+- The stamp goes at the end of the item's first line, and it's part of the same undo step as the check.
+- An item that already has a stamp isn't stamped twice. Adding a checkbox to a plain item (`- task` → `- [ ] task`) doesn't stamp.
+- Change the format with `lists.done_date`, using [`os.date`](https://www.lua.org/manual/5.1/manual.html#pdf-os.date) codes (`%Y %m %d %H %M %S %F %R %T` …), or set it to `false` to turn stamps off:
+
+```lua
+opts = { lists = { done_date = "✅ %Y-%m-%d" } }   -- date only: the Obsidian Tasks format
+opts = { lists = { done_date = "(done %d/%m %R)" } }
+opts = { lists = { done_date = false } }
+```
+
+Unchecking removes stamps in the current format, and also the default and Obsidian ones (`✅ 2026-10-02 15:52`, `✅ 2026-10-02`), so changing the format later doesn't strand old stamps.
 
 ---
 
@@ -1227,6 +1247,7 @@ require("markwright").setup({
     auto_renumber = true,           -- keep ordered lists numbered
     checkbox_add = true,            -- checkbox key adds [ ] to plain items
     checkbox_key = "<CR>",          -- normal/visual key that toggles checkboxes; "" = none
+    done_date = "✅ %Y-%m-%d %H:%M", -- stamp appended when checking (os.date format); false = off
   },
 })
 ```
