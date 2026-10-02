@@ -57,6 +57,14 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 - [x] CI workflow and `Makefile` targets (`fmt`, `lint`, `check`) added to the repo (by hand: protected from remote writes)
 - [x] Pushed to GitHub with the `v0.1.0` tag
 
+### Release 2.0.0
+
+- [x] Keymap rework: inline keys are smart operators, block keys and inserts act at once, no doubled keys (§5, §6.2, §14.7)
+- [x] Full suite on Neovim 0.10.0 and 0.11; stylua and selene clean
+- [x] `CHANGELOG.md` (0.1.1 section added for the CSV fix tagged earlier)
+- [x] `v2.0.0` git tag
+- [ ] Pushed to GitHub with the `v2.0.0` tag
+
 ### Not implemented
 
 **Project / platform**
@@ -86,8 +94,8 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 - [ ] Link completion for paths and `#anchors` (§14.21)
 - [ ] Optional: 3-state checkboxes `[-]` (§14.22)
 
-**Version 2**
-- [ ] Rich-text paste (HTML → Markdown) (§14.10) — moved to version 2 (2026-09-30): too large for 0.x
+**Later (a future major version)**
+- [ ] Rich-text paste (HTML → Markdown) (§14.10) — set aside 2026-09-30 as too large; it was planned as "version 2", but 2.0.0 shipped the keymap rework instead
 
 ---
 
@@ -264,7 +272,7 @@ All buffer-local, Markdown only. `<P>` = configured prefix (default `<leader>m`)
 | n | `<P>A` | Remove callout (§14.11) |
 | o, x | `ik`/`ak`, `iu`, `ic`/`ac`, `ih`/`ah`, `i\|`/`a\|`, `iL`/`aL`, `i*`/`a*` | Text objects (§14.8; letters configurable under `textobjects`) |
 
-**Planned keys** (§14; all **[OPEN]** until implemented): `<P>v` rich paste (v2); `<M-j>`/`<M-k>` move list items/sections; `<P>*` cycle bullet; `<P>L`/`<P>N` lines ↔ bullet/numbered list; `<P>+`/`<P>_` promote/demote with children; `<P>ts` sort table; `<P>t<`/`<P>t>` move column; `<P>r` inline ↔ reference link.
+**Planned keys** (§14; all **[OPEN]** until implemented): `<P>v` rich paste (later); `<M-j>`/`<M-k>` move list items/sections; `<P>*` cycle bullet; `<P>L`/`<P>N` lines ↔ bullet/numbered list; `<P>+`/`<P>_` promote/demote with children; `<P>ts` sort table; `<P>t<`/`<P>t>` move column; `<P>r` inline ↔ reference link.
 
 Keys already taken under `<P>`: `i b s c h I B S C H l = - f n p T tt tc tr tR tk tK ta`.
 
@@ -585,7 +593,7 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 - `<P>o` / `:Markwright outline`: `vim.ui.select` over all headings, labelled `› ` (current section) + indentation + `#`×level + text; jumps with a jumplist entry and `zv`. Decided: `vim.ui.select` instead of picker-specific code — LazyVim routes it to snacks.picker; telescope/fzf-lua when registered; built-in list otherwise.
 - Config `nav = { enabled, next, prev, next_sibling, prev_sibling, parent, outline }`; `outline = nil` means `<prefix>o`; `false`/`""` disables a key.
 
-### 14.10 Rich-text paste (version 2)
+### 14.10 Rich-text paste (later)
 - `<P>v` **[OPEN]** / `:Markwright paste`: paste the clipboard's HTML (copied from a browser, Google Docs, Notion, Word…) converted to Markdown: headings, bold/italic, links, lists, tables, code.
 - Reading HTML: macOS via JXA `NSPasteboard.generalPasteboard.stringForType("public.html")`; Wayland `wl-paste -t text/html`; X11 `xclip -t text/html -o`; WSL `Get-Clipboard -TextFormatType Html`.
 - Conversion: `pandoc -f html -t gfm-raw_html --wrap=none`; post-process to the plugin's style (bullet `-`, `**`/`*` markers, strip empty links and tracking parameters optional).
