@@ -15,7 +15,7 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 - [x] **Skeleton** — `setup()`, config + validation, buffer-local attach, `:Markwright` with completion, `:checkhealth markwright` (§3, §4)
 - [x] **Inline formatting** (§6)
   - [x] italic, bold, strikethrough, inline code, highlight toggles
-  - [x] operator + motion (`<P>biw`, `<P>b$`), `_` = line (`<P>b_`, count = lines), no doubled keys, visual (char/line/block)
+  - [x] smart key: at once inside a span (removes it) or on whitespace (empty pair), else operator + motion (`<P>biw`, `<P>b$`, `_` = line, count = lines); no doubled keys; visual (char/line/block)
   - [x] remove whole span from anywhere inside; `_`/`__` recognized; nesting (`***`)
   - [x] per-line multi-line wrapping, prefix skipping, whitespace trimming
   - [x] backtick escalation for inline code; code guard
@@ -236,10 +236,9 @@ All buffer-local, Markdown only. `<P>` = configured prefix (default `<leader>m`)
 
 | Mode | Key | Action |
 |---|---|---|
-| n | `<P>i` / `<P>b` / `<P>s` / `<P>c` / `<P>h` + motion | Toggle italic / bold / strikethrough / inline code / highlight (operator: `<P>biw`, `<P>c$`) |
-| n | `<P>bb` / `<P>ss` / `<P>cc` / `<P>hh` |  |
+| n | `<P>i` / `<P>b` / `<P>s` / `<P>c` / `<P>h` | Toggle italic / bold / strikethrough / inline code / highlight: at once inside a span of that format (remove) or on whitespace (empty pair); on text, operator (`<P>biw`, `<P>c$`, `<P>b_`) |
 | x | `<P>i` / `<P>b` / `<P>s` / `<P>c` / `<P>h` | Toggle on the selection |
-| n | `<P>k` + motion | Link the range (`<P>kiw`, `<P>k$`), convert a bare URL (`<P>kak`), remove the link it starts in (`<P>kik`), prompt for URL + text on a blank range (`<P>k_`) |
+| n | `<P>k` | Link: at once on a link (remove), bare URL (titled link), whitespace (new link: URL prompt prefilled with a clipboard URL, then text); on text, operator (`<P>kiw`, `<P>k$`) |
 | x | `<P>k` | Link the selection, or remove the link it's in |
 | x | `p` | Smart paste (URL over selection → link) |
 | n | `p` / `P` | Smart paste (bare URL → titled link) |
@@ -285,8 +284,8 @@ Applies to: **italic, bold, strikethrough, inline code, highlight**.
 | Highlight | `==text==` | `==text==` | none in grammar → text scan fallback |
 
 ### 6.2 Targets
-- **Normal mode:** the key is an operator and waits for a motion or text object (`<P>biw`, `<P>b2e`, `<P>c$`, `<P>bip`). `_` is the current line (`<P>b_`, `[count]` lines with a count), like `d_`. No doubled keys on any operator: `<P>ii` would shadow `i{object}`, so for consistency none have one (decided 2026-09-30). The cursor stays on the same character. Dot-repeatable. (Changed 2026-09-30: the key used to act on the word at once, with uppercase `<P>B` etc. as operators.)
-- **Empty markers:** `:Markwright bold` (etc.) on whitespace or an empty line inserts an empty pair and enters insert mode between them; in insert mode, `;;b`.
+- **Normal mode (smart key, 2026-10-01):** act at once when there's nothing to choose, wait for a motion when there's text to choose. On whitespace / an empty line → insert empty markers and enter insert mode between them. Inside a span of that format (markers included), or in code → toggle the word under the cursor at once (removes the span / warns in code). Otherwise → operator: waits for a motion or text object (`<P>biw`, `<P>b2e`, `<P>c$`, `<P>bip`); `_` is the current line (`<P>b_`, `[count]` lines). No doubled keys (`<P>ii` would shadow `i{object}`). The cursor stays on the same character. Dot-repeatable. (History 2026-09-30: the key used to act on the word at once, with uppercase `<P>B` etc. as operators; then it was a pure operator for a day.)
+- **Empty markers:** the key (or `:Markwright bold`, etc.) on whitespace or an empty line inserts an empty pair and enters insert mode between them; in insert mode, `;;b`.
 - **Visual mode (charwise):** acts on the selection.
 - **Visual line / block:** treated as per-line (see 6.4).
 
@@ -328,7 +327,7 @@ If the target is inside `code_span`, `fenced_code_block` or `indented_code_block
 ## 7. Links (`links.lua`, `title.lua`)
 
 ### 7.1 Link key (`<P>k`)
-`<P>k` is an operator (`<P>kiw`, `<P>k$`, `<P>kak`); a blank range (`<P>k_` on an empty line, `<P>kiw` on whitespace) prompts for URL and text; visual acts on the selection; `:Markwright link` acts at the cursor (word, bare URL or link). (Changed 2026-09-30: `<P>k` used to act at the cursor directly.)
+`<P>k` is a smart key (2026-10-01): at once on a link (remove), an image or code (warning), a bare URL (titled link) or whitespace (new link: a URL prompt prefilled with the clipboard URL when it holds one, so it's visible before use and Enter accepts it; then a prompt for the text, empty = page title); on plain text it waits for a motion (`<P>kiw`, `<P>k$`). Visual acts on the selection. `:Markwright link` uses the word under the cursor instead of waiting.
 
 | Situation | Result |
 |---|---|
@@ -554,7 +553,7 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 - **Unused images**: `:Markwright images unused` scans Markdown files under the project root (git root, else cwd) for references into the image folders, lists files nothing links to in the quickfix list. Never deletes on its own; `:Markwright images unused!` asks for confirmation per file.
 
 ### 14.7 Pending decisions on built features
-- ~~**Operator keys**~~ — resolved 2026-09-30: `<P>i/b/s/c/h` are operators (`<P>biw`, `<P>c$`), `_` is the current line (`<P>b_`, count = lines), visual mode unchanged. No doubled keys anywhere (`<P>ii` would shadow text objects; the others were dropped for consistency). Rule: **inline keys are operators** (formatting, links); **block keys and inserts act at once** (code fence, callout, CSV → table, footnote, table, TOC, image). Callouts and fences were tried as operators and reverted the same day: their common case (wrap the paragraph, insert a fence) became longer. The uppercase variants are gone, freeing `<P>I`/`<P>B`/`<P>S`/`<P>C`/`<P>H`.
+- ~~**Operator keys**~~ — resolved 2026-09-30: `<P>i/b/s/c/h` are operators (`<P>biw`, `<P>c$`), `_` is the current line (`<P>b_`, count = lines), visual mode unchanged. No doubled keys anywhere (`<P>ii` would shadow text objects; the others were dropped for consistency). Rule: **inline keys are smart operators** (formatting, links: at once when there's nothing to choose, otherwise wait for a motion); **block keys and inserts act at once** (code fence, callout, CSV → table, footnote, table, TOC, image). Callouts and fences were tried as operators and reverted the same day: their common case (wrap the paragraph, insert a fence) became longer. The uppercase variants are gone, freeing `<P>I`/`<P>B`/`<P>S`/`<P>C`/`<P>H`.
 - **Partial-overlap selections** (selection covers part of a span): currently removes the whole span. Alternative: shrink the span to exclude the selection (`**hello world**`, select `world` → `**hello** world`). Decide, then test both edge directions.
 
 ### 14.8 Text objects — **implemented (2026-09-30)**

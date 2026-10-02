@@ -290,6 +290,40 @@ function M.expr_normal(fmt)
   return "g@iw"
 end
 
+--- Is (row, col) inside a `fmt` span? (0-based; `col` is a byte column)
+function M.in_span(buf, fmt, row, col)
+  local spec = M.formats[fmt]
+  if fmt == "highlight" then
+    for _, sp in ipairs(highlight_spans(get_line(buf, row))) do
+      if col >= sp[1] and col < sp[2] then
+        return true
+      end
+    end
+    return false
+  end
+  local p = ts.parse(buf, row, row)
+  return p ~= nil and find_span_node(p, row, col, col + 1, spec) ~= nil
+end
+
+--- The normal-mode key: act at once when there's nothing to choose, wait for a
+--- motion when there's text to choose.
+---  - whitespace / empty line: insert an empty pair (insert mode between them)
+---  - inside a `fmt` span (or in code): toggle it at once (removes the span)
+---  - on plain text: operator, waits for a motion (`<P>biw`, `<P>b$`)
+function M.expr_smart(fmt)
+  local buf = api.nvim_get_current_buf()
+  local row, col = unpack(api.nvim_win_get_cursor(0))
+  local ch = api.nvim_get_current_line():sub(col + 1, col + 1)
+  if ch == "" or ch:match("%s") then
+    return M.expr_normal(fmt)
+  end
+  local ctx = ts.code_context(ts.parse(buf, row - 1), row - 1, col)
+  if ctx == "block" or (ctx == "span" and fmt ~= "code") or M.in_span(buf, fmt, row - 1, col) then
+    return M.expr_normal(fmt)
+  end
+  return M.expr_operator(fmt)
+end
+
 --- Operator (normal, awaits a motion) and visual mode. In normal mode the
 --- cursor stays on the same character instead of jumping to the range start.
 function M.expr_operator(fmt)
