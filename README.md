@@ -950,7 +950,7 @@ Unchecking removes stamps in the current format, and also the default and Obsidi
 
 #### Progress counters
 
-Type `[/]` or `[%]` anywhere in a parent item, and markwright fills in how many of its sub-tasks are done:
+Type `[/]` or `[%]` (or both, e.g. `- Release [/] [%]` → `- Release [2/3] [66%]`) anywhere in a parent item, and markwright fills in how many of its sub-tasks are done:
 
 ```
 - Release [/]            - Release [2/3]            - Release [%]            - Release [66%]
