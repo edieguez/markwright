@@ -30,6 +30,7 @@ local function attach_autocmds(buf)
     buffer = buf,
     callback = function()
       require("markwright.toc").on_save(buf)
+      require("markwright.lists").update_progress(buf, { join = true })
     end,
   })
   local d = config.options.diagnostics

@@ -170,6 +170,120 @@ local cases = {
     setup = done_date("done:%d/%m/%Y"),
   },
   { "done_date = false: no stamp", { "- [ ] task" }, { 1, 0 }, "<CR>", { "- [x] task" }, setup = done_date(false) },
+  -- progress cookies (lists.progress)
+  {
+    "checking a child fills the parent's [/]",
+    { "- Release [/]", "  - [ ] docs", "  - [ ] tag" },
+    { 2, 0 },
+    "<CR>",
+    { "- Release [1/2]", "  - [x] docs" .. STAMP, "  - [ ] tag" },
+  },
+  {
+    "percentage cookie",
+    { "- Release [%]", "  - [x] a", "  - [ ] b", "  - [ ] c" },
+    { 3, 0 },
+    "<CR>",
+    { "- Release [66%]", "  - [x] a", "  - [x] b" .. STAMP, "  - [ ] c" },
+  },
+  {
+    "unchecking updates the count",
+    { "- R [2/2]", "  - [x] a", "  - [x] b" },
+    { 3, 0 },
+    "<CR>",
+    { "- R [1/2]", "  - [x] a", "  - [ ] b" },
+  },
+  {
+    "only direct children count; items without a checkbox are ignored",
+    { "- P [/]", "  - [x] a", "    - [ ] a.1", "  - note", "  - [ ] b" },
+    { 5, 0 },
+    "<CR>",
+    { "- P [2/2]", "  - [x] a", "    - [ ] a.1", "  - note", "  - [x] b" .. STAMP },
+  },
+  {
+    "counts roll up through children with their own cookie",
+    { "- Project [/]", "  - Phase 1 [/]", "    - [x] a", "    - [ ] b", "  - [x] Phase 2" },
+    { 4, 0 },
+    "<CR>",
+    { "- Project [2/2]", "  - Phase 1 [2/2]", "    - [x] a", "    - [x] b" .. STAMP, "  - [x] Phase 2" },
+  },
+  {
+    "a parent with a checkbox isn't checked automatically",
+    { "- [ ] Docs [/]", "  - [ ] readme" },
+    { 2, 0 },
+    "<CR>",
+    { "- [ ] Docs [1/1]", "  - [x] readme" .. STAMP },
+  },
+  {
+    "visual <CR> updates cookies once",
+    { "- T [%]", "  - [ ] a", "  - [ ] b" },
+    { 2, 0 },
+    "Vj<CR>",
+    { "- T [100%]", "  - [x] a" .. STAMP, "  - [x] b" .. STAMP },
+  },
+  {
+    "cookie in the middle of the text, numbered list",
+    { "1. Ship [/] this week", "   1. [x] build", "   2. [ ] test" },
+    { 3, 0 },
+    "<CR>",
+    { "1. Ship [2/2] this week", "   1. [x] build", "   2. [x] test" .. STAMP },
+  },
+  {
+    "a link isn't a cookie",
+    { "- see [1/2](url) [/]", "  - [ ] a" },
+    { 2, 0 },
+    "<CR>",
+    { "- see [1/2](url) [1/1]", "  - [x] a" .. STAMP },
+  },
+  {
+    "typing a cookie fills it on InsertLeave",
+    { "- Release", "  - [x] a", "  - [ ] b" },
+    { 1, 0 },
+    "A [/]<Esc>",
+    { "- Release [1/2]", "  - [x] a", "  - [ ] b" },
+  },
+  {
+    "deleting a child updates the count (one undo step)",
+    { "- R [1/2]", "  - [x] a", "  - [ ] b" },
+    { 3, 0 },
+    { "dd", "u" },
+    { "- R [1/2]", "  - [x] a", "  - [ ] b" },
+  },
+  {
+    "deleting a child updates the count",
+    { "- R [1/2]", "  - [x] a", "  - [ ] b" },
+    { 3, 0 },
+    "dd",
+    { "- R [1/1]", "  - [x] a" },
+  },
+  {
+    "cookies are left alone with progress = false",
+    { "- R [/]", "  - [ ] a" },
+    { 2, 0 },
+    "<CR>",
+    { "- R [/]", "  - [x] a" .. STAMP },
+    setup = function()
+      config.options.lists.progress = false
+    end,
+  },
+  {
+    "cookies are refreshed on save",
+    fn = function()
+      local path = vim.fn.tempname() .. ".md"
+      local buf = H.buf({ "- R [/]", "  - [x] a", "  - [x] b" }, { 1, 0 }, path)
+      vim.bo[buf].buftype = ""
+      vim.cmd("silent write")
+      eq(vim.fn.readfile(path), { "- R [2/2]", "  - [x] a", "  - [x] b" })
+      vim.fn.delete(path)
+    end,
+  },
+  {
+    "cookies in code blocks are left alone",
+    fn = function()
+      local buf = H.buf({ "```", "- R [/]", "  - [x] a", "```" })
+      lists.update_progress(buf)
+      eq(vim.api.nvim_buf_get_lines(buf, 0, -1, false), { "```", "- R [/]", "  - [x] a", "```" })
+    end,
+  },
   {
     "stamp pattern",
     fn = function()
@@ -215,5 +329,6 @@ local default_done = config.options.lists.done_date
 return H.run("lists + headings", cases, {
   before_each = function()
     config.options.lists.done_date = default_done
+    config.options.lists.progress = true
   end,
 })

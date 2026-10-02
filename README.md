@@ -948,6 +948,22 @@ opts = { lists = { done_date = false } }
 
 Unchecking removes stamps in the current format, and also the default and Obsidian ones (`✅ 2026-10-02 15:52`, `✅ 2026-10-02`), so changing the format later doesn't strand old stamps.
 
+#### Progress counters
+
+Type `[/]` or `[%]` anywhere in a parent item, and markwright fills in how many of its sub-tasks are done:
+
+```
+- Release [/]            - Release [2/3]            - Release [%]            - Release [66%]
+  - [x] docs       →       - [x] docs                 - [x] docs       →       - [x] docs
+  - [x] tag                - [x] tag                  - [x] tag                - [x] tag
+  - [ ] announce           - [ ] announce             - [ ] announce           - [ ] announce
+```
+
+- **What counts:** the item's direct sub-items that have a checkbox; checked ones are done. Plain sub-items (`- note`) are ignored, and deeper levels count toward their own parent.
+- **Counts roll up:** a sub-item without a checkbox but with its own cookie (`- Phase 1 [2/2]`) counts as one task, done when all of its tasks are. A parent with its own checkbox (`- [ ] Docs [1/1]`) is never checked automatically.
+- **When it updates:** right after you toggle a checkbox, when you leave insert mode (so a cookie you just typed fills in), after normal-mode edits such as `dd`, and on save. The update joins the same undo step as the change that caused it.
+- Items without a cookie are never changed, and `[1/2](url)` is a link, not a cookie. Set `lists.progress = false` to turn it off.
+
 ---
 
 ## Headings
@@ -1248,6 +1264,7 @@ require("markwright").setup({
     checkbox_add = true,            -- checkbox key adds [ ] to plain items
     checkbox_key = "<CR>",          -- normal/visual key that toggles checkboxes; "" = none
     done_date = "✅ %Y-%m-%d %H:%M", -- stamp appended when checking (os.date format); false = off
+    progress = true,                -- fill [/] and [%] cookies on parent items
   },
 })
 ```
