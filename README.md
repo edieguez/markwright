@@ -286,55 +286,55 @@ And images (take a screenshot with ⌘⇧⌃4 first):
 
 Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes` in [Configuration](#configuration)). The prefix defaults to `<leader>m`. With LazyVim's default leader that is `Space m`.
 
-| Keys                                                               | Mode                             | Action                                                                              |
-| ------------------------------------------------------------------ | -------------------------------- | ----------------------------------------------------------------------------------- |
-| `<leader>mi`                                                       | normal                           | Toggle **italic** (on plain text, + motion: `<leader>miiw`)                         |
-| `<leader>mb`                                                       | normal                           | Toggle **bold** (`<leader>mbiw`, `<leader>mb_`)                                     |
-| `<leader>ms`                                                       | normal                           | Toggle **strikethrough**                                                            |
-| `<leader>mc`                                                       | normal                           | Toggle **inline code**                                                              |
-| `<leader>mh`                                                       | normal                           | Toggle **highlight**                                                                |
-| `<leader>mi` `mb` `ms` `mc` `mh`                                   | visual                           | Toggle the format on the selection                                                  |
-| `;;` then `i` `b` `s` `c` `h` `k`                                  | insert                           | **Formatting while typing**: open a pair, or jump out of it (see below)             |
-| `<leader>mk`                                                       | normal                           | **Link**: create, convert a bare URL, or remove (`<leader>mkiw` on text)            |
-| `<leader>mk`                                                       | visual                           | **Link** the selection, or remove the link it's in                                  |
-| `]]` / `[[` · `][` / `[]` · `[u`                                   | normal, visual, operator-pending | Next / previous heading · same-level heading · parent heading                       |
-| `<leader>mo`                                                       | normal                           | **Outline**: pick a heading to jump to                                              |
-| `<leader>ma`                                                       | normal                           | **Callout**: wrap the paragraph, or change the type of the one under the cursor     |
-| `<leader>ma`                                                       | visual                           | **Callout**: wrap the selected lines                                                |
-| `<leader>mA`                                                       | normal                           | Remove the callout                                                                  |
-| `ik` `ak` `iu` `ic` `ac` `ih` `ah` `i\|` `a\|` `iL` `aL` `i*` `a*` | operator-pending, visual         | **Text objects** (see below)                                                        |
-| `p`                                                                | visual                           | Paste; a URL over the selection makes `[selection](url)`                            |
-| `p` / `P`                                                          | normal                           | Paste; a bare URL becomes `[Page Title](url)`                                       |
-| `gx`                                                               | normal                           | **Follow** link, anchor, file, image or footnote                                    |
-| `<leader>mf`                                                       | normal                           | Insert a **code fence**                                                             |
-| `<leader>mf`                                                       | visual                           | Wrap the selected lines in a code fence                                             |
-| `<leader>mn`                                                       | normal                           | Insert a **footnote**                                                               |
-| `<leader>mtt`                                                      | normal                           | Create a **table**                                                                  |
-| `<leader>mtc`                                                      | normal, visual                   | Convert CSV/TSV lines to a table (the paragraph under the cursor, or the selection) |
-| `<leader>mtx`                                                      | normal                           | Convert the table under the cursor to CSV (asks for the separator)                  |
-| `<leader>mth` / `<leader>mtl`                                      | normal                           | Add a column left / right                                                           |
-| `<leader>mtj` / `<leader>mtk`                                      | normal                           | Add a row below / above                                                             |
-| `<leader>mtdr` / `<leader>mtdc`                                    | normal                           | Delete the row / column                                                             |
-| `<leader>mtH` / `<leader>mtL`                                      | normal                           | Move the column left / right                                                        |
-| `<leader>mtJ` / `<leader>mtK`                                      | normal                           | Move the row down / up                                                              |
-| `<leader>mts` / `<leader>mtS`                                      | normal                           | Sort by the column under the cursor, ascending / descending                         |
-| `<leader>mtT`                                                      | normal                           | Transpose (rows ↔ columns)                                                          |
-| `<leader>mty`                                                      | normal                           | Copy the table as CSV to the clipboard                                              |
-| `<leader>mta`                                                      | normal                           | Align the table now                                                                 |
-| `<Tab>` / `<S-Tab>`                                                | insert                           | Next / previous table cell; nest / un-nest a list item (native `<Tab>` elsewhere)   |
-| `<leader>mT`                                                       | normal                           | Insert or update the **table of contents**                                          |
-| `<CR>`                                                             | normal                           | **Toggle checkbox** on a list item (native `<CR>` elsewhere)                        |
-| `<CR>`                                                             | visual                           | Check all list items in the selection (or uncheck if all are checked)               |
-| `<CR>`                                                             | insert                           | **Continue the list** (native `<CR>` elsewhere)                                     |
-| `o` / `O`                                                          | normal                           | Open a line below / above; continues lists and blockquotes                          |
-| `<leader>mlj` / `<leader>mlk`                                      | normal                           | **Move** the list item down / up, with its children                                 |
-| `<leader>mls` / `<leader>mlS` / `<leader>mld`                      | normal                           | **Sort** the list A→Z / Z→A / done items last                                       |
-| `<leader>mlb` / `<leader>mln` / `<leader>mlc`                      | normal, visual                   | Lines ↔ bullets / numbers / checkboxes                                              |
-| `<leader>m=`                                                       | normal, visual                   | **Heading**: add a `#` (count works: `2<leader>m=`)                                 |
-| `<leader>m-`                                                       | normal, visual                   | **Heading**: remove a `#`                                                           |
-| `<leader>mp`                                                       | normal                           | **Paste image** from the clipboard (macOS)                                          |
-| `<leader>mp`                                                       | visual                           | Paste image; the selection becomes the alt text                                     |
-| `<leader>mr`                                                       | normal                           | **Rename** the image file under the cursor (on disk) and update its links           |
+| Keys                                                               | Mode                             | Action                                                                                                      |
+| ------------------------------------------------------------------ | -------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `<leader>mi`                                                       | normal                           | Toggle **italic** (on plain text, + motion: `<leader>miiw`)                                                 |
+| `<leader>mb`                                                       | normal                           | Toggle **bold** (`<leader>mbiw`, `<leader>mb_`)                                                             |
+| `<leader>ms`                                                       | normal                           | Toggle **strikethrough**                                                                                    |
+| `<leader>mc`                                                       | normal                           | Toggle **inline code**                                                                                      |
+| `<leader>mh`                                                       | normal                           | Toggle **highlight**                                                                                        |
+| `<leader>mi` `mb` `ms` `mc` `mh`                                   | visual                           | Toggle the format on the selection                                                                          |
+| `;;` then `i` `b` `s` `c` `h` `k`                                  | insert                           | **Formatting while typing**: open a pair, or jump out of it (see below)                                     |
+| `<leader>mk`                                                       | normal                           | **Link**: create, convert a bare URL, or remove (`<leader>mkiw` on text)                                    |
+| `<leader>mk`                                                       | visual                           | **Link** the selection, or remove the link it's in                                                          |
+| `]]` / `[[` · `][` / `[]` · `[u`                                   | normal, visual, operator-pending | Next / previous heading · same-level heading · parent heading                                               |
+| `<leader>mo`                                                       | normal                           | **Outline**: pick a heading to jump to                                                                      |
+| `<leader>ma`                                                       | normal                           | **Callout**: wrap the paragraph, or change the type of the one under the cursor                             |
+| `<leader>ma`                                                       | visual                           | **Callout**: wrap the selected lines                                                                        |
+| `<leader>mA`                                                       | normal                           | Remove the callout                                                                                          |
+| `ik` `ak` `iu` `ic` `ac` `ih` `ah` `i\|` `a\|` `iL` `aL` `i*` `a*` | operator-pending, visual         | **Text objects** (see below)                                                                                |
+| `p`                                                                | visual                           | Paste; a URL over the selection makes `[selection](url)`                                                    |
+| `p` / `P`                                                          | normal                           | Paste; a bare URL becomes `[Page Title](url)`                                                               |
+| `gx`                                                               | normal                           | **Follow** link, anchor, file, image or footnote                                                            |
+| `<leader>mf`                                                       | normal                           | Insert a **code fence**                                                                                     |
+| `<leader>mf`                                                       | visual                           | Wrap the selected lines in a code fence                                                                     |
+| `<leader>mn`                                                       | normal                           | Insert a **footnote**                                                                                       |
+| `<leader>mtt`                                                      | normal                           | Create a **table**                                                                                          |
+| `<leader>mtc`                                                      | normal, visual                   | Convert CSV/TSV lines to a table (the paragraph under the cursor, or the selection)                         |
+| `<leader>mtx`                                                      | normal                           | Convert the table under the cursor to CSV (asks for the separator)                                          |
+| `<leader>mth` / `<leader>mtl`                                      | normal                           | Add a column left / right                                                                                   |
+| `<leader>mtj` / `<leader>mtk`                                      | normal                           | Add a row below / above                                                                                     |
+| `<leader>mtdr` / `<leader>mtdc`                                    | normal                           | Delete the row / column                                                                                     |
+| `<leader>mtH` / `<leader>mtL`                                      | normal                           | Move the column left / right                                                                                |
+| `<leader>mtJ` / `<leader>mtK`                                      | normal                           | Move the row down / up                                                                                      |
+| `<leader>mts` / `<leader>mtS`                                      | normal                           | Sort by the column under the cursor, ascending / descending                                                 |
+| `<leader>mtT`                                                      | normal                           | Transpose (rows ↔ columns)                                                                                  |
+| `<leader>mty`                                                      | normal                           | Copy the table as CSV to the clipboard                                                                      |
+| `<leader>mta`                                                      | normal                           | Align the table now                                                                                         |
+| `<Tab>` / `<S-Tab>`                                                | insert                           | Next / previous table cell; nest / un-nest a list item (native `<Tab>` elsewhere)                           |
+| `<leader>mT`                                                       | normal                           | Insert or update the **table of contents**                                                                  |
+| `<CR>`                                                             | normal                           | **Toggle checkbox** on a list item (native `<CR>` elsewhere)                                                |
+| `<CR>`                                                             | visual                           | Check all list items in the selection (or uncheck if all are checked)                                       |
+| `<CR>`                                                             | insert                           | **Continue the list** (native `<CR>` elsewhere)                                                             |
+| `o` / `O`                                                          | normal                           | Open a line below / above; continues lists and blockquotes                                                  |
+| `<leader>mlj` / `<leader>mlk`                                      | normal                           | **Move** the list item down / up, with its children                                                         |
+| `<leader>mls` / `<leader>mlS` / `<leader>mld`                      | normal                           | **Sort** the list A→Z / Z→A / done items last                                                               |
+| `<leader>mlb` / `<leader>mln` / `<leader>mlc`                      | normal, visual                   | Convert to bullets / numbers / checkboxes: the cursor's level (uppercase `B` `N` `C`: that level and below) |
+| `<leader>m=`                                                       | normal, visual                   | **Heading**: add a `#` (count works: `2<leader>m=`)                                                         |
+| `<leader>m-`                                                       | normal, visual                   | **Heading**: remove a `#`                                                                                   |
+| `<leader>mp`                                                       | normal                           | **Paste image** from the clipboard (macOS)                                                                  |
+| `<leader>mp`                                                       | visual                           | Paste image; the selection becomes the alt text                                                             |
+| `<leader>mr`                                                       | normal                           | **Rename** the image file under the cursor (on disk) and update its links                                   |
 
 **Operator examples** (on plain text, the key waits for one of these):
 
@@ -989,16 +989,35 @@ Type `[/]` or `[%]` (or both, e.g. `- Release [/] [%]` → `- Release [2/3] [66%
 - **Numbered lists** are renumbered after moving or sorting, from the list's first number.
 - **Sorting** compares the item text without case, ignoring checkboxes and emphasis markers. Blank lines between items stay where they are.
 
-**Converters** (`b`, `n`, `c`) work on the paragraph or list under the cursor, or on the selection in visual mode:
+**Converters** turn lines into bullets (`b`), numbers (`n`) or checkboxes (`c`):
+
+| Keys                                          | Converts                                                                                                                               |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `<leader>mlb` / `<leader>mln` / `<leader>mlc` | **The cursor's level**: its item and that item's siblings. Parents and sub-lists stay as they are. On plain lines: the paragraph       |
+| `<leader>mlB` / `<leader>mlN` / `<leader>mlC` | **The cursor's level and every sub-list below it**, at any depth. Parents stay as they are; on a top-level item this is the whole list |
+| visual `<leader>mlb` (or `B`, …)              | Exactly the selected lines                                                                                                             |
 
 ```
 Buy milk        <leader>mlc    - [ ] Buy milk     <leader>mln    1. Buy milk
 Call mom            →          - [ ] Call mom         →          2. Call mom
 ```
 
-- Plain lines get the style; items of another style switch to it. When **every** line already has the style, it comes off and you're back to plain lines, so the same key toggles.
+```
+- Groceries            <leader>mln on "Groceries"     1. Groceries
+  - [x] milk                     →                       - [x] milk        (the checklist is
+  - [ ] eggs                                             - [ ] eggs         left alone)
+- Chores                                              2. Chores
+```
+
+- Plain lines get the style; items of another style switch to it. When **every** item being converted already has the style, it comes off and you're back to plain lines, so the same key toggles.
+- **Checklists are protected:** whenever a conversion would remove checkboxes (`- [ ] …` → `- …`, `1. …` or plain text), checked or not, markwright asks first: "3 checklist items (2 done) would lose their checkbox. Convert them?"
+  - **Yes** converts the checklists too.
+  - **No** converts the rest and leaves the checklists exactly as they are (re-indented only if needed to stay nested). It's offered only when there is something else to convert, so with the lowercase keys (a single level) the choice is Yes or Cancel.
+  - **Cancel** (or `<Esc>`) changes nothing.
+
+  A list level is converted all or nothing, so a list never ends up mixing checkboxes with bullets or numbers. Turning lines *into* checkboxes never asks.
 - Existing markers are kept: a `*` list stays `*` when it becomes a checklist, and a numbered list stays numbered (`1. [ ] item`). New markers use `lists.bullet` (`-`, `*` or `+`) and `lists.number_delim` (`.` or `)`), so every Markdown list style is available.
-- Indented lines become sub-items, re-indented under their parent's new marker; numbers restart for each level. Converting a checklist to bullets or numbers drops the boxes.
+- Sub-items and continuation lines are re-indented when their parent's marker changes width, so they stay inside it. With the uppercase keys and in visual mode, the sub-lists are converted too (numbers restart for each level), and indented plain lines become sub-items.
 - Headings, code fences and blank lines are skipped, and a `>` prefix is kept.
 
 Each action is one undo step, and progress counters follow.
@@ -1009,7 +1028,7 @@ Each action is one undo step, and progress counters follow.
 opts = { lists = { move_keys = { down = "<M-j>", up = "<M-k>" } } }
 ```
 
-From the command line: `:Markwright list up|down|sort [desc|done]`, and `:[range]Markwright list bullet|number|checkbox`.
+From the command line: `:Markwright list up|down|sort [desc|done]`, and `:[range]Markwright list bullet|number|checkbox [all]`.
 
 ---
 

@@ -163,18 +163,20 @@ function M.attach(buf)
   map("n", P .. "ld", function()
     lt.sort("done")
   end, "Sort list: done items last")
-  -- converters: plain lines ↔ bullets / numbers / checkboxes
+  -- converters: lines ↔ bullets / numbers / checkboxes. Lowercase: the cursor's
+  -- level of the list (or the paragraph); uppercase: that level and every
+  -- sub-list below it.
   for key, style in pairs({ b = "bullet", n = "number", c = "checkbox" }) do
     local what = ({ bullet = "bullets", number = "numbers", checkbox = "checkboxes" })[style]
     map("n", P .. "l" .. key, function()
-      lt.convert_paragraph(style)
-    end, "Lines ↔ " .. what)
-    map(
-      "x",
-      P .. "l" .. key,
-      ("<Esc><Cmd>lua require('markwright.listtools').convert_visual(%q)<CR>"):format(style),
-      "Lines ↔ " .. what
-    )
+      lt.convert(style)
+    end, "Convert to " .. what .. " (this level)")
+    map("n", P .. "l" .. key:upper(), function()
+      lt.convert(style, true)
+    end, "Convert to " .. what .. " (this level and below)")
+    local vis = ("<Esc><Cmd>lua require('markwright.listtools').convert_visual(%q)<CR>"):format(style)
+    map("x", P .. "l" .. key, vis, "Convert selection to " .. what)
+    map("x", P .. "l" .. key:upper(), vis, "Convert selection to " .. what)
   end
   local mk = config.options.lists.move_keys
   if type(mk) == "table" then

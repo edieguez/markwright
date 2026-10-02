@@ -67,7 +67,7 @@ for _, style in ipairs({ "bullet", "number", "checkbox" }) do
     if args.range > 0 then
       lt.convert_lines(style, args.line1 - 1, args.line2 - 1)
     else
-      lt.convert_paragraph(style)
+      lt.convert(style, args.fargs[3] == "all")
     end
   end
 end
@@ -130,7 +130,10 @@ local subcommands = {
   list = function(args)
     local fn = list_sub[args.fargs[2] or ""]
     if not fn then
-      vim.notify("markwright: :Markwright list {up|down|sort [desc|done]|bullet|number|checkbox}", vim.log.levels.ERROR)
+      vim.notify(
+        "markwright: :Markwright list {up|down|sort [desc|done]|bullet|number|checkbox [all]}",
+        vim.log.levels.ERROR
+      )
       return
     end
     fn(args)
@@ -181,6 +184,11 @@ end, {
       return vim.tbl_filter(function(n)
         return n:find(lead, 1, true) == 1
       end, { "desc", "done" })
+    end
+    if #words == 3 and words[1] == "list" and vim.tbl_contains({ "bullet", "number", "checkbox" }, words[2]) then
+      return vim.tbl_filter(function(n)
+        return n:find(lead, 1, true) == 1
+      end, { "all" })
     end
     if #words == 3 and words[1] == "table" and words[2] == "sort" then
       return vim.tbl_filter(function(n)
