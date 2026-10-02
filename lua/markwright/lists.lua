@@ -533,8 +533,10 @@ end
 -- `[/]`, `[2/5]`, `[%]`, `[40%]` (not followed by "(": that's a link)
 local COOKIES = { "()%[(%d*)/(%d*)%]()", "()%[(%d*)%%%]()" }
 
-local function find_cookie(line, from)
-  local best
+--- Every cookie on `line` from byte `from`, left to right: { s, e, pct }
+--- (`e` is the byte after the closing bracket).
+local function find_cookies(line, from)
+  local found = {}
   for k, pat in ipairs(COOKIES) do
     local init = from
     while true do
@@ -544,15 +546,15 @@ local function find_cookie(line, from)
       end
       local s, e = caps[1], caps[#caps]
       if line:sub(e, e) ~= "(" then
-        if not best or s < best.s then
-          best = { s = s, e = e, pct = k == 2 }
-        end
-        break
+        table.insert(found, { s = s, e = e, pct = k == 2 })
       end
       init = e
     end
   end
-  return best
+  table.sort(found, function(a, b)
+    return a.s < b.s
+  end)
+  return found
 end
 
 local function has_cookies(buf)
@@ -601,8 +603,8 @@ function M.update_progress(buf, o)
     if not item then
       return nil
     end
-    local cookie = find_cookie(line, item.text_col + 1)
-    if cookie then
+    local cookies = find_cookies(line, item.text_col + 1)
+    for _, cookie in ipairs(cookies) do
       local text
       if cookie.pct then
         text = ("[%d%%]"):format(total == 0 and 0 or math.floor(done * 100 / total))
@@ -615,7 +617,7 @@ function M.update_progress(buf, o)
     end
     if item.check then
       return item.check ~= " "
-    elseif cookie then
+    elseif #cookies > 0 then
       return total > 0 and done == total
     end
     return nil

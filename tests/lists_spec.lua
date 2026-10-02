@@ -228,6 +228,20 @@ local cases = {
     { "1. Ship [2/2] this week", "   1. [x] build", "   2. [x] test" .. STAMP },
   },
   {
+    "both cookies on one item",
+    { "- Release [/] [%]", "  - [x] a", "  - [ ] b" },
+    { 3, 0 },
+    "<CR>",
+    { "- Release [2/2] [100%]", "  - [x] a", "  - [x] b" .. STAMP },
+  },
+  {
+    "both cookies, any order, with text between",
+    { "- [%] done of [/] tasks", "  - [x] a", "  - [ ] b", "  - [ ] c" },
+    { 3, 0 },
+    "<CR>",
+    { "- [66%] done of [2/3] tasks", "  - [x] a", "  - [x] b" .. STAMP, "  - [ ] c" },
+  },
+  {
     "a link isn't a cookie",
     { "- see [1/2](url) [/]", "  - [ ] a" },
     { 2, 0 },

@@ -618,7 +618,7 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 - Lines ↔ list: `<P>L` **[OPEN]** toggles plain lines ↔ bullet list, `<P>N` **[OPEN]** plain lines ↔ numbered list (visual or current paragraph).
 
 ### 14.13 Checkbox progress (priority 2) — **implemented (2026-10-02)**
-- A list item whose first line contains a cookie `[/]`, `[n/m]`, `[%]` or `[n%]` (after its own checkbox; a cookie followed by `(` is a link) shows its direct children's progress: `- Release [2/5]` / `- Release [40%]` (percent rounded down; no children → `[0/0]` / `[0%]`).
+- A list item whose first line contains a cookie `[/]`, `[n/m]`, `[%]` or `[n%]` (after its own checkbox; a cookie followed by `(` is a link; every cookie on the line is filled, so `[/] [%]` shows both) shows its direct children's progress: `- Release [2/5]` / `- Release [40%]` (percent rounded down; no children → `[0/0]` / `[0%]`).
 - Counted children: direct sub-items with a checkbox (done when checked). A sub-item without a checkbox but with a cookie counts as one task, done when complete, so counts roll up (post-order over the tree-sitter `list_item` tree). Items without a cookie are never changed; a parent's own checkbox isn't auto-checked.
 - Updated after the plugin toggles a checkbox (same undo step), on InsertLeave and normal-mode TextChanged (joined, not after undo/redo), and on save. Cheap pre-check: nothing is parsed unless some line contains a cookie. Lists in code blocks aren't list items, so they're left alone.
 - Config `lists.progress = true` (default).
