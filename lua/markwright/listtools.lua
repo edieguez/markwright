@@ -180,8 +180,8 @@ local function sort_key(block)
 end
 
 --- Sort the items of the list under the cursor (children move with their
---- parent). `mode` = "alpha": A→Z, or Z→A when already sorted; "checked":
---- unchecked items first, done ones last, otherwise keeping their order.
+--- parent). `mode` = "asc": A→Z, "desc": Z→A, "done": unchecked items first,
+--- done ones last, otherwise keeping their order.
 function M.sort(mode)
   local buf = api.nvim_get_current_buf()
   local row, col = unpack(api.nvim_win_get_cursor(0))
@@ -212,32 +212,22 @@ function M.sort(mode)
     end, o)
   end
   local order
-  if mode == "checked" then
+  if mode == "done" then
     order = sorted(function(a, b)
       if a.done ~= b.done then
         return b.done
       end
     end)
   else
+    local desc = mode == "desc"
     order = sorted(function(a, b)
       if a.txt ~= b.txt then
+        if desc then
+          return a.txt > b.txt
+        end
         return a.txt < b.txt
       end
     end)
-    local already = true
-    for k, v in ipairs(order) do
-      if v ~= k then
-        already = false
-        break
-      end
-    end
-    if already then
-      order = sorted(function(a, b)
-        if a.txt ~= b.txt then
-          return a.txt > b.txt
-        end
-      end)
-    end
   end
   local same = true
   for k, v in ipairs(order) do

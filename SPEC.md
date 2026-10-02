@@ -44,7 +44,7 @@ Status: **1.0.0 released** — updated 2026-10-02. Sections 1–13 describe what
 - [x] **TOC** — markers, nested entries, refresh on save (§9.6)
 - [x] **Link diagnostics** — files, anchors, references, footnotes; on open/save; `:Markwright check` (§10)
 - [x] **Image paste, macOS** — screenshots, Finder files, paths, URLs; `assets/`; alt text (§13.1)
-- [x] **Tests** — 634 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
+- [x] **Tests** — 637 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
 - [x] **Verified on macOS + LazyVim** (2026-09-30): clipboard links, live titles, `gx`, image paste (screenshot / Finder / browser), `<CR>` with blink.cmp + mini.pairs, `<Tab>` in snippets/lists/tables, `;;` hint with noice, no duplicate diagnostics
 
 ### Release 1.0.0
@@ -255,7 +255,7 @@ All buffer-local, Markdown only. `<P>` = configured prefix (default `<leader>m`)
 | n | `<P>tj` / `<P>tk` | Add row below / above (not above the header) |
 | n | `<P>tdr` / `<P>tdc` | Delete row / column |
 | n | `<P>tH` / `<P>tL` · `<P>tJ` / `<P>tK` | Move column left / right · row down / up (`[count]`) |
-| n | `<P>ts` · `<P>tT` · `<P>ty` | Sort by column (again: descending) · transpose · copy as CSV (§14.15) |
+| n | `<P>ts` / `<P>tS` · `<P>tT` · `<P>ty` | Sort by column ascending / descending · transpose · copy as CSV (§14.15) |
 | n | `<P>ta` | Align table now |
 | n | `<P>T` | Insert/update TOC |
 | n, x | `<P>p` | Paste image (visual: selection = alt text) |
@@ -614,7 +614,7 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 ### 14.12 List tools (priority 2) — **implemented (2026-10-02)**
 Keys chosen 2026-10-02: a `<P>l` submenu (which-key group "list"), like `<P>t` for tables. New module `listtools.lua`, built on the tree-sitter `list_item` tree.
 - `<P>lj` / `<P>lk` (`:Markwright list down|up`): move the item under the cursor, with its children, past `[count]` siblings; clamped at the first/last sibling (a child never leaves its parent). Item blocks exclude trailing blank lines; the blank gaps between items stay in place. Ordered lists are renumbered from the list's original first number (re-indenting children when a number's width changes). Cursor follows. Opt-in `lists.move_keys = { down = "<M-j>", up = "<M-k>" }`: on list items they move the item, elsewhere they run the previously defined mapping (LazyVim's move-line).
-- `<P>ls` (`:Markwright list sort`): sort the siblings A→Z (case-insensitive, checkbox and emphasis markers ignored); if already A→Z → Z→A. `<P>ld` (`:Markwright list sort done`): stable partition, done (`[x]`/`[X]`) items last. Children move with their parent; renumbered.
+- `<P>ls` / `<P>lS` (`:Markwright list sort [desc]`): sort the siblings A→Z / Z→A (case-insensitive, checkbox and emphasis markers ignored; decided 2026-10-02: `s`/`S`, replacing the "again → Z→A" toggle). `<P>ld` (`:Markwright list sort done`): stable partition, done (`[x]`/`[X]`) items last. Children move with their parent; renumbered.
 - Converters `<P>lb` / `<P>ln` / `<P>lc` (normal: the paragraph or list under the cursor; visual: the selection; `:[range]Markwright list bullet|number|checkbox`): lines → bullets / numbers / checkboxes. Plain lines get the style, items of another style switch; if every line already has the style it is removed (plain lines), so each key toggles. Existing bullet characters and number delimiters are kept (a `*` list becomes `* [ ]`, a numbered list stays numbered as `1. [ ]`); new markers come from `lists.bullet` (`-` `*` `+`, default `-`) and `lists.number_delim` (`.` `)`, default `.`). Indented lines nest under the closest less-indented line, re-indented to its new content column; numbering restarts per level. Checkboxes are dropped when converting to bullets or numbers. Blank lines, headings, fences and code blocks are skipped; `>` prefixes kept. (Decided 2026-10-02: replaces the first version's bullet-style cycling `<P>lb` and the `<P>ll`/`<P>ln` toggles.)
 - Each action is one undo step; progress cookies are refreshed.
 
@@ -633,7 +633,7 @@ Keys chosen 2026-10-02: a `<P>l` submenu (which-key group "list"), like `<P>t` f
 Keys chosen 2026-10-02, matching the `h`/`j`/`k`/`l` add keys:
 - `<P>tH` / `<P>tL`: move the current column left / right, `[count]` steps (alignment markers move with it; the cursor follows; clamped at the edges).
 - `<P>tJ` / `<P>tK`: move the current body row down / up, `[count]` steps (header and delimiter stay; clamped).
-- `<P>ts` (`:Markwright table sort`): sort body rows by the column under the cursor (cursor anywhere in the column, header included). Ascending; if already ascending → descending (stateless). Numeric when every non-empty cell is a number after removing emphasis markers, a leading `$ € £ ¥`, a trailing `%` and thousands commas; else case-insensitive text (ISO dates sort as text). Empty cells last in both directions; stable.
+- `<P>ts` / `<P>tS` (`:Markwright table sort [desc]`): sort body rows by the column under the cursor (cursor anywhere in the column, header included), ascending / descending (decided 2026-10-02: `s`/`S` like list sorting, replacing the first version's "again → descending" toggle). Numeric when every non-empty cell is a number after removing emphasis markers, a leading `$ € £ ¥`, a trailing `%` and thousands commas; else case-insensitive text (ISO dates sort as text). Empty cells last in both directions; stable.
 - `<P>tT` (`:Markwright table transpose`): rows ↔ columns over header + body; the first column becomes the header; alignments reset to none; the cursor follows its cell.
 - `<P>ty` (`:Markwright table yank`): copy the table as CSV (same separator prompt and quoting as `<P>tx`) to the `"` register, and to `+` when a clipboard provider exists; the table is untouched.
 - Each edit is one undo step.
