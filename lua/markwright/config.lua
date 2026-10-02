@@ -42,6 +42,8 @@ M.defaults = {
     -- checking an item appends this (os.date format), unchecking removes it;
     -- false = off. "✅ %Y-%m-%d" is the Obsidian Tasks format.
     done_date = "✅ %Y-%m-%d %H:%M",
+    -- fill progress cookies `[/]` / `[%]` on parent items: `- Release [2/5]`
+    progress = true,
   },
   nav = {
     -- heading motions (normal, visual and operator-pending); false or "" disables one

@@ -44,7 +44,7 @@ Status: **1.0.0 released** — updated 2026-10-02. Sections 1–13 describe what
 - [x] **TOC** — markers, nested entries, refresh on save (§9.6)
 - [x] **Link diagnostics** — files, anchors, references, footnotes; on open/save; `:Markwright check` (§10)
 - [x] **Image paste, macOS** — screenshots, Finder files, paths, URLs; `assets/`; alt text (§13.1)
-- [x] **Tests** — 573 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
+- [x] **Tests** — 588 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
 - [x] **Verified on macOS + LazyVim** (2026-09-30): clipboard links, live titles, `gx`, image paste (screenshot / Finder / browser), `<CR>` with blink.cmp + mini.pairs, `<Tab>` in snippets/lists/tables, `;;` hint with noice, no duplicate diagnostics
 
 ### Release 1.0.0
@@ -72,7 +72,7 @@ Status: **1.0.0 released** — updated 2026-10-02. Sections 1–13 describe what
 
 **New features — priority 2**
 - [ ] List tools: move items with children, sort, cycle bullets, lines ↔ list (§14.12)
-- [ ] Checkbox progress counters `[2/5]` / `[40%]` (§14.13)
+- [x] Checkbox progress counters `[2/5]` / `[40%]` (§14.13)
 - [x] Completion dates on checked tasks, with time: `lists.done_date` (§14.14)
 - [x] Table extras: move columns/rows (`<P>tH/tL/tJ/tK`), sort (`<P>ts`), transpose (`<P>tT`), copy as CSV (`<P>ty`) (§14.15)
 - [ ] Section operations: move heading sections, promote/demote with children (§14.16)
@@ -617,10 +617,11 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 - Cycle bullet style for the list under the cursor: `<P>*` **[OPEN]** `-` → `*` → `+` → `1.` → `-`.
 - Lines ↔ list: `<P>L` **[OPEN]** toggles plain lines ↔ bullet list, `<P>N` **[OPEN]** plain lines ↔ numbered list (visual or current paragraph).
 
-### 14.13 Checkbox progress (priority 2)
-- A parent item containing a cookie `[/]` or `[%]` (typed by the user, org-mode style) shows its children's progress: `- Release [2/5]` / `- Release [40%]`.
-- Updated whenever a child checkbox is toggled by the plugin, and on save; nested counts roll up. Items without a cookie are never changed.
-- Config `lists.progress = true`.
+### 14.13 Checkbox progress (priority 2) — **implemented (2026-10-02)**
+- A list item whose first line contains a cookie `[/]`, `[n/m]`, `[%]` or `[n%]` (after its own checkbox; a cookie followed by `(` is a link) shows its direct children's progress: `- Release [2/5]` / `- Release [40%]` (percent rounded down; no children → `[0/0]` / `[0%]`).
+- Counted children: direct sub-items with a checkbox (done when checked). A sub-item without a checkbox but with a cookie counts as one task, done when complete, so counts roll up (post-order over the tree-sitter `list_item` tree). Items without a cookie are never changed; a parent's own checkbox isn't auto-checked.
+- Updated after the plugin toggles a checkbox (same undo step), on InsertLeave and normal-mode TextChanged (joined, not after undo/redo), and on save. Cheap pre-check: nothing is parsed unless some line contains a cookie. Lists in code blocks aren't list items, so they're left alone.
+- Config `lists.progress = true` (default).
 
 ### 14.14 Completion dates (priority 2) — **implemented (2026-10-02)**
 - `lists.done_date = "✅ %Y-%m-%d %H:%M"` by default (decided 2026-10-02: on, with the time); `false` turns it off; any `os.date` format (local time). `"✅ %Y-%m-%d"` is the Obsidian Tasks format.

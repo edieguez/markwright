@@ -528,12 +528,129 @@ local function set_checkbox(buf, row, state)
   return true
 end
 
+-- Progress cookies --------------------------------------------------------------
+
+-- `[/]`, `[2/5]`, `[%]`, `[40%]` (not followed by "(": that's a link)
+local COOKIES = { "()%[(%d*)/(%d*)%]()", "()%[(%d*)%%%]()" }
+
+local function find_cookie(line, from)
+  local best
+  for k, pat in ipairs(COOKIES) do
+    local init = from
+    while true do
+      local caps = { line:match(pat, init) }
+      if not caps[1] then
+        break
+      end
+      local s, e = caps[1], caps[#caps]
+      if line:sub(e, e) ~= "(" then
+        if not best or s < best.s then
+          best = { s = s, e = e, pct = k == 2 }
+        end
+        break
+      end
+      init = e
+    end
+  end
+  return best
+end
+
+local function has_cookies(buf)
+  for _, l in ipairs(api.nvim_buf_get_lines(buf, 0, -1, false)) do
+    if l:find("%[%d*/%d*%]") or l:find("%[%d*%%%]") then
+      return true
+    end
+  end
+  return false
+end
+
+--- Fill every progress cookie in `buf` from its item's direct children: those
+--- with a checkbox count (done when checked); a child without a checkbox but
+--- with its own cookie counts too (done when complete), so counts roll up.
+---@param o? { join?: boolean }
+function M.update_progress(buf, o)
+  if not opts().progress or not has_cookies(buf) then
+    return false
+  end
+  local p = ts.parser(buf)
+  if not p then
+    return false
+  end
+  local tree = p:parse()[1]
+  if not tree then
+    return false
+  end
+  local edits = {}
+  -- returns: "task" (checked / unchecked) state of `node` as a child, or nil
+  local function visit(node)
+    local done, total = 0, 0
+    for c in node:iter_children() do
+      if c:type() == "list" then
+        for _, li in ipairs(list_items(c)) do
+          local state = visit(li)
+          if state ~= nil then
+            total = total + 1
+            done = done + (state and 1 or 0)
+          end
+        end
+      end
+    end
+    local row = node:range()
+    local line = get_line(buf, row)
+    local item = M.parse(line)
+    if not item then
+      return nil
+    end
+    local cookie = find_cookie(line, item.text_col + 1)
+    if cookie then
+      local text
+      if cookie.pct then
+        text = ("[%d%%]"):format(total == 0 and 0 or math.floor(done * 100 / total))
+      else
+        text = ("[%d/%d]"):format(done, total)
+      end
+      if line:sub(cookie.s, cookie.e - 1) ~= text then
+        table.insert(edits, { row, cookie.s - 1, cookie.e - 1, text })
+      end
+    end
+    if item.check then
+      return item.check ~= " "
+    elseif cookie then
+      return total > 0 and done == total
+    end
+    return nil
+  end
+  local function walk(n)
+    if n:type() == "list_item" then
+      return visit(n) -- visit() recurses into nested lists itself
+    end
+    for c in n:iter_children() do
+      walk(c)
+    end
+  end
+  walk(tree:root())
+  if #edits == 0 then
+    return false
+  end
+  table.sort(edits, function(a, b)
+    return a[1] > b[1] or (a[1] == b[1] and a[2] > b[2])
+  end)
+  if o and o.join then
+    pcall(vim.cmd, "undojoin")
+  end
+  for _, e in ipairs(edits) do
+    api.nvim_buf_set_text(buf, e[1], e[2], e[1], e[3], { e[4] })
+  end
+  return true
+end
+
 --- Normal-mode <CR>: toggle the checkbox on the current list item.
 function M.toggle_checkbox()
   local buf = api.nvim_get_current_buf()
   local row, col = unpack(api.nvim_win_get_cursor(0))
   util.undo_break(buf)
   set_checkbox(buf, row - 1, nil)
+  M.update_progress(buf)
   local line = get_line(buf, row - 1)
   api.nvim_win_set_cursor(0, { row, math.min(col, math.max(0, #line - 1)) })
 end
@@ -562,6 +679,7 @@ function M.toggle_range(srow, erow)
       set_checkbox(buf, r, state)
     end
   end
+  M.update_progress(buf)
 end
 
 function M.toggle_visual()
@@ -645,10 +763,11 @@ end
 
 --- TextChanged / InsertLeave: renumber the list around the cursor.
 function M.on_change()
+  local buf = api.nvim_get_current_buf()
+  M.update_progress(buf, { join = true })
   if not opts().auto_renumber then
     return
   end
-  local buf = api.nvim_get_current_buf()
   local row = api.nvim_win_get_cursor(0)[1] - 1
   -- only when an ordered item is nearby (cheap check before parsing)
   for r = math.max(0, row - 1), math.min(api.nvim_buf_line_count(buf) - 1, row + 1) do
