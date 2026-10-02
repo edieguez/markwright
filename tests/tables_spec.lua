@@ -7,6 +7,7 @@ local A = H.answers
 
 local T3 = { "| a | b |", "|---|---|", "| 1 | 2 |" }
 local T3_ALIGNED = { "| a   | b   |", "| --- | --- |", "| 1   | 2   |" }
+local TN = { "| n | v |", "|---|--:|", "| b | 10 |", "| a | 9 |", "| c | 100 |" }
 
 local cases = {
   -- parsing
@@ -225,6 +226,127 @@ local cases = {
     { "| a   | b   |", "| --- | --- |", "|     |     |", "| 1   | 2   |" },
   },
   { "can't add a row above the header", T3, { 1, 2 }, " mtk", T3 },
+
+  -- extras: move, sort, transpose, copy as CSV
+  {
+    "move column right (alignment moves too)",
+    TN,
+    { 3, 2 },
+    " mtL",
+    { "|   v | n   |", "| --: | --- |", "|  10 | b   |", "|   9 | a   |", "| 100 | c   |" },
+    { 3, 8 },
+  },
+  {
+    "move column left",
+    TN,
+    { 3, 8 },
+    " mtH",
+    { "|   v | n   |", "| --: | --- |", "|  10 | b   |", "|   9 | a   |", "| 100 | c   |" },
+    { 3, 5 },
+  },
+  { "move column past the edge: nothing", TN, { 3, 2 }, " mtH", TN },
+  {
+    "move row down",
+    TN,
+    { 3, 2 },
+    " mtJ",
+    { "| n   |   v |", "| --- | --: |", "| a   |   9 |", "| b   |  10 |", "| c   | 100 |" },
+    { 4, 2 },
+  },
+  {
+    "move row down with a count",
+    TN,
+    { 3, 2 },
+    "2 mtJ",
+    { "| n   |   v |", "| --- | --: |", "| a   |   9 |", "| c   | 100 |", "| b   |  10 |" },
+    { 5, 2 },
+  },
+  {
+    "move row up",
+    TN,
+    { 5, 2 },
+    " mtK",
+    { "| n   |   v |", "| --- | --: |", "| b   |  10 |", "| c   | 100 |", "| a   |   9 |" },
+    { 4, 2 },
+  },
+  { "first body row doesn't move above the header", TN, { 3, 2 }, " mtK", TN },
+  { "header row doesn't move", TN, { 1, 2 }, " mtJ", TN },
+  {
+    "sort by text column",
+    TN,
+    { 3, 2 },
+    " mts",
+    { "| n   |   v |", "| --- | --: |", "| a   |   9 |", "| b   |  10 |", "| c   | 100 |" },
+    { 3, 2 },
+  },
+  {
+    "sort again: descending",
+    TN,
+    { 3, 2 },
+    { " mts", " mts" },
+    { "| n   |   v |", "| --- | --: |", "| c   | 100 |", "| b   |  10 |", "| a   |   9 |" },
+  },
+  {
+    "sort numbers as numbers (cursor on the header)",
+    TN,
+    { 1, 6 },
+    " mts",
+    { "| n   |   v |", "| --- | --: |", "| a   |   9 |", "| b   |  10 |", "| c   | 100 |" },
+  },
+  {
+    "sort: currency, thousands and % count as numbers",
+    { "| p | q |", "|---|---|", "| $1,200 | a |", "| $95 | b |", "| 30% | c |" },
+    { 3, 2 },
+    " mts",
+    { "| p      | q   |", "| ------ | --- |", "| 30%    | c   |", "| $95    | b   |", "| $1,200 | a   |" },
+  },
+  {
+    "sort: mixed column as text, empty cells last (both ways)",
+    { "| a | k |", "|---|---|", "| x | 1 |", "|  | 2 |", "| B | 3 |", "| 2 | 4 |" },
+    { 3, 2 },
+    { " mts", " mts" },
+    { "| a   | k   |", "| --- | --- |", "| x   | 1   |", "| B   | 3   |", "| 2   | 4   |", "|     | 2   |" },
+  },
+  {
+    "transpose (cursor follows its cell)",
+    TN,
+    { 4, 6 },
+    " mtT",
+    { "| n   | b   | a   | c   |", "| --- | --- | --- | --- |", "| v   | 10  | 9   | 100 |" },
+    { 3, 14 },
+  },
+  { "transpose twice: back (alignments reset)", T3, { 1, 2 }, { " mtT", " mtT" }, T3_ALIGNED },
+  {
+    "copy as CSV: register, table unchanged",
+    fn = function()
+      H.buf(TN, { 3, 2 })
+      H.queue = { "" }
+      H.feed(" mty")
+      eq(api.nvim_buf_get_lines(0, 0, -1, false), TN)
+      eq(vim.fn.getreg('"'), "n,v\nb,10\na,9\nc,100\n")
+      H.queue = { ";" }
+      H.feed(" mty")
+      eq(vim.fn.getreg('"'), "n;v\nb;10\na;9\nc;100\n")
+    end,
+  },
+  {
+    "commands: sort, transpose, yank",
+    fn = function()
+      H.buf(TN, { 3, 2 })
+      vim.cmd("Markwright table sort")
+      eq(api.nvim_buf_get_lines(0, 2, 3, false), { "| a   |   9 |" })
+      vim.cmd("Markwright table transpose")
+      eq(api.nvim_buf_get_lines(0, 0, 1, false), { "| n   | a   | b   | c   |" })
+      H.queue = { "" }
+      vim.cmd("Markwright table yank")
+      eq(vim.fn.getreg('"'), "n,a,b,c\nv,9,10,100\n")
+      local names = vim.fn.getcompletion("Markwright table ", "cmdline")
+      eq(
+        vim.tbl_contains(names, "sort") and vim.tbl_contains(names, "transpose") and vim.tbl_contains(names, "yank"),
+        true
+      )
+    end,
+  },
   {
     "add column left",
     T3,

@@ -44,7 +44,7 @@ Status: **1.0.0 released** — updated 2026-10-02. Sections 1–13 describe what
 - [x] **TOC** — markers, nested entries, refresh on save (§9.6)
 - [x] **Link diagnostics** — files, anchors, references, footnotes; on open/save; `:Markwright check` (§10)
 - [x] **Image paste, macOS** — screenshots, Finder files, paths, URLs; `assets/`; alt text (§13.1)
-- [x] **Tests** — 524 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
+- [x] **Tests** — 560 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
 - [x] **Verified on macOS + LazyVim** (2026-09-30): clipboard links, live titles, `gx`, image paste (screenshot / Finder / browser), `<CR>` with blink.cmp + mini.pairs, `<Tab>` in snippets/lists/tables, `;;` hint with noice, no duplicate diagnostics
 
 ### Release 1.0.0
@@ -74,7 +74,7 @@ Status: **1.0.0 released** — updated 2026-10-02. Sections 1–13 describe what
 - [ ] List tools: move items with children, sort, cycle bullets, lines ↔ list (§14.12)
 - [ ] Checkbox progress counters `[2/5]` / `[40%]` (§14.13)
 - [ ] Completion dates on checked tasks (§14.14)
-- [ ] Table extras: sort by column, move columns, transpose, copy as CSV to the clipboard (§14.15)
+- [x] Table extras: move columns/rows (`<P>tH/tL/tJ/tK`), sort (`<P>ts`), transpose (`<P>tT`), copy as CSV (`<P>ty`) (§14.15)
 - [ ] Section operations: move heading sections, promote/demote with children (§14.16)
 - [ ] Inline ↔ reference link conversion (§14.17)
 - [ ] Footnote renumbering (§14.18)
@@ -254,6 +254,8 @@ All buffer-local, Markdown only. `<P>` = configured prefix (default `<leader>m`)
 | n | `<P>th` / `<P>tl` | Add column left / right |
 | n | `<P>tj` / `<P>tk` | Add row below / above (not above the header) |
 | n | `<P>tdr` / `<P>tdc` | Delete row / column |
+| n | `<P>tH` / `<P>tL` · `<P>tJ` / `<P>tK` | Move column left / right · row down / up (`[count]`) |
+| n | `<P>ts` · `<P>tT` · `<P>ty` | Sort by column (again: descending) · transpose · copy as CSV (§14.15) |
 | n | `<P>ta` | Align table now |
 | n | `<P>T` | Insert/update TOC |
 | n, x | `<P>p` | Paste image (visual: selection = alt text) |
@@ -623,11 +625,14 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 ### 14.14 Completion dates (priority 2)
 - Opt-in `lists.done_date = false | "✅ %Y-%m-%d"`: checking an item appends the formatted date; unchecking removes it. Compatible with the Obsidian Tasks format.
 
-### 14.15 Table extras (priority 2)
-- `<P>ts` **[OPEN]**: sort body rows by the column under the cursor (ascending; again → descending); numeric- and date-aware; header and delimiter stay.
-- `<P>t<` / `<P>t>` **[OPEN]**: move the current column left/right (alignment markers move with it).
-- Table → CSV in the buffer is implemented (§9.4). Still open: a variant that copies the CSV to the clipboard instead of replacing the table (`:Markwright table tocsv!` **[OPEN]**).
-- `:Markwright table transpose`.
+### 14.15 Table extras (priority 2) — **implemented (2026-10-02)**
+Keys chosen 2026-10-02, matching the `h`/`j`/`k`/`l` add keys:
+- `<P>tH` / `<P>tL`: move the current column left / right, `[count]` steps (alignment markers move with it; the cursor follows; clamped at the edges).
+- `<P>tJ` / `<P>tK`: move the current body row down / up, `[count]` steps (header and delimiter stay; clamped).
+- `<P>ts` (`:Markwright table sort`): sort body rows by the column under the cursor (cursor anywhere in the column, header included). Ascending; if already ascending → descending (stateless). Numeric when every non-empty cell is a number after removing emphasis markers, a leading `$ € £ ¥`, a trailing `%` and thousands commas; else case-insensitive text (ISO dates sort as text). Empty cells last in both directions; stable.
+- `<P>tT` (`:Markwright table transpose`): rows ↔ columns over header + body; the first column becomes the header; alignments reset to none; the cursor follows its cell.
+- `<P>ty` (`:Markwright table yank`): copy the table as CSV (same separator prompt and quoting as `<P>tx`) to the `"` register, and to `+` when a clipboard provider exists; the table is untouched.
+- Each edit is one undo step.
 
 ### 14.16 Section operations (priority 2)
 - Move the heading section under the cursor (heading + content + sub-sections) past the previous/next sibling section: `<M-k>`/`<M-j>` **[OPEN]** on a heading line (shares keys with §14.12), `:Markwright section up|down`.

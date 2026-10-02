@@ -90,7 +90,8 @@ All five share one engine, so they behave the same way:
 - **Footnotes** (`<leader>mn`): inserts `[^n]` with the next number, adds the definition at the end of the file and puts you there.
 - **Tables** (`<leader>mt…`):
   - create from a `rows x cols` size, or convert CSV/TSV lines (the paragraph under the cursor, or a selection), and back to CSV
-  - add rows and columns with `h`/`j`/`k`/`l` (left / below / above / right), and delete them
+  - add rows and columns with `h`/`j`/`k`/`l` (left / below / above / right), move them with `H`/`J`/`K`/`L`, and delete them
+  - sort by a column, transpose, and copy as CSV to the clipboard
   - `<Tab>`/`<S-Tab>` move between cells
   - columns realign when you leave insert mode, accounting for accents, CJK text and alignment markers
 - **Table of contents** (`<leader>mT`): a nested list of heading links between `<!-- toc -->` markers, updated on every save.
@@ -313,6 +314,11 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `<leader>mth` / `<leader>mtl`                                      | normal                           | Add a column left / right                                                           |
 | `<leader>mtj` / `<leader>mtk`                                      | normal                           | Add a row below / above                                                             |
 | `<leader>mtdr` / `<leader>mtdc`                                    | normal                           | Delete the row / column                                                             |
+| `<leader>mtH` / `<leader>mtL`                                      | normal                           | Move the column left / right                                                        |
+| `<leader>mtJ` / `<leader>mtK`                                      | normal                           | Move the row down / up                                                              |
+| `<leader>mts`                                                      | normal                           | Sort by the column under the cursor (again: descending)                             |
+| `<leader>mtT`                                                      | normal                           | Transpose (rows ↔ columns)                                                          |
+| `<leader>mty`                                                      | normal                           | Copy the table as CSV to the clipboard                                              |
 | `<leader>mta`                                                      | normal                           | Align the table now                                                                 |
 | `<Tab>` / `<S-Tab>`                                                | insert                           | Next / previous table cell; nest / un-nest a list item (native `<Tab>` elsewhere)   |
 | `<leader>mT`                                                       | normal                           | Insert or update the **table of contents**                                          |
@@ -722,6 +728,8 @@ name,age              V<leader>mtc     | name   | age |
 
 It's one undo step: `u` brings the table back. Converting CSV → table → CSV returns the original text (apart from quoting normalization).
 
+**`<leader>mty`** (or `:Markwright table yank`) does the same conversion but **copies** the CSV to the clipboard (and the unnamed register) and leaves the table as it is: handy for pasting into a spreadsheet.
+
 ### Editing
 
 | Keys               | Action                                                                     |
@@ -737,6 +745,33 @@ It's one undo step: `u` brings the table back. Converting CSV → table → CSV 
 | `<leader>mta`      | Align now                                                                  |
 
 The navigation skips the delimiter row and puts the cursor at the end of the cell's text.
+
+### Moving, sorting and transposing
+
+| Keys                          | Action                                                                           |
+| ----------------------------- | -------------------------------------------------------------------------------- |
+| `<leader>mtH` / `<leader>mtL` | Move the column under the cursor left / right; its alignment moves with it       |
+| `<leader>mtJ` / `<leader>mtK` | Move the row under the cursor down / up (body rows only: the header stays first) |
+| `<leader>mts`                 | Sort the body rows by the column under the cursor                                |
+| `<leader>mtT`                 | Transpose: rows become columns, the first column becomes the header              |
+
+- **Counts** work for moves: `3<leader>mtJ` moves the row three down. The cursor follows the cell it was on.
+- **Sorting** is ascending; press `<leader>mts` again on a sorted column for descending. When every cell in the column is a number, they compare as numbers (`9` before `10`); `$`, `€`, `£`, `¥`, `%`, thousands commas and emphasis markers are ignored. Otherwise the text is compared without case. ISO dates (`2026-10-02`) sort correctly as text. Empty cells always go last, and equal cells keep their order. The cursor can be anywhere in the column, the header included.
+- **Transposing** resets the column alignments, since they belonged to the old columns. Transposing twice gives the original table back.
+
+```
+| n   |   v |                          | n   |   v |
+| --- | --: |    <leader>mts on "v"    | --- | --: |
+| b   |  10 |            →             | a   |   9 |
+| a   |   9 |                          | b   |  10 |
+| c   | 100 |                          | c   | 100 |
+
+then <leader>mtT  →  | n   | a   | b   | c   |
+                     | --- | --- | --- | --- |
+                     | v   | 9   | 10  | 100 |
+```
+
+Each of these is one undo step. `:Markwright table sort`, `transpose` and `yank` do the same from the command line.
 
 ### Alignment
 
@@ -1079,6 +1114,7 @@ With `images.smart_paste = true`, pressing `p` (with `clipboard=unnamedplus`, as
 | `:Markwright table tocsv`                       | Convert the table under the cursor to CSV (asks for the separator)                                      |
 | `:Markwright table align`                       | Align the table under the cursor                                                                        |
 | `:Markwright table row` / `rowabove` / `delrow` | Add a row below / above, delete the row                                                                 |
+| `:Markwright table sort` / `transpose` / `yank` | Sort by the column under the cursor / transpose / copy as CSV                                           |
 | `:Markwright table col` / `colleft` / `delcol`  | Add a column right / left, delete the column                                                            |
 | `:Markwright health`                            | Run `:checkhealth markwright`                                                                           |
 

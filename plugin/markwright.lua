@@ -35,6 +35,15 @@ local table_sub = {
   colleft = function()
     require("markwright.tables").add_col(true)
   end,
+  sort = function()
+    require("markwright.tables").sort()
+  end,
+  transpose = function()
+    require("markwright.tables").transpose()
+  end,
+  yank = function()
+    require("markwright.tables").yank_csv()
+  end,
   delcol = function()
     require("markwright.tables").delete_col()
   end,
@@ -99,7 +108,7 @@ local subcommands = {
     local fn = table_sub[args.fargs[2] or ""]
     if not fn then
       vim.notify(
-        "markwright: :Markwright table {create|csv|tocsv|align|row|rowabove|delrow|col|colleft|delcol}",
+        "markwright: :Markwright table {create|csv|tocsv|yank|align|sort|transpose|row|rowabove|delrow|col|colleft|delcol}",
         vim.log.levels.ERROR
       )
       return
