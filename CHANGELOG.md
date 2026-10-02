@@ -14,6 +14,7 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ### Fixed
 
+- `<leader>mk` on a callout marker (`> [!WARNING]`) treated it as a link and removed the brackets, breaking the callout. Callout markers are no longer links for `<leader>mk`, `:Markwright link`, the `ik`/`ak` text objects or `gx`; `<leader>mk` there just warns.
 - Undo: a link's page title that arrived after you had already made another change was merged into that change's undo step, so one `u` undid both. The late title now gets its own undo step.
 - Undo breaks from picker and prompt callbacks (callouts, links, images…) now always apply to the Markdown buffer, even if the picker's window is still focused when the callback runs.
 

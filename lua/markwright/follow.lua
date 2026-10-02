@@ -166,6 +166,9 @@ function M.target_at(buf, row, col)
       collapsed_reference_link = true,
       shortcut_link = true,
     })
+    if node and ts.is_callout_marker(node, buf) then
+      node = nil -- `> [!NOTE]` is a callout marker, not a shortcut link
+    end
     if node then
       local t = node:type()
       if t == "inline_link" or t == "image" then

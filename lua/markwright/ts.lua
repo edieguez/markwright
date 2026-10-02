@@ -45,6 +45,22 @@ end
 ---@param node TSNode?
 ---@param types table<string, true>
 ---@return TSNode?
+--- Is `node` a GitHub callout marker (`> [!WARNING]`)? Tree-sitter parses the
+--- marker as a shortcut link, but it isn't one: link keys, text objects and
+--- `gx` must leave it alone. `src` is the buffer (or a parser: its source).
+function M.is_callout_marker(node, src)
+  if not node or node:type() ~= "shortcut_link" then
+    return false
+  end
+  local buf = type(src) == "number" and src or src:source()
+  if type(buf) ~= "number" then
+    return false
+  end
+  local sr, sc = node:range()
+  local line = vim.api.nvim_buf_get_lines(buf, sr, sr + 1, false)[1] or ""
+  return line:sub(1, sc):match("^%s*>[%s>]*$") ~= nil and line:sub(sc + 1):match("^%[!%a+%]") ~= nil
+end
+
 function M.ancestor(node, types)
   while node do
     if types[node:type()] then

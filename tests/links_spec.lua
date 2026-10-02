@@ -364,6 +364,11 @@ local cases = {
     { " mk", "u" },
     { "go https://x.io now" },
   },
+  -- callout markers parse as shortcut links, but aren't links
+  { "callout marker is left alone", { "> [!WARNING]", "> careful" }, { 1, 5 }, " mk", { "> [!WARNING]", "> careful" } },
+  { "callout marker with a title", { "> [!NOTE] Heads up" }, { 1, 3 }, " mk", { "> [!NOTE] Heads up" } },
+  { ":Markwright link on a callout marker", { "> [!TIP]" }, { 1, 4 }, ":Markwright link\r", { "> [!TIP]" } },
+  { "[!x] outside a quote is still a link", { "see [!x] here" }, { 1, 5 }, " mk", { "see !x here" } },
   -- whitespace: the URL prompt is prefilled with a clipboard URL
   {
     "empty line, clipboard URL: prefilled, Enter accepts it",
