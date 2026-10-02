@@ -4,68 +4,33 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
-## [2.0.0] - 2026-10-01
+## [1.0.0] - 2026-10-02
 
-New editing tools (text objects, heading navigation, callouts, a link checker) and a reworked keymap. **Default keys changed:** the link key moved from `l` to `k`, the inline keys wait for a motion on plain text (`<leader>mbiw`), and the uppercase operator keys are gone. See *Changed* below. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
-
-### Added
-
-- **External link checker**: `:Markwright check urls` checks every external link in the buffer in the background with `curl` (HEAD, then GET), and reports broken links (404, 5xx, unknown host, timeouts) as warnings and login-protected or bot-blocking ones (401/403/429) as info, on the links and in the quickfix list. Never runs automatically. Configurable under `url_check` (`concurrency`, `timeout_ms`, `ignore`, …).
-- **GitHub callouts**: `<leader>ma` wraps the paragraph (or selection, or code block) in `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]` (picked from a list), changes the type of an existing callout (same picker, current type marked), or turns a plain `>` quote into one; `<leader>mA` removes it. Also `:Markwright callout [type|remove]`. Configurable under `callouts`.
-- **Blockquotes and callouts continue while typing**: `<CR>` on a `>` line starts the next line with `> ` (nested levels kept, lines split at the cursor), `<CR>` on an empty `>` line ends the quote, and `o`/`O` open a `> ` line. Option `blockquotes.continue_on_enter`.
-- **Heading navigation**: `]]`/`[[` next/previous heading (skipping code blocks), `][`/`[]` next/previous heading of the same level, `[u` parent heading — with counts, jumplist entries, visual mode and operators — and `<leader>mo` / `:Markwright outline` to pick a heading from the document outline. Keys configurable under `nav`.
-- **Text objects** for operators and visual mode, in Markdown buffers: `ik`/`ak` link text / whole link (images, autolinks and bare URLs too), `iu` link URL, `ic`/`ac` inline code or code block, `ih`/`ah` heading section, `i|`/`a|` table cell, `iL`/`aL` list item / item with children, `i*`/`a*` bold, italic, strikethrough or highlight. Counts reach outward (`2ah` = parent section), when the cursor isn't inside one, the next one is used, even on later lines (like mini.ai, up to `textobjects.search_lines` = 500), `.` repeats. Letters configurable under `textobjects`.
-
-### Fixed
-
-- `:Markwright bold` (and the other formats) on whitespace or an empty line left insert mode right away, so the empty markers couldn't be typed into.
-
-### Changed
-
-- **Inline keys (formatting and links) act at once or wait for a motion.** With nothing to choose, the key acts right away; on plain text it's an operator, like `d` or `gu`, and waits for a motion or text object (`<leader>mbiw`, `<leader>mb$`, `_` for the current line, `3<leader>mb_` for three lines). Visual mode is unchanged. There are no doubled keys, because `<leader>mii` would capture the `i…` text objects.
-  - **Formatting** (`<leader>mi`, `mb`, `ms`, `mc`, `mh`): inside a span of that format the key removes it at once; on whitespace it inserts an empty pair (as before); on a word it waits for a motion (`<leader>mbiw`, `<leader>mbik` for a link's text). The uppercase operator keys (`<leader>mI`, `mB`, `mS`, `mC`, `mH`) are gone.
-  - **Links** (`<leader>mk`): on a link it removes it, on a bare URL it makes a titled link, and on whitespace it inserts a new link, all at once; on a word it waits for a motion (`<leader>mkiw`). For new links on whitespace, the URL prompt is now prefilled with the clipboard URL when it holds one: Enter accepts it, or edit it; then the text prompt (empty = page title).
-  - **CSV → table** (`<leader>mtc`) now also works in normal mode, on the paragraph under the cursor.
-  - Block keys (code fence, callout) and inserts (footnote, table, TOC, image paste) still act right away.
-- **Link keys moved to `k`**, the usual link shortcut in other editors: `<leader>ml` is now `<leader>mk`, and `;;l` (formatting while typing) is now `;;k`. The `l` versions are gone; if you prefer them, map `<leader>ml` yourself to `require("markwright.links").expr_normal()` (see Custom keymaps in the README).
-
-## [0.1.1] - 2026-09-30
-
-### Fixed
-
-- CSV → table (`<leader>mtc`) put each line in a single cell when the data used a separator other than comma, tab or semicolon (for example `|` or `:`), including CSV exported by `<leader>mtx` with a custom separator.
-
-### Changed
-
-- CSV → table now asks for the separator, prefilled with the detected one (Enter accepts it), like table → CSV. Detection also recognizes `|` and `:`, and looks at all selected lines instead of only the first.
-- CSV separators can be several characters long (`::`, `; `).
-
-## [0.1.0] - 2026-09-30
-
-First public release. Requires Neovim 0.10 or later (tested on 0.10.0, 0.10.4 and 0.11).
+First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 
 ### Added
 
-- **Inline formatting** toggles for italic, bold, strikethrough, inline code and highlight (`<leader>mi`, `mb`, `ms`, `mc`, `mh`): word under the cursor, visual selections and operator + motion (`<leader>mI`…); removes the whole span from anywhere inside it, nests formats, wraps multi-line selections line by line, escalates backtick fences, skips code; dot-repeatable, one undo step.
-- **Formatting while typing**: `;;` then `i`/`b`/`s`/`c`/`h`/`l` in insert mode opens a pair or jumps out of it, with no delay on normal `;` typing. Trigger configurable (`insert.trigger`, any 2+ characters or a key like `<C-g>`).
-- **Links** (`<leader>ml`): wrap text with a URL from the clipboard or a prompt, turn bare URLs into `[Page Title](url)` (titles fetched asynchronously with `curl`), remove links keeping their text. Smart `p`/`P` paste URLs as links.
+- **Inline formatting** for italic, bold, strikethrough, inline code and highlight (`<leader>mi`, `mb`, `ms`, `mc`, `mh`). The key acts at once when there's nothing to choose: inside a span of that format it removes it, on whitespace it inserts an empty pair and starts insert mode between the markers. On plain text it's an operator, like `d` or `gu`: `<leader>mbiw`, `<leader>mb$`, `<leader>mb_` for the line, `3<leader>mb_` for three lines. Visual mode wraps the selection. Formats nest, multi-line targets are wrapped line by line (list markers, checkboxes, `>` and `#` stay outside), backtick fences escalate, code is skipped; dot-repeatable, one undo step.
+- **Formatting while typing**: `;;` then `i`/`b`/`s`/`c`/`h`/`k` in insert mode opens a pair or jumps out of it, with no delay on normal `;` typing. Trigger configurable (`insert.trigger`).
+- **Links** (`<leader>mk`): on a link it removes it, on a bare URL it makes `[Page Title](url)` (titles fetched asynchronously with `curl`), on whitespace it inserts a new link (URL prompt prefilled with the clipboard URL, then the text; empty = page title), all at once. On plain text it waits for a motion (`<leader>mkiw`) and wraps the text with the clipboard URL or a prompted one. Smart `p`/`P` paste URLs as links.
+- **Text objects** for operators and visual mode: `ik`/`ak` link (images, autolinks and bare URLs too), `iu` link URL, `ic`/`ac` inline code or code block, `ih`/`ah` heading section, `i|`/`a|` table cell, `iL`/`aL` list item, `i*`/`a*` emphasis. Counts reach outward; when the cursor isn't inside one, the next one is used, even on later lines.
+- **Heading navigation**: `]]`/`[[`, `][`/`[]` same level, `[u` parent, with counts, jumplist, visual mode and operators; `<leader>mo` / `:Markwright outline` picks a heading from the outline.
 - **`gx`** follows `#anchors` (GitHub slugs), local files (creating missing `.md` files), `file.md#anchor`, images, URLs, reference links and footnotes, with jumplist support.
 - **Lists**: `<CR>`, `o` and `O` continue lists; `<Tab>`/`<S-Tab>` nest items with their children; ordered lists renumber themselves; `<CR>` in normal mode toggles checkboxes. Completion menus, snippets and existing `<CR>`/`<Tab>` mappings keep working.
+- **Blockquotes and GitHub callouts**: `<leader>ma` wraps the paragraph (or selection, or code block) in `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]` (picked from a list), changes the type of an existing callout, or turns a plain `>` quote into one; `<leader>mA` removes it. `<CR>`, `o` and `O` continue quotes; `<CR>` on an empty `>` line ends them.
 - **Headings**: `<leader>m=` / `<leader>m-` add or remove a `#`, with counts; setext headings are converted.
 - **Code fences** (`<leader>mf`): typed language, wrap selected lines, container-aware (lists, blockquotes).
-- **Tables** (`<leader>mt…`): create from a size, CSV/TSV → table, table → CSV with a chosen separator, add/delete rows and columns, `<Tab>` between cells, automatic alignment (display-width aware) when leaving insert mode.
+- **Tables** (`<leader>mt…`): create from a size, CSV/TSV → table (separator detected and confirmed, multi-character separators, quoted fields), table → CSV, add/delete rows and columns, `<Tab>` between cells, automatic alignment (display-width aware) when leaving insert mode.
 - **Footnotes** (`<leader>mn`): insert the next number and jump to its definition.
 - **Table of contents** (`<leader>mT`) between `<!-- toc -->` markers, refreshed on save.
-- **Link diagnostics** on open and save: missing files and images, missing anchors, undefined references, orphan footnotes; `:Markwright check`.
+- **Link diagnostics** on open and save: missing files and images, missing anchors, undefined references, orphan footnotes; `:Markwright check`. `:Markwright check urls` checks external links in the background, on demand.
 - **Image paste** on macOS (`<leader>mp`): screenshots, copied images, Finder files, image paths and URLs; saved to `assets/` with a name prompt and relative links.
 - `:Markwright` command with completion, `:checkhealth markwright`, and a configuration for every feature (see README).
 
 ### Known limitations
 
 - Image paste is macOS only.
-- The operator keys and the behavior for selections that partly cover a formatted span may change before 1.0.
+- When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v2.0.0...HEAD
-[2.0.0]: https://github.com/edieguez/markwright/compare/v0.1.1...v2.0.0
-[0.1.1]: https://github.com/edieguez/markwright/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/edieguez/markwright/releases/tag/v0.1.0
+[Unreleased]: https://github.com/edieguez/markwright/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/edieguez/markwright/releases/tag/v1.0.0

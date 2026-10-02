@@ -2,7 +2,7 @@
 
 A Neovim plugin (LazyVim-friendly) for editing Markdown: inline formatting toggles, links, lists, headings, tables, code fences, footnotes, TOC, link diagnostics, image paste and formatting while typing.
 
-Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
+Status: **1.0.0 released** — updated 2026-10-02. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
 
 ---
 
@@ -47,23 +47,14 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 - [x] **Tests** — 489 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
 - [x] **Verified on macOS + LazyVim** (2026-09-30): clipboard links, live titles, `gx`, image paste (screenshot / Finder / browser), `<CR>` with blink.cmp + mini.pairs, `<Tab>` in snippets/lists/tables, `;;` hint with noice, no duplicate diagnostics
 
-### Release 0.1.0
+### Release 1.0.0
 
-- [x] Minimum Neovim version verified: full suite on 0.10.0, 0.10.4 and 0.11
+- [x] Minimum Neovim version verified: full suite on 0.10.0 and 0.11
 - [x] Formatting and lint: `.stylua.toml`, `selene.toml` + `vim.yml`; code formatted, 0 selene findings
 - [x] README for the public repo: installation for all major managers, keys markwright changes, known limitations, license (MPL-2.0)
-- [x] `CHANGELOG.md`
-- [x] `v0.1.0` git tag
-- [x] CI workflow and `Makefile` targets (`fmt`, `lint`, `check`) added to the repo (by hand: protected from remote writes)
-- [x] Pushed to GitHub with the `v0.1.0` tag
-
-### Release 2.0.0
-
-- [x] Keymap rework: inline keys are smart operators, block keys and inserts act at once, no doubled keys (§5, §6.2, §14.7)
-- [x] Full suite on Neovim 0.10.0 and 0.11; stylua and selene clean
-- [x] `CHANGELOG.md` (0.1.1 section added for the CSV fix tagged earlier)
-- [x] `v2.0.0` git tag
-- [ ] Pushed to GitHub with the `v2.0.0` tag
+- [x] CI workflow and `Makefile` targets (`fmt`, `lint`, `check`)
+- [x] `CHANGELOG.md`, `v1.0.0` git tag (2026-10-02; earlier tags v0.1.0, v0.1.1 and v2.0.0 were removed and folded into 1.0.0)
+- [ ] Pushed to GitHub with the `v1.0.0` tag
 
 ### Not implemented
 
@@ -95,7 +86,7 @@ Status: **v0.2** — updated 2026-09-30. Sections 1–13 describe what is built 
 - [ ] Optional: 3-state checkboxes `[-]` (§14.22)
 
 **Later (a future major version)**
-- [ ] Rich-text paste (HTML → Markdown) (§14.10) — set aside 2026-09-30 as too large; it was planned as "version 2", but 2.0.0 shipped the keymap rework instead
+- [ ] Rich-text paste (HTML → Markdown) (§14.10) — set aside 2026-09-30 as too large; planned for a later major version
 
 ---
 
@@ -468,10 +459,10 @@ Implementation note: the markdown grammar has no footnotes, and a `[ref]: url` l
 - [x] 8. `toc.lua`, `diagnostics.lua`.
 - [x] 9. `images.lua` (macOS), `insert.lua`.
 - [x] 10. Rename to markwright.nvim (§14.4).
-- [x] 11. Priority-1 features: text objects, heading navigation (§14.8, §14.9); rich-text paste moved to version 2 (§14.10).
+- [x] 11. Priority-1 features: text objects, heading navigation (§14.8, §14.9); rich-text paste moved to a later version (§14.10).
 - [ ] 12. Priority-2 features (§14.11–14.18) — callouts done.
 - [ ] 13. Linux/WSL image paste, image extras, fence completion (§14.1, §14.5, §14.6).
-- [x] 10b. Release 0.1.0 preparation: Neovim 0.10 check, stylua/selene, CHANGELOG, tag (see §0 Release 0.1.0).
+- [x] 10b. Release preparation: Neovim 0.10 check, stylua/selene, CHANGELOG, tag (see §0 Release 1.0.0).
 - [ ] 14. Docs (`doc/markwright.txt`) and CI (§14.2, §14.3) — CI workflow written, to be added to the repo.
 - [ ] 15. Priority-3 and optional features (§14.19–14.23).
 
