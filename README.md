@@ -317,7 +317,7 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `<leader>mtdr` / `<leader>mtdc`                                    | normal                           | Delete the row / column                                                             |
 | `<leader>mtH` / `<leader>mtL`                                      | normal                           | Move the column left / right                                                        |
 | `<leader>mtJ` / `<leader>mtK`                                      | normal                           | Move the row down / up                                                              |
-| `<leader>mts`                                                      | normal                           | Sort by the column under the cursor (again: descending)                             |
+| `<leader>mts` / `<leader>mtS`                                      | normal                           | Sort by the column under the cursor, ascending / descending                         |
 | `<leader>mtT`                                                      | normal                           | Transpose (rows ↔ columns)                                                          |
 | `<leader>mty`                                                      | normal                           | Copy the table as CSV to the clipboard                                              |
 | `<leader>mta`                                                      | normal                           | Align the table now                                                                 |
@@ -328,7 +328,7 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `<CR>`                                                             | insert                           | **Continue the list** (native `<CR>` elsewhere)                                     |
 | `o` / `O`                                                          | normal                           | Open a line below / above; continues lists and blockquotes                          |
 | `<leader>mlj` / `<leader>mlk`                                      | normal                           | **Move** the list item down / up, with its children                                 |
-| `<leader>mls` / `<leader>mld`                                      | normal                           | **Sort** the list A→Z (again: Z→A) / done items last                                |
+| `<leader>mls` / `<leader>mlS` / `<leader>mld`                      | normal                           | **Sort** the list A→Z / Z→A / done items last                                       |
 | `<leader>mlb` / `<leader>mln` / `<leader>mlc`                      | normal, visual                   | Lines ↔ bullets / numbers / checkboxes                                              |
 | `<leader>m=`                                                       | normal, visual                   | **Heading**: add a `#` (count works: `2<leader>m=`)                                 |
 | `<leader>m-`                                                       | normal, visual                   | **Heading**: remove a `#`                                                           |
@@ -756,11 +756,11 @@ The navigation skips the delimiter row and puts the cursor at the end of the cel
 | ----------------------------- | -------------------------------------------------------------------------------- |
 | `<leader>mtH` / `<leader>mtL` | Move the column under the cursor left / right; its alignment moves with it       |
 | `<leader>mtJ` / `<leader>mtK` | Move the row under the cursor down / up (body rows only: the header stays first) |
-| `<leader>mts`                 | Sort the body rows by the column under the cursor                                |
+| `<leader>mts` / `<leader>mtS` | Sort the body rows by the column under the cursor, ascending / descending        |
 | `<leader>mtT`                 | Transpose: rows become columns, the first column becomes the header              |
 
 - **Counts** work for moves: `3<leader>mtJ` moves the row three down. The cursor follows the cell it was on.
-- **Sorting** is ascending; press `<leader>mts` again on a sorted column for descending. When every cell in the column is a number, they compare as numbers (`9` before `10`); `$`, `€`, `£`, `¥`, `%`, thousands commas and emphasis markers are ignored. Otherwise the text is compared without case. ISO dates (`2026-10-02`) sort correctly as text. Empty cells always go last, and equal cells keep their order. The cursor can be anywhere in the column, the header included.
+- **Sorting:** `<leader>mts` sorts ascending and `<leader>mtS` descending (the same `s`/`S` pair as for lists). When every cell in the column is a number, they compare as numbers (`9` before `10`); `$`, `€`, `£`, `¥`, `%`, thousands commas and emphasis markers are ignored. Otherwise the text is compared without case. ISO dates (`2026-10-02`) sort correctly as text. Empty cells always go last, and equal cells keep their order. The cursor can be anywhere in the column, the header included.
 - **Transposing** resets the column alignments, since they belonged to the old columns. Transposing twice gives the original table back.
 
 ```
@@ -775,7 +775,7 @@ then <leader>mtT  →  | n   | a   | b   | c   |
                      | v   | 9   | 10  | 100 |
 ```
 
-Each of these is one undo step. `:Markwright table sort`, `transpose` and `yank` do the same from the command line.
+Each of these is one undo step. `:Markwright table sort [desc]`, `transpose` and `yank` do the same from the command line.
 
 ### Alignment
 
@@ -973,7 +973,7 @@ Type `[/]` or `[%]` (or both, e.g. `- Release [/] [%]` → `- Release [2/3] [66%
 | Keys                          | Action                                                                                                     |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `<leader>mlj` / `<leader>mlk` | Move the item under the cursor down / up past its next sibling, **with its children** (`[count]` siblings) |
-| `<leader>mls`                 | Sort the list under the cursor A→Z; again for Z→A                                                          |
+| `<leader>mls` / `<leader>mlS` | Sort the list under the cursor A→Z / Z→A                                                                   |
 | `<leader>mld`                 | Sort so **done** items go last (unchecked and plain items keep their order first)                          |
 | `<leader>mlb`                 | Lines ↔ **bullets** (`- item`)                                                                             |
 | `<leader>mln`                 | Lines ↔ **numbers** (`1. item`)                                                                            |
@@ -1009,7 +1009,7 @@ Each action is one undo step, and progress counters follow.
 opts = { lists = { move_keys = { down = "<M-j>", up = "<M-k>" } } }
 ```
 
-From the command line: `:Markwright list up|down|sort [done]`, and `:[range]Markwright list bullet|number|checkbox`.
+From the command line: `:Markwright list up|down|sort [desc|done]`, and `:[range]Markwright list bullet|number|checkbox`.
 
 ---
 
@@ -1174,33 +1174,33 @@ With `images.smart_paste = true`, pressing `p` (with `clipboard=unnamedplus`, as
 
 ## Commands
 
-| Command                                                                           | Description                                                                                             |
-| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `:Markwright bold`                                                                | Toggle bold on the word under the cursor                                                                |
-| `:Markwright italic`                                                              | Toggle italic                                                                                           |
-| `:Markwright strike`                                                              | Toggle strikethrough                                                                                    |
-| `:Markwright code`                                                                | Toggle inline code                                                                                      |
-| `:Markwright highlight`                                                           | Toggle highlight                                                                                        |
-| `:Markwright link`                                                                | Like `<leader>mk`, but links the word under the cursor instead of waiting for a motion                  |
-| `:Markwright follow`                                                              | Same as `gx`                                                                                            |
-| `:Markwright fence`                                                               | Insert a code fence; with a range (`:'<,'>Markwright fence`) wrap those lines                           |
-| `:Markwright callout [type\|remove]`                                              | Wrap in / retype / remove a callout; with a range, wrap those lines                                     |
-| `:Markwright outline`                                                             | Pick a heading from an outline and jump to it                                                           |
-| `:Markwright footnote`                                                            | Insert a footnote                                                                                       |
-| `:Markwright image`                                                               | Paste the clipboard image (macOS)                                                                       |
-| `:Markwright image rename`                                                        | Rename the image file under the cursor and update its links                                             |
-| `:Markwright toc`                                                                 | Insert or update the table of contents                                                                  |
-| `:Markwright check`                                                               | Run link diagnostics now and report the count                                                           |
-| `:Markwright check urls`                                                          | Check external links (in the background) and report broken ones as diagnostics and in the quickfix list |
-| `:Markwright table create`                                                        | Create a table                                                                                          |
-| `:'<,'>Markwright table csv`                                                      | Convert the range from CSV/TSV                                                                          |
-| `:Markwright table tocsv`                                                         | Convert the table under the cursor to CSV (asks for the separator)                                      |
-| `:Markwright table align`                                                         | Align the table under the cursor                                                                        |
-| `:Markwright table row` / `rowabove` / `delrow`                                   | Add a row below / above, delete the row                                                                 |
-| `:Markwright list up` / `down` / `sort [done]` / `bullet` / `number` / `checkbox` | List tools (see [List tools](#list-tools)); the converters take a range                                 |
-| `:Markwright table sort` / `transpose` / `yank`                                   | Sort by the column under the cursor / transpose / copy as CSV                                           |
-| `:Markwright table col` / `colleft` / `delcol`                                    | Add a column right / left, delete the column                                                            |
-| `:Markwright health`                                                              | Run `:checkhealth markwright`                                                                           |
+| Command                                                | Description                                                                                             |                                                                         |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `:Markwright bold`                                     | Toggle bold on the word under the cursor                                                                |                                                                         |
+| `:Markwright italic`                                   | Toggle italic                                                                                           |                                                                         |
+| `:Markwright strike`                                   | Toggle strikethrough                                                                                    |                                                                         |
+| `:Markwright code`                                     | Toggle inline code                                                                                      |                                                                         |
+| `:Markwright highlight`                                | Toggle highlight                                                                                        |                                                                         |
+| `:Markwright link`                                     | Like `<leader>mk`, but links the word under the cursor instead of waiting for a motion                  |                                                                         |
+| `:Markwright follow`                                   | Same as `gx`                                                                                            |                                                                         |
+| `:Markwright fence`                                    | Insert a code fence; with a range (`:'<,'>Markwright fence`) wrap those lines                           |                                                                         |
+| `:Markwright callout [type\|remove]`                   | Wrap in / retype / remove a callout; with a range, wrap those lines                                     |                                                                         |
+| `:Markwright outline`                                  | Pick a heading from an outline and jump to it                                                           |                                                                         |
+| `:Markwright footnote`                                 | Insert a footnote                                                                                       |                                                                         |
+| `:Markwright image`                                    | Paste the clipboard image (macOS)                                                                       |                                                                         |
+| `:Markwright image rename`                             | Rename the image file under the cursor and update its links                                             |                                                                         |
+| `:Markwright toc`                                      | Insert or update the table of contents                                                                  |                                                                         |
+| `:Markwright check`                                    | Run link diagnostics now and report the count                                                           |                                                                         |
+| `:Markwright check urls`                               | Check external links (in the background) and report broken ones as diagnostics and in the quickfix list |                                                                         |
+| `:Markwright table create`                             | Create a table                                                                                          |                                                                         |
+| `:'<,'>Markwright table csv`                           | Convert the range from CSV/TSV                                                                          |                                                                         |
+| `:Markwright table tocsv`                              | Convert the table under the cursor to CSV (asks for the separator)                                      |                                                                         |
+| `:Markwright table align`                              | Align the table under the cursor                                                                        |                                                                         |
+| `:Markwright table row` / `rowabove` / `delrow`        | Add a row below / above, delete the row                                                                 |                                                                         |
+| `:Markwright list up` / `down` / `sort [desc           | done]` / `bullet` / `number` / `checkbox`                                                               | List tools (see [List tools](#list-tools)); the converters take a range |
+| `:Markwright table sort [desc]` / `transpose` / `yank` | Sort by the column under the cursor / transpose / copy as CSV                                           |                                                                         |
+| `:Markwright table col` / `colleft` / `delcol`         | Add a column right / left, delete the column                                                            |                                                                         |
+| `:Markwright health`                                   | Run `:checkhealth markwright`                                                                           |                                                                         |
 
 Subcommands tab-complete, including the `table` actions.
 

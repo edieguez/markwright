@@ -280,10 +280,10 @@ local cases = {
     { 3, 2 },
   },
   {
-    "sort again: descending",
+    "S sorts descending",
     TN,
     { 3, 2 },
-    { " mts", " mts" },
+    " mtS",
     { "| n   |   v |", "| --- | --: |", "| c   | 100 |", "| b   |  10 |", "| a   |   9 |" },
   },
   {
@@ -301,11 +301,25 @@ local cases = {
     { "| p      | q   |", "| ------ | --- |", "| 30%    | c   |", "| $95    | b   |", "| $1,200 | a   |" },
   },
   {
-    "sort: mixed column as text, empty cells last (both ways)",
+    "sort: mixed column as text, empty cells last (descending too)",
     { "| a | k |", "|---|---|", "| x | 1 |", "|  | 2 |", "| B | 3 |", "| 2 | 4 |" },
     { 3, 2 },
-    { " mts", " mts" },
+    " mtS",
     { "| a   | k   |", "| --- | --- |", "| x   | 1   |", "| B   | 3   |", "| 2   | 4   |", "|     | 2   |" },
+  },
+  {
+    "s twice stays ascending",
+    TN,
+    { 3, 2 },
+    { " mts", " mts" },
+    { "| n   |   v |", "| --- | --: |", "| a   |   9 |", "| b   |  10 |", "| c   | 100 |" },
+  },
+  {
+    "descending numbers",
+    TN,
+    { 3, 8 },
+    " mtS",
+    { "| n   |   v |", "| --- | --: |", "| c   | 100 |", "| b   |  10 |", "| a   |   9 |" },
   },
   {
     "transpose (cursor follows its cell)",
@@ -333,6 +347,8 @@ local cases = {
     "commands: sort, transpose, yank",
     fn = function()
       H.buf(TN, { 3, 2 })
+      vim.cmd("Markwright table sort desc")
+      eq(api.nvim_buf_get_lines(0, 2, 3, false), { "| c   | 100 |" })
       vim.cmd("Markwright table sort")
       eq(api.nvim_buf_get_lines(0, 2, 3, false), { "| a   |   9 |" })
       vim.cmd("Markwright table transpose")

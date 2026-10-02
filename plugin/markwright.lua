@@ -35,8 +35,8 @@ local table_sub = {
   colleft = function()
     require("markwright.tables").add_col(true)
   end,
-  sort = function()
-    require("markwright.tables").sort()
+  sort = function(args)
+    require("markwright.tables").sort(args.fargs[3] == "desc")
   end,
   transpose = function()
     require("markwright.tables").transpose()
@@ -57,7 +57,8 @@ local list_sub = {
     require("markwright.listtools").move(1)
   end,
   sort = function(args)
-    require("markwright.listtools").sort(args.fargs[3] == "done" and "checked" or "alpha")
+    local mode = args.fargs[3]
+    require("markwright.listtools").sort((mode == "desc" or mode == "done") and mode or "asc")
   end,
 }
 for _, style in ipairs({ "bullet", "number", "checkbox" }) do
@@ -129,7 +130,7 @@ local subcommands = {
   list = function(args)
     local fn = list_sub[args.fargs[2] or ""]
     if not fn then
-      vim.notify("markwright: :Markwright list {up|down|sort [done]|bullet|number|checkbox}", vim.log.levels.ERROR)
+      vim.notify("markwright: :Markwright list {up|down|sort [desc|done]|bullet|number|checkbox}", vim.log.levels.ERROR)
       return
     end
     fn(args)
@@ -179,7 +180,12 @@ end, {
     if #words == 3 and words[1] == "list" and words[2] == "sort" then
       return vim.tbl_filter(function(n)
         return n:find(lead, 1, true) == 1
-      end, { "done" })
+      end, { "desc", "done" })
+    end
+    if #words == 3 and words[1] == "table" and words[2] == "sort" then
+      return vim.tbl_filter(function(n)
+        return n:find(lead, 1, true) == 1
+      end, { "desc" })
     end
     if #words >= 2 and words[1] == "table" then
       return sorted_keys(table_sub, lead)

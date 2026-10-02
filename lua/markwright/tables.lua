@@ -687,11 +687,11 @@ local function sort_key(text)
   return tonumber(num), vim.fn.tolower(plain), plain == ""
 end
 
---- Sort the body rows by the column under the cursor: ascending, or
---- descending when they are already ascending. Numbers compare as numbers
+--- Sort the body rows by the column under the cursor, ascending (or
+--- descending with `desc = true`). Numbers compare as numbers
 --- when the whole column is numeric (ISO dates sort correctly as text);
 --- empty cells go last. The sort is stable.
-function M.sort()
+function M.sort(desc)
   local t, buf = current()
   if not t then
     return util.warn("not in a table")
@@ -712,7 +712,7 @@ function M.sort()
       numeric = false
     end
   end
-  local function less(a, b, desc)
+  local function less(a, b)
     if a.empty ~= b.empty then
       return b.empty -- empty cells last, either way
     end
@@ -725,24 +725,8 @@ function M.sort()
     end
     return a.idx < b.idx
   end
-  local asc = vim.deepcopy(body)
-  table.sort(asc, function(a, b)
-    return less(a, b, false)
-  end)
-  local already = true
-  for k, b in ipairs(asc) do
-    if b.idx ~= body[k].idx then
-      already = false
-      break
-    end
-  end
-  local sorted = asc
-  if already then
-    sorted = vim.deepcopy(body)
-    table.sort(sorted, function(a, b)
-      return less(a, b, true)
-    end)
-  end
+  local sorted = vim.deepcopy(body)
+  table.sort(sorted, less)
   for k, b in ipairs(sorted) do
     t.rows[k + 2] = b.row
   end

@@ -63,12 +63,13 @@ local cases = {
     { 2, 0 },
   },
   {
-    "sort again: Z→A",
+    "S sorts Z→A",
     { "- banana", "- Apple", "- cherry" },
     { 1, 0 },
-    { " mls", " mls" },
+    " mlS",
     { "- cherry", "- banana", "- Apple" },
   },
+  { "s twice stays A→Z", { "- b", "- a" }, { 1, 0 }, { " mls", " mls" }, { "- a", "- b" } },
   {
     "children move with their parent",
     { "- b", "  - b1", "- a", "  - a1" },
@@ -153,6 +154,8 @@ local cases = {
     ":Markwright list",
     fn = function()
       H.buf({ "- b", "- a" }, { 1, 0 })
+      vim.cmd("Markwright list sort desc")
+      eq(api.nvim_buf_get_lines(0, 0, -1, false), { "- b", "- a" })
       vim.cmd("Markwright list sort")
       eq(api.nvim_buf_get_lines(0, 0, -1, false), { "- a", "- b" })
       vim.cmd("Markwright list up")
