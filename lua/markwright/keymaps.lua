@@ -141,6 +141,45 @@ function M.attach(buf)
     map("x", ck, "<Esc><Cmd>lua require('markwright.lists').toggle_visual()<CR>", "Toggle checkboxes")
   end
 
+  -- list tools (<P>l…)
+  local lt = require("markwright.listtools")
+  map("n", P .. "lj", function()
+    lt.move(1)
+  end, "Move item down (with children)")
+  map("n", P .. "lk", function()
+    lt.move(-1)
+  end, "Move item up (with children)")
+  map("n", P .. "ls", function()
+    lt.sort("alpha")
+  end, "Sort list (again: reverse)")
+  map("n", P .. "ld", function()
+    lt.sort("checked")
+  end, "Sort list: done items last")
+  -- converters: plain lines ↔ bullets / numbers / checkboxes
+  for key, style in pairs({ b = "bullet", n = "number", c = "checkbox" }) do
+    local what = ({ bullet = "bullets", number = "numbers", checkbox = "checkboxes" })[style]
+    map("n", P .. "l" .. key, function()
+      lt.convert_paragraph(style)
+    end, "Lines ↔ " .. what)
+    map(
+      "x",
+      P .. "l" .. key,
+      ("<Esc><Cmd>lua require('markwright.listtools').convert_visual(%q)<CR>"):format(style),
+      "Lines ↔ " .. what
+    )
+  end
+  local mk = config.options.lists.move_keys
+  if type(mk) == "table" then
+    for dir, key in pairs({ [1] = mk.down, [-1] = mk.up }) do
+      if key and key ~= "" then
+        util.save_fallback(buf, "n", key)
+        map("n", key, function()
+          return lt.expr_move(dir, key)
+        end, dir == 1 and "Move item down" or "Move item up", { expr = true })
+      end
+    end
+  end
+
   -- headings
   local headings = require("markwright.headings")
   map("n", P .. "=", function()
@@ -195,6 +234,7 @@ function M.attach(buf)
       { P, group = "markdown", buffer = buf, mode = { "n", "x" } },
       { P .. "t", group = "table", buffer = buf, mode = { "n", "x" } },
       { P .. "td", group = "delete", buffer = buf, mode = "n" },
+      { P .. "l", group = "list", buffer = buf, mode = { "n", "x" } },
     })
   end
 end

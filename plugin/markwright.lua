@@ -49,6 +49,28 @@ local table_sub = {
   end,
 }
 
+local list_sub = {
+  up = function()
+    require("markwright.listtools").move(-1)
+  end,
+  down = function()
+    require("markwright.listtools").move(1)
+  end,
+  sort = function(args)
+    require("markwright.listtools").sort(args.fargs[3] == "done" and "checked" or "alpha")
+  end,
+}
+for _, style in ipairs({ "bullet", "number", "checkbox" }) do
+  list_sub[style] = function(args)
+    local lt = require("markwright.listtools")
+    if args.range > 0 then
+      lt.convert_lines(style, args.line1 - 1, args.line2 - 1)
+    else
+      lt.convert_paragraph(style)
+    end
+  end
+end
+
 local subcommands = {
   health = function()
     vim.cmd("checkhealth markwright")
@@ -104,6 +126,14 @@ local subcommands = {
     local n = #vim.diagnostic.get(0, { namespace = d.ns })
     vim.notify(("markwright: %d link problem%s"):format(n, n == 1 and "" or "s"))
   end,
+  list = function(args)
+    local fn = list_sub[args.fargs[2] or ""]
+    if not fn then
+      vim.notify("markwright: :Markwright list {up|down|sort [done]|bullet|number|checkbox}", vim.log.levels.ERROR)
+      return
+    end
+    fn(args)
+  end,
   table = function(args)
     local fn = table_sub[args.fargs[2] or ""]
     if not fn then
@@ -143,6 +173,14 @@ end, {
   desc = "markwright.nvim",
   complete = function(lead, line)
     local words = vim.split((line:gsub("^%S*%s*", "")), "%s+")
+    if #words == 2 and words[1] == "list" then
+      return sorted_keys(list_sub, lead)
+    end
+    if #words == 3 and words[1] == "list" and words[2] == "sort" then
+      return vim.tbl_filter(function(n)
+        return n:find(lead, 1, true) == 1
+      end, { "done" })
+    end
     if #words >= 2 and words[1] == "table" then
       return sorted_keys(table_sub, lead)
     end

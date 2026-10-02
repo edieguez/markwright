@@ -100,6 +100,7 @@ All five share one engine, so they behave the same way:
   - `<CR>` and `o`/`O` continue a list (bullets, numbers, checkboxes); `<CR>` on an empty item ends it.
   - `<Tab>`/`<S-Tab>` nest and un-nest items together with their children.
   - Ordered lists renumber themselves.
+  - `<leader>ml…` moves an item with its children, sorts a list, and converts lines to bullets, numbers or checkboxes and back.
 - **Checkboxes:** **`<CR>` in normal mode** toggles `[ ]` ↔ `[x]`, and adds a checkbox to a plain list item.
 - **Heading navigation:** `]]`/`[[` jump between headings, `][`/`[]` between headings of the same level, `[u` to the parent, and `<leader>mo` opens an outline to pick from.
 - **GitHub callouts:** `<leader>ma` wraps a paragraph in `> [!NOTE]` (or TIP, IMPORTANT, WARNING, CAUTION), changes the type of an existing one (same picker), and `<leader>mA` removes it.
@@ -326,6 +327,9 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `<CR>`                                                             | visual                           | Check all list items in the selection (or uncheck if all are checked)               |
 | `<CR>`                                                             | insert                           | **Continue the list** (native `<CR>` elsewhere)                                     |
 | `o` / `O`                                                          | normal                           | Open a line below / above; continues lists and blockquotes                          |
+| `<leader>mlj` / `<leader>mlk`                                      | normal                           | **Move** the list item down / up, with its children                                 |
+| `<leader>mls` / `<leader>mld`                                      | normal                           | **Sort** the list A→Z (again: Z→A) / done items last                                |
+| `<leader>mlb` / `<leader>mln` / `<leader>mlc`                      | normal, visual                   | Lines ↔ bullets / numbers / checkboxes                                              |
 | `<leader>m=`                                                       | normal, visual                   | **Heading**: add a `#` (count works: `2<leader>m=`)                                 |
 | `<leader>m-`                                                       | normal, visual                   | **Heading**: remove a `#`                                                           |
 | `<leader>mp`                                                       | normal                           | **Paste image** from the clipboard (macOS)                                          |
@@ -960,9 +964,52 @@ Type `[/]` or `[%]` (or both, e.g. `- Release [/] [%]` → `- Release [2/3] [66%
 ```
 
 - **What counts:** the item's direct sub-items that have a checkbox; checked ones are done. Plain sub-items (`- note`) are ignored, and deeper levels count toward their own parent.
-- **Counts roll up:** a sub-item without a checkbox but with its own cookie (`- Phase 1 [2/2]`) counts as one task, done when all of its tasks are. A parent with its own checkbox (`- [ ] Docs [1/1]`) is never checked automatically.
+- **Counts roll up:** a sub-item without a checkbox but with its own cookie (`- Phase 1 [0/0]`) counts as one task, done when all of its tasks are. A parent with its own checkbox (`- [ ] Docs [0/0]`) is never checked automatically.
 - **When it updates:** right after you toggle a checkbox, when you leave insert mode (so a cookie you just typed fills in), after normal-mode edits such as `dd`, and on save. The update joins the same undo step as the change that caused it.
 - Items without a cookie are never changed, and `[1/2](url)` is a link, not a cookie. Set `lists.progress = false` to turn it off.
+
+### List tools
+
+| Keys                          | Action                                                                                                     |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `<leader>mlj` / `<leader>mlk` | Move the item under the cursor down / up past its next sibling, **with its children** (`[count]` siblings) |
+| `<leader>mls`                 | Sort the list under the cursor A→Z; again for Z→A                                                          |
+| `<leader>mld`                 | Sort so **done** items go last (unchecked and plain items keep their order first)                          |
+| `<leader>mlb`                 | Lines ↔ **bullets** (`- item`)                                                                             |
+| `<leader>mln`                 | Lines ↔ **numbers** (`1. item`)                                                                            |
+| `<leader>mlc`                 | Lines ↔ **checkboxes** (`- [ ] item`)                                                                      |
+
+```
+- a              <leader>mlj      - b
+  - a1               →            - a
+- b                                 - a1
+```
+
+- **"The list under the cursor"** is the cursor's item and its siblings: on a child, only the children move. A child never leaves its parent, and moving stops at the first and last sibling.
+- **Numbered lists** are renumbered after moving or sorting, from the list's first number.
+- **Sorting** compares the item text without case, ignoring checkboxes and emphasis markers. Blank lines between items stay where they are.
+
+**Converters** (`b`, `n`, `c`) work on the paragraph or list under the cursor, or on the selection in visual mode:
+
+```
+Buy milk        <leader>mlc    - [ ] Buy milk     <leader>mln    1. Buy milk
+Call mom            →          - [ ] Call mom         →          2. Call mom
+```
+
+- Plain lines get the style; items of another style switch to it. When **every** line already has the style, it comes off and you're back to plain lines, so the same key toggles.
+- Existing markers are kept: a `*` list stays `*` when it becomes a checklist, and a numbered list stays numbered (`1. [ ] item`). New markers use `lists.bullet` (`-`, `*` or `+`) and `lists.number_delim` (`.` or `)`), so every Markdown list style is available.
+- Indented lines become sub-items, re-indented under their parent's new marker; numbers restart for each level. Converting a checklist to bullets or numbers drops the boxes.
+- Headings, code fences and blank lines are skipped, and a `>` prefix is kept.
+
+Each action is one undo step, and progress counters follow.
+
+**Moving with `<M-j>`/`<M-k>`.** LazyVim uses these to move lines. To move list items with them instead, and keep LazyVim's line move everywhere else:
+
+```lua
+opts = { lists = { move_keys = { down = "<M-j>", up = "<M-k>" } } }
+```
+
+From the command line: `:Markwright list up|down|sort [done]`, and `:[range]Markwright list bullet|number|checkbox`.
 
 ---
 
@@ -1127,32 +1174,33 @@ With `images.smart_paste = true`, pressing `p` (with `clipboard=unnamedplus`, as
 
 ## Commands
 
-| Command                                         | Description                                                                                             |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `:Markwright bold`                              | Toggle bold on the word under the cursor                                                                |
-| `:Markwright italic`                            | Toggle italic                                                                                           |
-| `:Markwright strike`                            | Toggle strikethrough                                                                                    |
-| `:Markwright code`                              | Toggle inline code                                                                                      |
-| `:Markwright highlight`                         | Toggle highlight                                                                                        |
-| `:Markwright link`                              | Like `<leader>mk`, but links the word under the cursor instead of waiting for a motion                  |
-| `:Markwright follow`                            | Same as `gx`                                                                                            |
-| `:Markwright fence`                             | Insert a code fence; with a range (`:'<,'>Markwright fence`) wrap those lines                           |
-| `:Markwright callout [type\|remove]`            | Wrap in / retype / remove a callout; with a range, wrap those lines                                     |
-| `:Markwright outline`                           | Pick a heading from an outline and jump to it                                                           |
-| `:Markwright footnote`                          | Insert a footnote                                                                                       |
-| `:Markwright image`                             | Paste the clipboard image (macOS)                                                                       |
-| `:Markwright image rename`                      | Rename the image file under the cursor and update its links                                             |
-| `:Markwright toc`                               | Insert or update the table of contents                                                                  |
-| `:Markwright check`                             | Run link diagnostics now and report the count                                                           |
-| `:Markwright check urls`                        | Check external links (in the background) and report broken ones as diagnostics and in the quickfix list |
-| `:Markwright table create`                      | Create a table                                                                                          |
-| `:'<,'>Markwright table csv`                    | Convert the range from CSV/TSV                                                                          |
-| `:Markwright table tocsv`                       | Convert the table under the cursor to CSV (asks for the separator)                                      |
-| `:Markwright table align`                       | Align the table under the cursor                                                                        |
-| `:Markwright table row` / `rowabove` / `delrow` | Add a row below / above, delete the row                                                                 |
-| `:Markwright table sort` / `transpose` / `yank` | Sort by the column under the cursor / transpose / copy as CSV                                           |
-| `:Markwright table col` / `colleft` / `delcol`  | Add a column right / left, delete the column                                                            |
-| `:Markwright health`                            | Run `:checkhealth markwright`                                                                           |
+| Command                                                                           | Description                                                                                             |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `:Markwright bold`                                                                | Toggle bold on the word under the cursor                                                                |
+| `:Markwright italic`                                                              | Toggle italic                                                                                           |
+| `:Markwright strike`                                                              | Toggle strikethrough                                                                                    |
+| `:Markwright code`                                                                | Toggle inline code                                                                                      |
+| `:Markwright highlight`                                                           | Toggle highlight                                                                                        |
+| `:Markwright link`                                                                | Like `<leader>mk`, but links the word under the cursor instead of waiting for a motion                  |
+| `:Markwright follow`                                                              | Same as `gx`                                                                                            |
+| `:Markwright fence`                                                               | Insert a code fence; with a range (`:'<,'>Markwright fence`) wrap those lines                           |
+| `:Markwright callout [type\|remove]`                                              | Wrap in / retype / remove a callout; with a range, wrap those lines                                     |
+| `:Markwright outline`                                                             | Pick a heading from an outline and jump to it                                                           |
+| `:Markwright footnote`                                                            | Insert a footnote                                                                                       |
+| `:Markwright image`                                                               | Paste the clipboard image (macOS)                                                                       |
+| `:Markwright image rename`                                                        | Rename the image file under the cursor and update its links                                             |
+| `:Markwright toc`                                                                 | Insert or update the table of contents                                                                  |
+| `:Markwright check`                                                               | Run link diagnostics now and report the count                                                           |
+| `:Markwright check urls`                                                          | Check external links (in the background) and report broken ones as diagnostics and in the quickfix list |
+| `:Markwright table create`                                                        | Create a table                                                                                          |
+| `:'<,'>Markwright table csv`                                                      | Convert the range from CSV/TSV                                                                          |
+| `:Markwright table tocsv`                                                         | Convert the table under the cursor to CSV (asks for the separator)                                      |
+| `:Markwright table align`                                                         | Align the table under the cursor                                                                        |
+| `:Markwright table row` / `rowabove` / `delrow`                                   | Add a row below / above, delete the row                                                                 |
+| `:Markwright list up` / `down` / `sort [done]` / `bullet` / `number` / `checkbox` | List tools (see [List tools](#list-tools)); the converters take a range                                 |
+| `:Markwright table sort` / `transpose` / `yank`                                   | Sort by the column under the cursor / transpose / copy as CSV                                           |
+| `:Markwright table col` / `colleft` / `delcol`                                    | Add a column right / left, delete the column                                                            |
+| `:Markwright health`                                                              | Run `:checkhealth markwright`                                                                           |
 
 Subcommands tab-complete, including the `table` actions.
 
@@ -1265,6 +1313,9 @@ require("markwright").setup({
     checkbox_key = "<CR>",          -- normal/visual key that toggles checkboxes; "" = none
     done_date = "✅ %Y-%m-%d %H:%M", -- stamp appended when checking (os.date format); false = off
     progress = true,                -- fill [/] and [%] cookies on parent items
+    move_keys = nil,                -- e.g. { down = "<M-j>", up = "<M-k>" }: move items on list items
+    bullet = "-",                   -- new bullets from the converters: "-", "*" or "+"
+    number_delim = ".",             -- new numbers from the converters: "." or ")"
   },
 })
 ```
