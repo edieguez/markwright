@@ -607,6 +607,7 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 - `:Markwright callout [type|remove]` with completion; with a range, wraps those lines.
 - Each action is one undo step. Blockquotes are found by line scan (contiguous `>` lines, up to 3 spaces of indent).
 - **Continuing quotes** (added 2026-09-30): insert `<CR>` on a `>` line (callout or plain quote) continues with the same prefix (`> `, `> > `), splitting the line at the cursor; on an empty `>` line it removes one `>` level without adding a line; `o`/`O` open a `> ` line. Lists inside quotes keep list continuation; code blocks inside a quote continue the `>`, while `>` lines in ordinary code blocks are left alone (Treesitter: code block with a `block_quote` ancestor). Option `blockquotes.continue_on_enter`.
+- Tree-sitter parses the marker `[!TYPE]` as a `shortcut_link`. `ts.is_callout_marker(node, src)` (a `shortcut_link` `[!word]` preceded only by `>`/spaces on its line) excludes it from link handling: `<P>k` and `:Markwright link` warn instead of unlinking it (fixed 2026-10-02: it used to turn `[!WARNING]` into `!WARNING`), the `ik`/`ak` text objects and their forward search skip it, and `gx` ignores it.
 
 ### 14.12 List tools (priority 2)
 - Move an item with its children: `<M-j>`/`<M-k>` **[OPEN]** on a list item swaps it with the next/previous sibling subtree and renumbers; elsewhere falls back to the existing mapping (LazyVim's move-line). Also `:Markwright list up|down`.

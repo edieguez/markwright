@@ -85,12 +85,12 @@ end
 --- after the cursor on the same line (like Vim's quote objects).
 local function node_at_or_after(p, row, col, types)
   local node = ts.ancestor(ts.inline_node(p, row, col), types)
-  if node then
+  if node and not ts.is_callout_marker(node, p) then
     return node
   end
   for _, n in ipairs(inline_nodes_on_row(p, row, types)) do
     local sr, sc = n:range()
-    if sr == row and sc >= col then
+    if sr == row and sc >= col and not ts.is_callout_marker(n, p) then
       return n
     end
   end
@@ -462,7 +462,7 @@ local function inline_anchors(p, types, from, to, out)
     local sr, _, er = root:range()
     if er >= from and sr <= to then
       walk(root, function(n)
-        if types[n:type()] then
+        if types[n:type()] and not ts.is_callout_marker(n, p) then
           local r, c = n:range()
           if r >= from and r <= to then
             table.insert(out, { r, c })

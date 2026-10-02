@@ -146,7 +146,16 @@ end
 -- Tree lookups ----------------------------------------------------------
 
 local function node_at(p, row, col, types)
-  return p and ts.ancestor(ts.inline_node(p, row, col), types)
+  local node = p and ts.ancestor(ts.inline_node(p, row, col), types)
+  if node and ts.is_callout_marker(node, p) then
+    return nil -- `> [!NOTE]` parses as a shortcut link, but it isn't one
+  end
+  return node
+end
+
+local function on_callout_marker(p, row, col)
+  local node = p and ts.ancestor(ts.inline_node(p, row, col), { shortcut_link = true })
+  return node ~= nil and ts.is_callout_marker(node, p)
 end
 
 local function node_text(buf, node)
@@ -449,6 +458,9 @@ function M.expr_normal()
     return cmd("prompt_new")
   end
   local p = ts.parse(buf, row - 1)
+  if on_callout_marker(p, row - 1, col) then
+    return "<Cmd>lua require('markwright.util').warn('that is a callout marker, not a link')<CR>"
+  end
   if
     ts.code_context(p, row - 1, col)
     or node_at(p, row - 1, col, LINK_TYPES)
