@@ -1355,7 +1355,7 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 
 - **Image paste is macOS only** for now. On Linux and WSL, `<leader>mp` shows a warning; backends for `wl-paste`, `xclip` and PowerShell are planned.
 - **Link diagnostics refresh on open and save**, not while typing. `:Markwright check` re-runs them on demand.
-- **One behavior is provisional** and may change before 1.0: when a selection only partly covers a formatted span, the whole span is removed.
+- **One behavior is provisional** and may change in a future version: when a selection only partly covers a formatted span, the whole span is removed.
 - **If you use the marksman language server** (LazyVim's markdown extra installs it), it has its own link checks. If you ever see the same broken link reported twice, disable one of them (`diagnostics.enabled = false` here).
 
 ---
@@ -1368,12 +1368,11 @@ The full plan lives in [SPEC.md](SPEC.md): **§0 is a checklist** of what's impl
 
 **Planned:**
 
-| Priority  | Features                                                                                                                   |
-| --------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Next      | Moving list items, checkbox progress `[2/5]`, table sorting, section moves, inline ↔ reference links, footnote renumbering |
-| Later     | Front matter helpers, word count, link completion                                                                          |
-| Platform  | Image paste on Linux/WSL, `:help markwright`                                                                               |
-| Version 2 | Rich-text paste (HTML → Markdown)                                                                                          |
+| Priority | Features                                                                                                                   |
+| -------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Next     | Moving list items, checkbox progress `[2/5]`, table sorting, section moves, inline ↔ reference links, footnote renumbering |
+| Later    | Front matter helpers, word count, link completion, rich-text paste (HTML → Markdown)                                       |
+| Platform | Image paste on Linux/WSL, `:help markwright`                                                                               |
 
 Out of scope: wiki-style `[[links]]` and rendering or preview. Use `render-markdown.nvim` or `markview.nvim` for rendering.
 

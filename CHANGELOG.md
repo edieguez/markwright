@@ -1,8 +1,12 @@
 # Changelog
 
-All notable changes to markwright are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/). Before 1.0, minor versions may change default keys or options; those changes are always listed here.
+All notable changes to markwright are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/). Changes to default keys or options come in major versions and are always listed here.
 
 ## [Unreleased]
+
+## [2.0.0] - 2026-10-01
+
+New editing tools (text objects, heading navigation, callouts, a link checker) and a reworked keymap. **Default keys changed:** the link key moved from `l` to `k`, the inline keys wait for a motion on plain text (`<leader>mbiw`), and the uppercase operator keys are gone. See *Changed* below. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 
 ### Added
 
@@ -15,7 +19,6 @@ All notable changes to markwright are documented here. The format follows [Keep 
 ### Fixed
 
 - `:Markwright bold` (and the other formats) on whitespace or an empty line left insert mode right away, so the empty markers couldn't be typed into.
-- CSV → table (`<leader>mtc`) put each line in a single cell when the data used a separator other than comma, tab or semicolon (for example `|` or `:`), including CSV exported by `<leader>mtx` with a custom separator.
 
 ### Changed
 
@@ -25,6 +28,15 @@ All notable changes to markwright are documented here. The format follows [Keep 
   - **CSV → table** (`<leader>mtc`) now also works in normal mode, on the paragraph under the cursor.
   - Block keys (code fence, callout) and inserts (footnote, table, TOC, image paste) still act right away.
 - **Link keys moved to `k`**, the usual link shortcut in other editors: `<leader>ml` is now `<leader>mk`, and `;;l` (formatting while typing) is now `;;k`. The `l` versions are gone; if you prefer them, map `<leader>ml` yourself to `require("markwright.links").expr_normal()` (see Custom keymaps in the README).
+
+## [0.1.1] - 2026-09-30
+
+### Fixed
+
+- CSV → table (`<leader>mtc`) put each line in a single cell when the data used a separator other than comma, tab or semicolon (for example `|` or `:`), including CSV exported by `<leader>mtx` with a custom separator.
+
+### Changed
+
 - CSV → table now asks for the separator, prefilled with the detected one (Enter accepts it), like table → CSV. Detection also recognizes `|` and `:`, and looks at all selected lines instead of only the first.
 - CSV separators can be several characters long (`::`, `; `).
 
@@ -53,5 +65,7 @@ First public release. Requires Neovim 0.10 or later (tested on 0.10.0, 0.10.4 an
 - Image paste is macOS only.
 - The operator keys and the behavior for selections that partly cover a formatted span may change before 1.0.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/edieguez/markwright/compare/v0.1.1...v2.0.0
+[0.1.1]: https://github.com/edieguez/markwright/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/edieguez/markwright/releases/tag/v0.1.0
