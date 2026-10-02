@@ -404,6 +404,112 @@ local cases = {
       eq(cmd, { "osascript", "-e", "a", "-e", "b", "/p q.png" })
     end,
   },
+
+  -- rename (<leader>mr)
+  {
+    "rename: file on disk and every reference in the buffer",
+    fn = function()
+      vim.fn.mkdir(dir .. "/assets", "p")
+      vim.fn.writefile({ "png" }, dir .. "/assets/shot.png")
+      doc({
+        "![alt](assets/shot.png)",
+        "see ![x](./assets/shot.png) and [file](assets/shot.png#p)",
+        "`![c](assets/shot.png)`",
+        "[ref]: assets/shot.png",
+        "![other](assets/other.png)",
+      }, { 1, 2 })
+      H.queue = { "my diagram" }
+      H.feed(" mr")
+      eq(exists(dir .. "/assets/shot.png"), false)
+      eq(vim.fn.readfile(dir .. "/assets/my-diagram.png"), { "png" })
+      eq(lines(), {
+        "![alt](assets/my-diagram.png)",
+        "see ![x](./assets/my-diagram.png) and [file](assets/my-diagram.png#p)",
+        "`![c](assets/shot.png)`",
+        "[ref]: assets/my-diagram.png",
+        "![other](assets/other.png)",
+      })
+      H.feed("u") -- one undo step for the text (the file keeps its new name)
+      eq(lines()[1], "![alt](assets/shot.png)")
+      eq(lines()[4], "[ref]: assets/shot.png")
+    end,
+  },
+  {
+    "rename: prefilled with the current name; typed extension wins",
+    fn = function()
+      vim.fn.mkdir(dir .. "/assets", "p")
+      vim.fn.writefile({ "png" }, dir .. "/assets/a.png")
+      doc({ "![](assets/a.png)" }, { 1, 0 })
+      local default
+      local real = vim.ui.input
+      vim.ui.input = function(o, cb)
+        default = o.default
+        cb("b.PNG")
+      end
+      H.feed(" mr")
+      vim.ui.input = real
+      eq(default, "a.png")
+      eq(exists(dir .. "/assets/b.PNG"), true)
+      eq(lines(), { "![](assets/b.PNG)" })
+    end,
+  },
+  {
+    "rename: spaces and parentheses are encoded",
+    fn = function()
+      vim.fn.mkdir(dir .. "/my assets", "p")
+      vim.fn.writefile({ "png" }, dir .. "/my assets/a (1).png")
+      doc({ "![](my%20assets/a%20%281%29.png)" }, { 1, 0 })
+      H.queue = { "new" }
+      H.feed(" mr")
+      eq(exists(dir .. "/my assets/new.png"), true)
+      eq(lines(), { "![](my%20assets/new.png)" })
+      vim.fn.delete(dir .. "/my assets", "rf")
+    end,
+  },
+  {
+    "rename: target exists, nothing changes",
+    fn = function()
+      vim.fn.mkdir(dir .. "/assets", "p")
+      vim.fn.writefile({ "1" }, dir .. "/assets/a.png")
+      vim.fn.writefile({ "2" }, dir .. "/assets/b.png")
+      doc({ "![](assets/a.png)" }, { 1, 0 })
+      H.queue = { "b" }
+      H.feed(" mr")
+      eq(vim.fn.readfile(dir .. "/assets/a.png"), { "1" })
+      eq(vim.fn.readfile(dir .. "/assets/b.png"), { "2" })
+      eq(lines(), { "![](assets/a.png)" })
+    end,
+  },
+  {
+    "rename: cancelled, remote image, missing file, not on an image",
+    fn = function()
+      vim.fn.mkdir(dir .. "/assets", "p")
+      vim.fn.writefile({ "1" }, dir .. "/assets/a.png")
+      doc({ "![](assets/a.png)" }, { 1, 0 })
+      H.queue = { nil }
+      H.feed(" mr")
+      eq(exists(dir .. "/assets/a.png"), true)
+      for _, l in ipairs({ "![](https://x.io/a.png)", "![](assets/missing.png)", "plain text" }) do
+        doc({ l }, { 1, 2 })
+        H.queue = { "z" }
+        H.feed(" mr")
+        eq(lines(), { l })
+      end
+      eq(exists(dir .. "/assets/z.png"), false)
+    end,
+  },
+  {
+    ":Markwright image rename",
+    fn = function()
+      vim.fn.mkdir(dir .. "/assets", "p")
+      vim.fn.writefile({ "1" }, dir .. "/assets/a.png")
+      doc({ "![](assets/a.png)" }, { 1, 0 })
+      H.queue = { "c" }
+      vim.cmd("Markwright image rename")
+      eq(lines(), { "![](assets/c.png)" })
+      eq(vim.fn.getcompletion("Markwright image ", "cmdline"), { "rename" })
+    end,
+  },
 }
 
 H.mock_input()

@@ -4,6 +4,19 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **Rename image files**: `<leader>mr` (or `:Markwright image rename`) on an image renames the file on disk and updates every link to it in the buffer. The prompt is prefilled with the current name; the extension is kept if you don't type one.
+
+### Changed
+
+- **Table keys use `h`/`j`/`k`/`l`**: `<leader>mth` / `<leader>mtl` add a column left / right, `<leader>mtj` / `<leader>mtk` add a row below / above (new). Deleting moved to `<leader>mtdr` (row) and `<leader>mtdc` (column). The old `<leader>mtr`, `mtR`, `mtK` are gone, and `<leader>mtk` now adds a row above instead of a column. New commands `:Markwright table rowabove` and `colleft`.
+
+### Fixed
+
+- Undo: a link's page title that arrived after you had already made another change was merged into that change's undo step, so one `u` undid both. The late title now gets its own undo step.
+- Undo breaks from picker and prompt callbacks (callouts, links, images…) now always apply to the Markdown buffer, even if the picker's window is still focused when the callback runs.
+
 ## [1.0.0] - 2026-10-02
 
 First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).

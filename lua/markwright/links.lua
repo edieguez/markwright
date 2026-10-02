@@ -202,6 +202,7 @@ function M.insert_titled(buf, row, col, ecol, url, o)
   if not opts().fetch_title or href:match("^mailto:") then
     return
   end
+  local tick = api.nvim_buf_get_changedtick(buf) -- right after the link went in
   local id = api.nvim_buf_set_extmark(buf, ns, row, col + 1, {
     end_row = row,
     end_col = col + 1 + #label,
@@ -225,7 +226,14 @@ function M.insert_titled(buf, row, col, ecol, url, o)
     if current ~= label then
       return -- the user edited or undid it meanwhile
     end
-    pcall(vim.cmd, "undojoin") -- keep link + title as one undo step
+    if api.nvim_buf_get_changedtick(buf) == tick then
+      pcall(vim.cmd, "undojoin") -- nothing happened since: link + title are one undo step
+    else
+      -- something else changed the buffer while the title was loading (typing,
+      -- a callout...): joining would glue the title to *that* change, and `u`
+      -- would undo it too. The title gets its own undo step instead.
+      util.undo_break(buf)
+    end
     api.nvim_buf_set_text(buf, r, c, r, d.end_col, { M.escape_text(t) })
   end)
 end

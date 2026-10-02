@@ -82,10 +82,21 @@ function M.attach(buf)
   map("n", P .. "tc", tables.from_csv_paragraph, "CSV → table (paragraph)")
   map("x", P .. "tc", "<Esc><Cmd>lua require('markwright.tables').from_csv_visual()<CR>", "CSV → table")
   map("n", P .. "tx", tables.to_csv, "Table → CSV")
-  map("n", P .. "tr", tables.add_row, "Add row below")
-  map("n", P .. "tR", tables.delete_row, "Delete row")
-  map("n", P .. "tk", tables.add_col, "Add column right")
-  map("n", P .. "tK", tables.delete_col, "Delete column")
+  -- h/j/k/l add a column left / row below / row above / column right
+  map("n", P .. "th", function()
+    tables.add_col(true)
+  end, "Add column left")
+  map("n", P .. "tj", function()
+    tables.add_row()
+  end, "Add row below")
+  map("n", P .. "tk", function()
+    tables.add_row(true)
+  end, "Add row above")
+  map("n", P .. "tl", function()
+    tables.add_col()
+  end, "Add column right")
+  map("n", P .. "tdr", tables.delete_row, "Delete row")
+  map("n", P .. "tdc", tables.delete_col, "Delete column")
   map("n", P .. "ta", function()
     tables.align()
   end, "Align table")
@@ -144,6 +155,9 @@ function M.attach(buf)
     "<Esc><Cmd>lua require('markwright.images').paste_visual()<CR>",
     "Paste image (selection = alt text)"
   )
+  map("n", P .. "r", function()
+    require("markwright.images").rename()
+  end, "Rename image file")
 
   -- callouts: block keys act at once on the paragraph (or callout) under the cursor
   map("n", P .. "a", function()
@@ -164,6 +178,7 @@ function M.attach(buf)
     wk.add({
       { P, group = "markdown", buffer = buf, mode = { "n", "x" } },
       { P .. "t", group = "table", buffer = buf, mode = { "n", "x" } },
+      { P .. "td", group = "delete", buffer = buf, mode = "n" },
     })
   end
 end

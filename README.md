@@ -90,7 +90,7 @@ All five share one engine, so they behave the same way:
 - **Footnotes** (`<leader>mn`): inserts `[^n]` with the next number, adds the definition at the end of the file and puts you there.
 - **Tables** (`<leader>mt…`):
   - create from a `rows x cols` size, or convert CSV/TSV lines (the paragraph under the cursor, or a selection), and back to CSV
-  - add and delete rows and columns
+  - add rows and columns with `h`/`j`/`k`/`l` (left / below / above / right), and delete them
   - `<Tab>`/`<S-Tab>` move between cells
   - columns realign when you leave insert mode, accounting for accents, CJK text and alignment markers
 - **Table of contents** (`<leader>mT`): a nested list of heading links between `<!-- toc -->` markers, updated on every save.
@@ -103,7 +103,7 @@ All five share one engine, so they behave the same way:
 - **Heading navigation:** `]]`/`[[` jump between headings, `][`/`[]` between headings of the same level, `[u` to the parent, and `<leader>mo` opens an outline to pick from.
 - **GitHub callouts:** `<leader>ma` wraps a paragraph in `> [!NOTE]` (or TIP, IMPORTANT, WARNING, CAUTION), changes the type of an existing one (same picker), and `<leader>mA` removes it.
 - **Headings:** `<leader>m=` adds a `#`, `<leader>m-` removes one. They take counts and convert setext headings.
-- **Image paste** (`<leader>mp`, macOS): saves a screenshot, copied image or Finder file into `assets/` next to the file and inserts `![alt](assets/name.png)`.
+- **Image paste** (`<leader>mp`, macOS): saves a screenshot, copied image or Finder file into `assets/` next to the file and inserts `![alt](assets/name.png)`. `<leader>mr` on an image renames its file on disk and updates the links.
 
 ### Coming next
 
@@ -310,8 +310,9 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `<leader>mtt`                                                      | normal                           | Create a **table**                                                                  |
 | `<leader>mtc`                                                      | normal, visual                   | Convert CSV/TSV lines to a table (the paragraph under the cursor, or the selection) |
 | `<leader>mtx`                                                      | normal                           | Convert the table under the cursor to CSV (asks for the separator)                  |
-| `<leader>mtr` / `<leader>mtR`                                      | normal                           | Add row below / delete row                                                          |
-| `<leader>mtk` / `<leader>mtK`                                      | normal                           | Add column right / delete column                                                    |
+| `<leader>mth` / `<leader>mtl`                                      | normal                           | Add a column left / right                                                           |
+| `<leader>mtj` / `<leader>mtk`                                      | normal                           | Add a row below / above                                                             |
+| `<leader>mtdr` / `<leader>mtdc`                                    | normal                           | Delete the row / column                                                             |
 | `<leader>mta`                                                      | normal                           | Align the table now                                                                 |
 | `<Tab>` / `<S-Tab>`                                                | insert                           | Next / previous table cell; nest / un-nest a list item (native `<Tab>` elsewhere)   |
 | `<leader>mT`                                                       | normal                           | Insert or update the **table of contents**                                          |
@@ -323,6 +324,7 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `<leader>m-`                                                       | normal, visual                   | **Heading**: remove a `#`                                                           |
 | `<leader>mp`                                                       | normal                           | **Paste image** from the clipboard (macOS)                                          |
 | `<leader>mp`                                                       | visual                           | Paste image; the selection becomes the alt text                                     |
+| `<leader>mr`                                                       | normal                           | **Rename** the image file under the cursor (on disk) and update its links           |
 
 **Operator examples** (on plain text, the key waits for one of these):
 
@@ -722,15 +724,17 @@ It's one undo step: `u` brings the table back. Converting CSV → table → CSV 
 
 ### Editing
 
-| Keys | Action |
-|---|---|
-| `<Tab>` (insert) | Next cell. From the last cell, a new row is added |
-| `<S-Tab>` (insert) | Previous cell |
-| `<leader>mtr` | Add a row below; on the header, the row goes below the delimiter |
-| `<leader>mtR` | Delete the current row (not the header or the delimiter) |
-| `<leader>mtk` | Add a column to the right |
-| `<leader>mtK` | Delete the current column (not the last remaining one) |
-| `<leader>mta` | Align now |
+| Keys               | Action                                                                     |
+| ------------------ | -------------------------------------------------------------------------- |
+| `<Tab>` (insert)   | Next cell. From the last cell, a new row is added                          |
+| `<S-Tab>` (insert) | Previous cell                                                              |
+| `<leader>mth`      | Add a column to the left                                                   |
+| `<leader>mtj`      | Add a row below; on the header, the row goes below the delimiter           |
+| `<leader>mtk`      | Add a row above (not above the header: the first row is always the header) |
+| `<leader>mtl`      | Add a column to the right                                                  |
+| `<leader>mtdr`     | Delete the current row (not the header or the delimiter)                   |
+| `<leader>mtdc`     | Delete the current column (not the last remaining one)                     |
+| `<leader>mta`      | Align now                                                                  |
 
 The navigation skips the delimiter row and puts the cursor at the end of the cell's text.
 
@@ -1024,6 +1028,20 @@ Other details:
 - One `u` removes the link; the saved file stays.
 - `:Markwright image` does the same as `<leader>mp`.
 
+### Renaming an image
+
+`<leader>mr` (or `:Markwright image rename`) with the cursor on an image `![alt](assets/shot.png)` asks for a new name, prefilled with the current one, and then:
+
+- **renames the file on disk**, in the same folder. Without an extension, the old one is kept; spaces become `-`, as when pasting.
+- **updates every link to it in the buffer**: images, links and `[ref]: …` definitions, however the path is written (`./assets/…`, encoded spaces), but not inside code.
+- refuses to overwrite an existing file, and does nothing for remote images (`https://…`) or missing files.
+
+```
+![login](assets/shot.png)    <leader>mr  "login-page"  →  ![login](assets/login-page.png)
+```
+
+Links in **other files** aren't updated; `:Markwright check` (or saving them) flags the ones that broke. One `u` reverts the text, but **not** the file name.
+
 ### Under the hood (macOS)
 
 - `osascript` (built in) reads the clipboard type and writes image data as PNG. The alternative is [pngpaste](https://github.com/jcsalterego/pngpaste) (`brew install pngpaste`), which is used automatically when installed.
@@ -1038,30 +1056,31 @@ With `images.smart_paste = true`, pressing `p` (with `clipboard=unnamedplus`, as
 
 ## Commands
 
-| Command                              | Description                                                                                             |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| `:Markwright bold`                   | Toggle bold on the word under the cursor                                                                |
-| `:Markwright italic`                 | Toggle italic                                                                                           |
-| `:Markwright strike`                 | Toggle strikethrough                                                                                    |
-| `:Markwright code`                   | Toggle inline code                                                                                      |
-| `:Markwright highlight`              | Toggle highlight                                                                                        |
-| `:Markwright link`                   | Like `<leader>mk`, but links the word under the cursor instead of waiting for a motion           |
-| `:Markwright follow`                 | Same as `gx`                                                                                            |
-| `:Markwright fence`                  | Insert a code fence; with a range (`:'<,'>Markwright fence`) wrap those lines                           |
-| `:Markwright callout [type\|remove]` | Wrap in / retype / remove a callout; with a range, wrap those lines                                     |
-| `:Markwright outline`                | Pick a heading from an outline and jump to it                                                           |
-| `:Markwright footnote`               | Insert a footnote                                                                                       |
-| `:Markwright image`                  | Paste the clipboard image (macOS)                                                                       |
-| `:Markwright toc`                    | Insert or update the table of contents                                                                  |
-| `:Markwright check`                  | Run link diagnostics now and report the count                                                           |
-| `:Markwright check urls`             | Check external links (in the background) and report broken ones as diagnostics and in the quickfix list |
-| `:Markwright table create`           | Create a table                                                                                          |
-| `:'<,'>Markwright table csv`         | Convert the range from CSV/TSV                                                                          |
-| `:Markwright table tocsv`            | Convert the table under the cursor to CSV (asks for the separator)                                      |
-| `:Markwright table align`            | Align the table under the cursor                                                                        |
-| `:Markwright table row` / `delrow`   | Add a row below / delete the row                                                                        |
-| `:Markwright table col` / `delcol`   | Add a column right / delete the column                                                                  |
-| `:Markwright health`                 | Run `:checkhealth markwright`                                                                           |
+| Command                                         | Description                                                                                             |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `:Markwright bold`                              | Toggle bold on the word under the cursor                                                                |
+| `:Markwright italic`                            | Toggle italic                                                                                           |
+| `:Markwright strike`                            | Toggle strikethrough                                                                                    |
+| `:Markwright code`                              | Toggle inline code                                                                                      |
+| `:Markwright highlight`                         | Toggle highlight                                                                                        |
+| `:Markwright link`                              | Like `<leader>mk`, but links the word under the cursor instead of waiting for a motion                  |
+| `:Markwright follow`                            | Same as `gx`                                                                                            |
+| `:Markwright fence`                             | Insert a code fence; with a range (`:'<,'>Markwright fence`) wrap those lines                           |
+| `:Markwright callout [type\|remove]`            | Wrap in / retype / remove a callout; with a range, wrap those lines                                     |
+| `:Markwright outline`                           | Pick a heading from an outline and jump to it                                                           |
+| `:Markwright footnote`                          | Insert a footnote                                                                                       |
+| `:Markwright image`                             | Paste the clipboard image (macOS)                                                                       |
+| `:Markwright image rename`                      | Rename the image file under the cursor and update its links                                             |
+| `:Markwright toc`                               | Insert or update the table of contents                                                                  |
+| `:Markwright check`                             | Run link diagnostics now and report the count                                                           |
+| `:Markwright check urls`                        | Check external links (in the background) and report broken ones as diagnostics and in the quickfix list |
+| `:Markwright table create`                      | Create a table                                                                                          |
+| `:'<,'>Markwright table csv`                    | Convert the range from CSV/TSV                                                                          |
+| `:Markwright table tocsv`                       | Convert the table under the cursor to CSV (asks for the separator)                                      |
+| `:Markwright table align`                       | Align the table under the cursor                                                                        |
+| `:Markwright table row` / `rowabove` / `delrow` | Add a row below / above, delete the row                                                                 |
+| `:Markwright table col` / `colleft` / `delcol`  | Add a column right / left, delete the column                                                            |
+| `:Markwright health`                            | Run `:checkhealth markwright`                                                                           |
 
 Subcommands tab-complete, including the `table` actions.
 

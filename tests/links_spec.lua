@@ -339,6 +339,31 @@ local cases = {
     { "https://x.io" },
   },
 
+  -- the page title arrives late (after another change): undo stays per change
+  {
+    "late title doesn't join the next change's undo step",
+    { "go https://x.io now" },
+    { 1, 5 },
+    { " mk", "Ax<Esc>", "<Cmd>lua _G.mw_title_arrives()<CR>", "u" },
+    { "go [x.io](https://x.io) nowx" },
+    setup = function()
+      local pending
+      title.fetch = function(_, cb)
+        pending = cb
+      end
+      -- selene: allow(global_usage)
+      _G.mw_title_arrives = function()
+        pending("Title")
+      end
+    end,
+  },
+  {
+    "title arriving right away is one undo step with the link",
+    { "go https://x.io now" },
+    { 1, 5 },
+    { " mk", "u" },
+    { "go https://x.io now" },
+  },
   -- whitespace: the URL prompt is prefilled with a clipboard URL
   {
     "empty line, clipboard URL: prefilled, Enter accepts it",

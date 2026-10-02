@@ -39,7 +39,7 @@ Status: **1.0.0 released** — updated 2026-10-02. Sections 1–13 describe what
   - [x] auto-renumber (joined undo, lazy lists kept)
   - [x] completion/snippet-aware `<Tab>`/`<CR>` fallback (§13.3)
 - [x] **Code fences** — typed language, wrap selection, container-aware, fence escalation (§9.3)
-- [x] **Tables** — create, CSV/TSV → table, table → CSV (asks for the separator), add/delete row/column, `<Tab>` cells, align on InsertLeave (§9.4)
+- [x] **Tables** — create, CSV/TSV → table, table → CSV (asks for the separator), add row below/above (`<P>tj`/`<P>tk`), column left/right (`<P>th`/`<P>tl`), delete (`<P>tdr`/`<P>tdc`), `<Tab>` cells, align on InsertLeave (§9.4)
 - [x] **Footnotes** — insert + jump (§9.5)
 - [x] **TOC** — markers, nested entries, refresh on save (§9.6)
 - [x] **Link diagnostics** — files, anchors, references, footnotes; on open/save; `:Markwright check` (§10)
@@ -251,11 +251,13 @@ All buffer-local, Markdown only. `<P>` = configured prefix (default `<leader>m`)
 | n | `<P>n` | Insert footnote |
 | n | `<P>tt` | Create table |
 | n, x | `<P>tc` | CSV/TSV lines → table: the paragraph under the cursor (n) or the selection (x) |
-| n | `<P>tr` / `<P>tR` | Add row below / delete row |
-| n | `<P>tk` / `<P>tK` | Add column right / delete column |
+| n | `<P>th` / `<P>tl` | Add column left / right |
+| n | `<P>tj` / `<P>tk` | Add row below / above (not above the header) |
+| n | `<P>tdr` / `<P>tdc` | Delete row / column |
 | n | `<P>ta` | Align table now |
 | n | `<P>T` | Insert/update TOC |
 | n, x | `<P>p` | Paste image (visual: selection = alt text) |
+| n | `<P>r` | Rename the image file under the cursor and update its links in the buffer (§13.1) |
 | i | `;;` + `i`/`b`/`s`/`c`/`h`/`k` | Formatting while typing (trigger configurable) |
 | n, x, o | `]]`/`[[`, `][`/`[]`, `[u` | Heading navigation (§14.9; configurable under `nav`) |
 | n | `<P>o` | Outline picker (§14.9) |
@@ -408,7 +410,7 @@ GitHub style: lowercase, strip punctuation except `-` and `_`, spaces → `-`, k
 - **Create** (`<P>tt`): prompt `rows x cols` (e.g. `3x4`), insert header row, delimiter row and empty body rows, cursor in first header cell.
 - **CSV → table** (`<P>tc`: the paragraph under the cursor in normal mode, the selection in visual mode; `:'<,'>Markwright table csv`): the lines; asks `Separator:` prefilled with the detected one (candidates `\t` `,` `;` `|` `:`; a candidate that splits every line into the same number > 1 of fields wins, most fields first; else the one splitting the first line most; else `,`). Any typed separator works, including multi-character ones; `\t`/`tab` = tab; cancel does nothing. Honor quoted fields; trim fields; first line becomes the header; escape `|` in cells. (Changed 2026-09-30: detection used to consider only `\t , ;` on the first line, so other separators produced a single column.)
 - **Table → CSV** (`<P>tx`, `:Markwright table tocsv`; implemented 2026-09-30): replaces the table under the cursor with CSV lines — the opposite of `<P>tc`. Asks `Separator:` prefilled with `tables.csv_separator` (default `,`); `\t`/`tab` mean a tab, empty input means the default, cancel does nothing. Delimiter row dropped; short rows padded; fields quoted when they contain the separator, a `"` or edge spaces (quotes doubled); `\|` unescaped; indentation kept (tables in list items). One undo step; CSV → table → CSV round-trips.
-- **Row/column editing:** add row below / delete row; add column right / delete column (updates delimiter row).
+- **Row/column editing (keys changed 2026-10-02, hjkl):** `<P>th` / `<P>tl` add a column left / right; `<P>tj` / `<P>tk` add a row below / above (above the header is refused: a table's first row is its header; below the header goes below the delimiter); `<P>tdr` / `<P>tdc` delete the row / column (updates the delimiter row). Commands: `:Markwright table row|rowabove|delrow|col|colleft|delcol`. (Previously `<P>tr`/`<P>tR`/`<P>tk`/`<P>tK`.)
 - **Cell navigation:** `<Tab>` / `<S-Tab>` in insert mode inside a table → next/previous cell; `<Tab>` in the last cell adds a new row.
 - **Align:** pad cells so pipes line up, using display width (`vim.fn.strdisplaywidth`, for accents/CJK/emoji); respect alignment markers (`:---`, `:---:`, `---:`). Runs on `InsertLeave` when the cursor was in a table, after row/col edits, and via `<P>ta`.
 - Detection via Treesitter `pipe_table` node.
@@ -478,6 +480,8 @@ Decisions (all configurable under `images`):
 - Save to `assets/` next to the file (relative, absolute, `~` or function); created on demand; name prompt prefilled with `image-%Y%m%d-%H%M%S` (Finder: original name); sanitized; never overwrites (`-1`, `-2`…).
 - Link path relative to the file, spaces/parens URL-encoded. Alt text from a typed name (default timestamp → empty), or `prompt` / `empty`.
 - Still open: Linux/WSL backends (`wl-paste`, `xclip`, `powershell.exe`), compression/WebP, cleanup of unreferenced images.
+
+- **Rename** (`<P>r`, `:Markwright image rename`; implemented 2026-10-02): cursor on an inline image with a local destination; `vim.ui.input` prefilled with the file name; renames the file in its folder with `vim.uv.fs_rename` (no extension typed → old one kept; name sanitized like paste: spaces → `-`, no path separators), then rewrites every destination in the buffer that resolves to the old file (images, links, `[ref]:` definitions; `./`, `%20`, `<…>` forms; `#fragment` kept; skips code) as one undo step. Refuses existing targets (a case-only change on a case-insensitive disk is allowed), remote URLs and missing files. Other files aren't updated (link diagnostics flag them); undo doesn't rename the file back.
 
 ### 13.2 Insert-mode formatting keys — **implemented (2026-09-30)**
 - Trigger `;;` (config `insert.trigger`: 2+ characters, a key like `<C-g>`, or `""` to disable), then `i` `b` `s` `c` `h` `k`. Chosen for portability: plain characters work in every terminal and layout; `<C-m>` (= Enter), `<C-i>` (= Tab), Option/Meta keys and completion-plugin keys were ruled out.
