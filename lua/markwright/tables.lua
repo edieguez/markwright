@@ -623,6 +623,195 @@ function M.delete_col()
   write(buf, t, { i, math.min(c, ncols(t)), 0 })
 end
 
+-- Table extras ------------------------------------------------------------
+
+--- Pad every row (and the alignments) to the table's column count.
+local function square(t)
+  local n = ncols(t)
+  for _, r in ipairs(t.rows) do
+    for c = #r + 1, n do
+      r[c] = ""
+    end
+  end
+  for c = #t.aligns + 1, n do
+    t.aligns[c] = "none"
+  end
+  return n
+end
+
+--- Move the column under the cursor left (dir = -1) or right (dir = 1),
+--- [count] times. Alignment markers move with it; the cursor follows.
+function M.move_col(dir)
+  local t, buf = current()
+  if not t then
+    return util.warn("not in a table")
+  end
+  local i, c, off = cursor_cell(buf, t)
+  local n = square(t)
+  local target = math.max(1, math.min(n, c + dir * vim.v.count1))
+  if target == c then
+    return
+  end
+  for _, r in ipairs(t.rows) do
+    table.insert(r, target, table.remove(r, c))
+  end
+  table.insert(t.aligns, target, table.remove(t.aligns, c))
+  write(buf, t, { i, target, off })
+end
+
+--- Move the body row under the cursor up (dir = -1) or down (dir = 1),
+--- [count] times. The header and the delimiter row stay where they are.
+function M.move_row(dir)
+  local t, buf = current()
+  if not t then
+    return util.warn("not in a table")
+  end
+  local i, c, off = cursor_cell(buf, t)
+  if i <= 2 then
+    return util.warn("the header row can't move")
+  end
+  local target = math.max(3, math.min(#t.rows, i + dir * vim.v.count1))
+  if target == i then
+    return
+  end
+  table.insert(t.rows, target, table.remove(t.rows, i))
+  write(buf, t, { target, c, off })
+end
+
+--- Sort key of a cell: a number when the text is one (thousands separators,
+--- currency signs, `%` and Markdown emphasis ignored), else lowercase text.
+local function sort_key(text)
+  local plain = vim.trim((text:gsub("[*_`~=]", "")))
+  local num = plain:gsub("^[%$€£¥]", ""):gsub("%%$", ""):gsub("(%d),(%d%d%d)", "%1%2")
+  num = num:gsub("(%d),(%d%d%d)", "%1%2")
+  return tonumber(num), vim.fn.tolower(plain), plain == ""
+end
+
+--- Sort the body rows by the column under the cursor: ascending, or
+--- descending when they are already ascending. Numbers compare as numbers
+--- when the whole column is numeric (ISO dates sort correctly as text);
+--- empty cells go last. The sort is stable.
+function M.sort()
+  local t, buf = current()
+  if not t then
+    return util.warn("not in a table")
+  end
+  local i, c, off = cursor_cell(buf, t)
+  square(t)
+  local body = {}
+  for k = 3, #t.rows do
+    local num, txt, empty = sort_key(t.rows[k][c] or "")
+    table.insert(body, { row = t.rows[k], num = num, txt = txt, empty = empty, idx = k })
+  end
+  if #body < 2 then
+    return
+  end
+  local numeric = true
+  for _, b in ipairs(body) do
+    if not b.empty and not b.num then
+      numeric = false
+    end
+  end
+  local function less(a, b, desc)
+    if a.empty ~= b.empty then
+      return b.empty -- empty cells last, either way
+    end
+    local ka, kb = numeric and a.num or a.txt, numeric and b.num or b.txt
+    if not a.empty and ka ~= kb then
+      if desc then
+        return ka > kb
+      end
+      return ka < kb
+    end
+    return a.idx < b.idx
+  end
+  local asc = vim.deepcopy(body)
+  table.sort(asc, function(a, b)
+    return less(a, b, false)
+  end)
+  local already = true
+  for k, b in ipairs(asc) do
+    if b.idx ~= body[k].idx then
+      already = false
+      break
+    end
+  end
+  local sorted = asc
+  if already then
+    sorted = vim.deepcopy(body)
+    table.sort(sorted, function(a, b)
+      return less(a, b, true)
+    end)
+  end
+  for k, b in ipairs(sorted) do
+    t.rows[k + 2] = b.row
+  end
+  write(buf, t, { i, c, off })
+end
+
+--- Swap rows and columns: the first column becomes the header row.
+--- Alignments are reset (they belonged to the old columns).
+function M.transpose()
+  local t, buf = current()
+  if not t then
+    return util.warn("not in a table")
+  end
+  local i, c = cursor_cell(buf, t)
+  local n = square(t)
+  local data = {}
+  for k, r in ipairs(t.rows) do
+    if k ~= 2 then
+      table.insert(data, r)
+    end
+  end
+  local rows = {}
+  for col = 1, n do
+    local r = {}
+    for d = 1, #data do
+      r[d] = data[d][col]
+    end
+    table.insert(rows, r)
+  end
+  local delim_row = {}
+  t.aligns = {}
+  for d = 1, #data do
+    delim_row[d] = "---"
+    t.aligns[d] = "none"
+  end
+  table.insert(rows, 2, delim_row)
+  t.rows = rows
+  -- the cell under the cursor moves to (row = old column, column = old row)
+  local d = i <= 2 and 1 or i - 1
+  write(buf, t, { c == 1 and 1 or c + 1, d, 0 })
+end
+
+--- Copy the table under the cursor to the clipboard (and the unnamed
+--- register) as CSV, asking for the separator like table → CSV. The table
+--- stays as it is.
+function M.yank_csv()
+  local t, buf = current()
+  if not t then
+    return util.warn("not in a table")
+  end
+  local default = config.options.tables.csv_separator
+  local shown = default == "\t" and "\\t" or default
+  vim.ui.input({ prompt = "Separator: ", default = shown }, function(input)
+    if input == nil then
+      return
+    end
+    local sep = M.parse_sep(input) or default
+    local fresh = M.read(buf, t.sr, t.er)
+    fresh.indent = ""
+    local lines = M.to_csv_lines(fresh, sep)
+    local text = table.concat(lines, "\n") .. "\n"
+    vim.fn.setreg('"', text, "l")
+    if vim.fn.has("clipboard") == 1 then
+      pcall(vim.fn.setreg, "+", text, "l")
+    end
+    vim.notify(("markwright: copied %d line%s as CSV"):format(#lines, #lines == 1 and "" or "s"))
+  end)
+end
+
 --- Move to the next (dir = 1) or previous (dir = -1) cell. From the last
 --- cell, <Tab> adds a new row. Used from insert mode.
 function M.next_cell(dir)
