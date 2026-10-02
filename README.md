@@ -66,7 +66,7 @@ Built for LazyVim, and it works with any Neovim setup from 0.10 on (tested on 0.
 All five share one engine, so they behave the same way:
 
 - **Toggle.** The same key adds or removes the format.
-- **Operators, like `d` or `gu`.** Every key waits for a motion or text object (`<leader>mbiw`, `<leader>mb$`), `_` is the current line (`<leader>mb_`, `3<leader>mb_` for three lines), and visual mode wraps the selection (charwise, linewise or blockwise). Links work the same way. Block keys (code fence, callout, CSV → table) and inserts (footnote, table, TOC, image) act right away instead.
+- **Acts at once, or waits for a motion.** With nothing to choose, the key acts right away: inside a span it removes it, on whitespace it inserts an empty pair. On plain text it's an operator, like `d` or `gu`, and waits for a motion or text object (`<leader>mbiw`, `<leader>mb$`; `_` is the current line, `3<leader>mb_` three lines). Visual mode wraps the selection (charwise, linewise or blockwise). Links work the same way. Block keys (code fence, callout, CSV → table) and inserts (footnote, table, TOC, image) act right away instead.
 - **Removes the whole span from anywhere inside it.** The cursor on `world` in `**hello world**` gives `hello world`.
 - **Formats nest.** Italic on `**word**` gives `***word***`.
 - **Knows Markdown structure.** List markers, checkboxes, `>` and `#` are never wrapped.
@@ -75,9 +75,10 @@ All five share one engine, so they behave the same way:
 - **While typing, too.** In insert mode, type `;;` then `b` for `**|**` (or `i`, `s`, `c`, `h`, `k`). The same keys jump past the closing marker. There's no delay on normal `;` typing, and it works in any terminal.
 - **Text objects.** `cik` changes a link's text, `yiu` copies its URL, `dah` deletes a section, `ci|` a table cell, `daL` a list item with its children, `ci*` the text inside `**…**`.
 
-**Links** follow the same toggle idea. `<leader>mk` is an operator like the formatting keys (`<leader>mkiw`, `<leader>mk$`, `<leader>mkak`):
+**Links** follow the same idea. `<leader>mk` acts at once on a link, a bare URL or whitespace, and waits for a motion on plain text (`<leader>mkiw`, `<leader>mk$`):
 
-- **On a word, a motion or a selection** it wraps the text as `[text](url)`. The URL comes from the clipboard if it holds one; otherwise you're prompted.
+- **On text (with a motion) or a selection** it wraps the text as `[text](url)`. The URL comes from the clipboard if it holds one; otherwise you're prompted.
+- **On whitespace or an empty line** it inserts a new link: it asks for the URL (prefilled with the clipboard URL, so Enter accepts it), then for the text (empty = the page title).
 - **On a bare URL** it turns the URL into `[Page Title](url)`, fetching the title in the background.
 - **On an existing link** it removes the link and keeps the text.
 - **Smart paste.** `p` with a URL over a selection makes a link; `p` of a bare URL in normal mode inserts a titled link. Anything else pastes normally.
@@ -215,11 +216,11 @@ To opt out of every default key at once, set `keymaps = { enabled = false }` and
 
 ## Quick start
 
-Open a Markdown file, put the cursor on a word and try. The formatting keys are operators, like `d` or `gu`: they wait for a motion or a text object.
+Open a Markdown file, put the cursor on a word and try. On plain text the formatting keys are operators, like `d` or `gu`: they wait for a motion or a text object. Inside a formatted span or on whitespace they act at once.
 
 ```
 <leader>mbiw    bold the word           hello  →  **hello**
-<leader>mbiw    again: remove it        **hello**  →  hello
+<leader>mb      inside: remove it       **hello**  →  hello
 <leader>miiw    italic                  hello  →  *hello*
 <leader>mc$     code to end of line     say hi there  →  say `hi there`
 <leader>mb2e    bold the next 2 words   one two three  →  **one two** three
@@ -227,6 +228,7 @@ Open a Markdown file, put the cursor on a word and try. The formatting keys are 
 viw<leader>mc   inline code (visual)    hello  →  `hello`
 .               repeat the last toggle
 u               undo it (one step)
+<leader>mb      on an empty line        →  **|**  (insert mode between the markers)
 ```
 
 While typing, you don't need to leave insert mode:
@@ -242,8 +244,9 @@ For links, copy a URL in your browser, then:
 <leader>mkiw    link the word           docs  →  [docs](https://copied.url)
 <leader>mk$     link to end of line     read the docs  →  [read the docs](https://copied.url)
 vip<leader>mk   link the selection
-<leader>mkak    on a bare URL           https://neovim.io  →  [Neovim — hyperextensible…](https://neovim.io)
-<leader>mkak    on a link: remove it    [docs](https://…)  →  docs
+<leader>mk      on a bare URL           https://neovim.io  →  [Neovim — hyperextensible…](https://neovim.io)
+<leader>mk      on a link: remove it    [docs](https://…)  →  docs
+<leader>mk      on an empty line        →  [text](https://copied.url)  (Enter accepts the copied URL; empty text = page title)
 viwp            paste URL over a word   here  →  [here](https://copied.url)
 ```
 
@@ -281,47 +284,47 @@ And images (take a screenshot with ⌘⇧⌃4 first):
 
 Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes` in [Configuration](#configuration)). The prefix defaults to `<leader>m`. With LazyVim's default leader that is `Space m`.
 
-| Keys                                                               | Mode                             | Action                                                                                    |
-| ------------------------------------------------------------------ | -------------------------------- | ----------------------------------------------------------------------------------------- |
-| `<leader>mi` + motion                                              | normal                           | Toggle **italic**                                                                         |
-| `<leader>mb` + motion                                              | normal                           | Toggle **bold** (`<leader>mbiw`, `<leader>mb_` for the line, `3<leader>mb_` for three)    |
-| `<leader>ms` + motion                                              | normal                           | Toggle **strikethrough**                                                                  |
-| `<leader>mc` + motion                                              | normal                           | Toggle **inline code**                                                                    |
-| `<leader>mh` + motion                                              | normal                           | Toggle **highlight**                                                                      |
-| `<leader>mi` `mb` `ms` `mc` `mh`                                   | visual                           | Toggle the format on the selection                                                        |
-| `;;` then `i` `b` `s` `c` `h` `k`                                  | insert                           | **Formatting while typing**: open a pair, or jump out of it (see below)                   |
-| `<leader>mk` + motion                                              | normal                           | **Link** the range (`<leader>mkiw`); convert a bare URL or remove a link (`<leader>mkak`) |
-| `<leader>mk`                                                       | visual                           | **Link** the selection, or remove the link it's in                                        |
-| `]]` / `[[` · `][` / `[]` · `[u`                                   | normal, visual, operator-pending | Next / previous heading · same-level heading · parent heading                             |
-| `<leader>mo`                                                       | normal                           | **Outline**: pick a heading to jump to                                                    |
-| `<leader>ma`                                                       | normal                           | **Callout**: wrap the paragraph, or change the type of the one under the cursor           |
-| `<leader>ma`                                                       | visual                           | **Callout**: wrap the selected lines                                                      |
-| `<leader>mA`                                                       | normal                           | Remove the callout                                                                        |
-| `ik` `ak` `iu` `ic` `ac` `ih` `ah` `i\|` `a\|` `iL` `aL` `i*` `a*` | operator-pending, visual         | **Text objects** (see below)                                                              |
-| `p`                                                                | visual                           | Paste; a URL over the selection makes `[selection](url)`                                  |
-| `p` / `P`                                                          | normal                           | Paste; a bare URL becomes `[Page Title](url)`                                             |
-| `gx`                                                               | normal                           | **Follow** link, anchor, file, image or footnote                                          |
-| `<leader>mf`                                                       | normal                           | Insert a **code fence**                                                                   |
-| `<leader>mf`                                                       | visual                           | Wrap the selected lines in a code fence                                                   |
-| `<leader>mn`                                                       | normal                           | Insert a **footnote**                                                                     |
-| `<leader>mtt`                                                      | normal                           | Create a **table**                                                                        |
-| `<leader>mtc`                                                      | normal, visual                   | Convert CSV/TSV lines to a table (the paragraph under the cursor, or the selection)       |
-| `<leader>mtx`                                                      | normal                           | Convert the table under the cursor to CSV (asks for the separator)                        |
-| `<leader>mtr` / `<leader>mtR`                                      | normal                           | Add row below / delete row                                                                |
-| `<leader>mtk` / `<leader>mtK`                                      | normal                           | Add column right / delete column                                                          |
-| `<leader>mta`                                                      | normal                           | Align the table now                                                                       |
-| `<Tab>` / `<S-Tab>`                                                | insert                           | Next / previous table cell; nest / un-nest a list item (native `<Tab>` elsewhere)         |
-| `<leader>mT`                                                       | normal                           | Insert or update the **table of contents**                                                |
-| `<CR>`                                                             | normal                           | **Toggle checkbox** on a list item (native `<CR>` elsewhere)                              |
-| `<CR>`                                                             | visual                           | Check all list items in the selection (or uncheck if all are checked)                     |
-| `<CR>`                                                             | insert                           | **Continue the list** (native `<CR>` elsewhere)                                           |
-| `o` / `O`                                                          | normal                           | Open a line below / above; continues lists and blockquotes                                |
-| `<leader>m=`                                                       | normal, visual                   | **Heading**: add a `#` (count works: `2<leader>m=`)                                       |
-| `<leader>m-`                                                       | normal, visual                   | **Heading**: remove a `#`                                                                 |
-| `<leader>mp`                                                       | normal                           | **Paste image** from the clipboard (macOS)                                                |
-| `<leader>mp`                                                       | visual                           | Paste image; the selection becomes the alt text                                           |
+| Keys                                                               | Mode                             | Action                                                                              |
+| ------------------------------------------------------------------ | -------------------------------- | ----------------------------------------------------------------------------------- |
+| `<leader>mi`                                                       | normal                           | Toggle **italic** (on plain text, + motion: `<leader>miiw`)                         |
+| `<leader>mb`                                                       | normal                           | Toggle **bold** (`<leader>mbiw`, `<leader>mb_`)                                     |
+| `<leader>ms`                                                       | normal                           | Toggle **strikethrough**                                                            |
+| `<leader>mc`                                                       | normal                           | Toggle **inline code**                                                              |
+| `<leader>mh`                                                       | normal                           | Toggle **highlight**                                                                |
+| `<leader>mi` `mb` `ms` `mc` `mh`                                   | visual                           | Toggle the format on the selection                                                  |
+| `;;` then `i` `b` `s` `c` `h` `k`                                  | insert                           | **Formatting while typing**: open a pair, or jump out of it (see below)             |
+| `<leader>mk`                                                       | normal                           | **Link**: create, convert a bare URL, or remove (`<leader>mkiw` on text)            |
+| `<leader>mk`                                                       | visual                           | **Link** the selection, or remove the link it's in                                  |
+| `]]` / `[[` · `][` / `[]` · `[u`                                   | normal, visual, operator-pending | Next / previous heading · same-level heading · parent heading                       |
+| `<leader>mo`                                                       | normal                           | **Outline**: pick a heading to jump to                                              |
+| `<leader>ma`                                                       | normal                           | **Callout**: wrap the paragraph, or change the type of the one under the cursor     |
+| `<leader>ma`                                                       | visual                           | **Callout**: wrap the selected lines                                                |
+| `<leader>mA`                                                       | normal                           | Remove the callout                                                                  |
+| `ik` `ak` `iu` `ic` `ac` `ih` `ah` `i\|` `a\|` `iL` `aL` `i*` `a*` | operator-pending, visual         | **Text objects** (see below)                                                        |
+| `p`                                                                | visual                           | Paste; a URL over the selection makes `[selection](url)`                            |
+| `p` / `P`                                                          | normal                           | Paste; a bare URL becomes `[Page Title](url)`                                       |
+| `gx`                                                               | normal                           | **Follow** link, anchor, file, image or footnote                                    |
+| `<leader>mf`                                                       | normal                           | Insert a **code fence**                                                             |
+| `<leader>mf`                                                       | visual                           | Wrap the selected lines in a code fence                                             |
+| `<leader>mn`                                                       | normal                           | Insert a **footnote**                                                               |
+| `<leader>mtt`                                                      | normal                           | Create a **table**                                                                  |
+| `<leader>mtc`                                                      | normal, visual                   | Convert CSV/TSV lines to a table (the paragraph under the cursor, or the selection) |
+| `<leader>mtx`                                                      | normal                           | Convert the table under the cursor to CSV (asks for the separator)                  |
+| `<leader>mtr` / `<leader>mtR`                                      | normal                           | Add row below / delete row                                                          |
+| `<leader>mtk` / `<leader>mtK`                                      | normal                           | Add column right / delete column                                                    |
+| `<leader>mta`                                                      | normal                           | Align the table now                                                                 |
+| `<Tab>` / `<S-Tab>`                                                | insert                           | Next / previous table cell; nest / un-nest a list item (native `<Tab>` elsewhere)   |
+| `<leader>mT`                                                       | normal                           | Insert or update the **table of contents**                                          |
+| `<CR>`                                                             | normal                           | **Toggle checkbox** on a list item (native `<CR>` elsewhere)                        |
+| `<CR>`                                                             | visual                           | Check all list items in the selection (or uncheck if all are checked)               |
+| `<CR>`                                                             | insert                           | **Continue the list** (native `<CR>` elsewhere)                                     |
+| `o` / `O`                                                          | normal                           | Open a line below / above; continues lists and blockquotes                          |
+| `<leader>m=`                                                       | normal, visual                   | **Heading**: add a `#` (count works: `2<leader>m=`)                                 |
+| `<leader>m-`                                                       | normal, visual                   | **Heading**: remove a `#`                                                           |
+| `<leader>mp`                                                       | normal                           | **Paste image** from the clipboard (macOS)                                          |
+| `<leader>mp`                                                       | visual                           | Paste image; the selection becomes the alt text                                     |
 
-**Operator examples:**
+**Operator examples** (on plain text, the key waits for one of these):
 
 | Keys           | Acts on                                                                         |
 | -------------- | ------------------------------------------------------------------------------- |
@@ -334,8 +337,9 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `<leader>mbip` | the whole paragraph, wrapped line by line                                       |
 | `<leader>mii"` | inside the quotes                                                               |
 | `<leader>mbik` | the text of the next link (markwright's [text objects](#text-objects) work too) |
+| `<leader>mkiw` | link the word                                                                   |
 
-`_` means "the current line" for every markwright operator, just as `d_` does for `d`. There are no doubled keys (`<leader>mbb`): `<leader>mii` would swallow the `i…` text objects (`<leader>miiw`), so for consistency none of the keys have one, and `<leader>mbb` is simply `<leader>mb` + the `b` motion.
+The key acts at once, without a motion, when there's nothing to choose: inside a span of that format (it removes the span, from anywhere inside it, markers included), inside code (warning), or on whitespace (empty pair). `_` means "the current line" for every markwright operator, just as `d_` does for `d`. There are no doubled keys (`<leader>mbb`): `<leader>mii` would swallow the `i…` text objects (`<leader>miiw`), so for consistency none of the keys have one, and `<leader>mbb` is simply `<leader>mb` + the `b` motion.
 
 If which-key is installed (it is in LazyVim), the prefix is registered as a **markdown** group, and `<leader>mt` as a **table** subgroup, so the keys show up in the popup.
 
@@ -345,13 +349,15 @@ If which-key is installed (it is in LazyVim), the prefix is registered as a **ma
 
 ### What gets targeted
 
-| Mode                                | Target                                                                                    |
-| ----------------------------------- | ----------------------------------------------------------------------------------------- |
-| Normal, key + motion or text object | The motion's range (`<leader>mbiw`: the word, so `snake_case_word` stays one word)        |
-| Normal, key + `_` (`<leader>mb_`)   | The current line, `[count]` lines with a count (see [Multi-line](#multi-line-selections)) |
-| Visual charwise (`v`)               | The selection                                                                             |
-| Visual linewise (`V`)               | Each selected line (see [Multi-line](#multi-line-selections))                             |
-| Visual blockwise (`<C-v>`)          | The block's columns on each line                                                          |
+| Mode                                          | Target                                                                                    |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Normal, cursor inside a span of that format   | The span: it's removed at once, no motion                                                 |
+| Normal, cursor on whitespace or an empty line | Nothing to wrap: inserts an empty pair and enters insert mode between the markers         |
+| Normal, key + motion or text object           | The motion's range (`<leader>mbiw`: the word, so `snake_case_word` stays one word)        |
+| Normal, key + `_` (`<leader>mb_`)             | The current line, `[count]` lines with a count (see [Multi-line](#multi-line-selections)) |
+| Visual charwise (`v`)                         | The selection                                                                             |
+| Visual linewise (`V`)                         | Each selected line (see [Multi-line](#multi-line-selections))                             |
+| Visual blockwise (`<C-v>`)                    | The block's columns on each line                                                          |
 
 ### Toggle rules
 
@@ -429,19 +435,19 @@ Removing the code span strips the padding again.
 
 ### Empty markers
 
-To start a new formatted span while typing, use [`;;`](#formatting-while-typing) in insert mode. From normal mode, `:Markwright bold` (or `italic`, …) with the cursor on whitespace or an empty line inserts an empty pair and starts insert mode between the markers. A separating space is added if the next character would touch the closing marker:
+With the cursor on whitespace or an empty line in normal mode, the key inserts an empty pair and starts insert mode between the markers (`:Markwright bold` does the same; while typing, use [`;;`](#formatting-while-typing)). A separating space is added if the next character would touch the closing marker:
 
 ```
-""       :Markwright bold    →  **|**
-"foo "   :Markwright italic  →  foo *|*
-"a b"    :Markwright bold    →  a **|** b        (cursor on the space)
+""       <leader>mb  →  **|**
+"foo "   <leader>mi  →  foo *|*
+"a b"    <leader>mb  →  a **|** b        (cursor on the space)
 ```
 
 ### Cursor, repeat and undo
 
 - In normal mode, the cursor stays on the same character it was on.
 - After a visual toggle, the cursor moves to the start of the text.
-- `.` repeats the last toggle with the same motion from the new cursor position (`<leader>mbiw`, `w`, `.` bolds the next word).
+- `.` repeats the last toggle with the same motion from the new cursor position (`<leader>mbiw`, `w`, `.` bolds the next word; a removal at once repeats on the span under the new cursor).
 - Each toggle is a single undo step, even when it changes many lines.
 
 ---
@@ -542,19 +548,19 @@ Avoid `<C-m>` (it's Enter in most terminals) and `<C-i>` (it's Tab).
 
 ### What `<leader>mk` does
 
-`<leader>mk` is an operator: it waits for a motion or text object (`<leader>mkiw`, `<leader>mk$`, `<leader>mkak`), and in visual mode it acts on the selection. `:Markwright link` acts on what's under the cursor (the word, the bare URL or the link). In every case it picks one action:
+`<leader>mk` acts at once on a link, an image, a bare URL, code or whitespace. On plain text it waits for a motion or text object (`<leader>mkiw`, `<leader>mk$`), and in visual mode it acts on the selection. (`:Markwright link` uses the word under the cursor instead of waiting.) In every case it picks one action:
 
-| Target                                                                    | Result                                                                           |
-| ------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| Existing link (inline, reference, collapsed, shortcut, `<autolink>`)      | **Remove** the link, keep the text: `[text](url)` → `text`, `<url>` → `url`      |
-| Bare URL (`https://…`, `www.…`, `mailto:…`)                               | **Convert** to `[Page Title](url)`                                               |
-| Word, range or selection, clipboard holds a URL                           | **Wrap** immediately: `[text](url)`                                              |
-| Word, range or selection, clipboard has no URL                            | **Prompt** for the URL, then wrap. Relative paths like `./notes.md` are accepted |
-| Blank range: whitespace (`<leader>mkiw`) or an empty line (`<leader>mk_`) | **Prompt** for the URL, then for the text. Empty text means "use the page title" |
-| Image `![alt](src)`                                                       | Nothing (warning): images aren't links                                           |
-| Inside code                                                               | Nothing (warning)                                                                |
+| Target                                                               | Result                                                                                                                                                                      |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Existing link (inline, reference, collapsed, shortcut, `<autolink>`) | **Remove** the link, keep the text: `[text](url)` → `text`, `<url>` → `url`                                                                                                 |
+| Bare URL (`https://…`, `www.…`, `mailto:…`)                          | **Convert** to `[Page Title](url)`                                                                                                                                          |
+| Word, range or selection, clipboard holds a URL                      | **Wrap** immediately: `[text](url)`                                                                                                                                         |
+| Word, range or selection, clipboard has no URL                       | **Prompt** for the URL, then wrap. Relative paths like `./notes.md` are accepted                                                                                            |
+| Whitespace or an empty line                                          | **New link**: prompt for the URL, prefilled with the clipboard URL if it holds one (Enter accepts it, or edit it); then for the text. Empty text means "use the page title" |
+| Image `![alt](src)`                                                  | Nothing (warning): images aren't links                                                                                                                                      |
+| Inside code                                                          | Nothing (warning)                                                                                                                                                           |
 
-Removal works from anywhere in the link: the text, the brackets or the URL part (`<leader>mkik` / `<leader>mkak`, which also reach the next link when the cursor isn't on one, or `:Markwright link`).
+Removal works from anywhere in the link: the text, the brackets or the URL part.
 
 ```
 see docs here        clipboard: https://ex.com/docs    → see [docs](https://ex.com/docs) here
@@ -1039,7 +1045,7 @@ With `images.smart_paste = true`, pressing `p` (with `clipboard=unnamedplus`, as
 | `:Markwright strike`                 | Toggle strikethrough                                                                                    |
 | `:Markwright code`                   | Toggle inline code                                                                                      |
 | `:Markwright highlight`              | Toggle highlight                                                                                        |
-| `:Markwright link`                   | Link at the cursor: remove a link, convert a bare URL, link the word, or prompt on whitespace           |
+| `:Markwright link`                   | Like `<leader>mk`, but links the word under the cursor instead of waiting for a motion           |
 | `:Markwright follow`                 | Same as `gx`                                                                                            |
 | `:Markwright fence`                  | Insert a code fence; with a range (`:'<,'>Markwright fence`) wrap those lines                           |
 | `:Markwright callout [type\|remove]` | Wrap in / retype / remove a callout; with a range, wrap those lines                                     |
@@ -1212,7 +1218,8 @@ config = function(_, opts)
       local map = function(mode, lhs, fn, desc)
         vim.keymap.set(mode, lhs, fn, { buffer = ev.buf, expr = true, desc = desc })
       end
-      map("n", "gb",    function() return f.expr_operator("bold") end, "Bold operator")
+      map("n", "gb",    function() return f.expr_smart("bold") end, "Bold (like <leader>mb)")
+      map("n", "gB",    function() return f.expr_operator("bold") end, "Bold operator (always waits)")
       map("x", "gb",    function() return f.expr_operator("bold") end, "Bold selection")
       map("n", "<C-b>", function() return f.expr_normal("bold") end, "Bold word")
     end,
@@ -1222,6 +1229,7 @@ end,
 
 | Function                                                                      | Use                                                                                                                                 |
 | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `require("markwright.format").expr_smart(fmt)`                                | The default normal-mode key: removes the span under the cursor or inserts empty markers at once, otherwise waits for a motion       |
 | `require("markwright.format").expr_normal(fmt)`                               | Normal-mode `expr` mapping: word under the cursor, or empty markers on whitespace                                                   |
 | `require("markwright.format").expr_operator(fmt)`                             | `expr` mapping for visual mode, or a normal-mode operator that waits for a motion                                                   |
 | `require("markwright.format").toggle(fmt)`                                    | Toggle on the word under the cursor from any Lua code (not an `expr` mapping)                                                       |
@@ -1231,15 +1239,16 @@ end,
 
 Link entry points (all `expr = true` except where noted):
 
-| Function                                                      | Use                                                                                |
-| ------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `require("markwright.links").expr_operator()`                 | Normal-mode link operator (waits for a motion, like `<leader>mk`)                  |
-| `require("markwright.links").expr_normal()`                   | Link at the cursor (`:Markwright link`)                                            |
-| `require("markwright.links").expr_visual()`                   | Visual-mode link key                                                               |
-| `require("markwright.links").expr_paste(after)`               | Normal `p` (`after = true`) or `P` (`false`)                                       |
-| `require("markwright.links").expr_paste_visual()`             | Visual `p`                                                                         |
-| `require("markwright.links").is_url(s)` / `url_at(line, col)` | Plain helpers (not mappings)                                                       |
-| `require("markwright.title").fetch(url, cb)`                  | Async title fetch; `cb(title)` runs on the main loop (`title` is `nil` on failure) |
+| Function                                                      | Use                                                                                                            |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `require("markwright.links").expr_smart()`                    | The default normal-mode link key: acts at once on a link, bare URL or whitespace, otherwise waits for a motion |
+| `require("markwright.links").expr_operator()`                 | Link operator that always waits for a motion                                                                   |
+| `require("markwright.links").expr_normal()`                   | Link at the cursor (`:Markwright link`)                                                                        |
+| `require("markwright.links").expr_visual()`                   | Visual-mode link key                                                                                           |
+| `require("markwright.links").expr_paste(after)`               | Normal `p` (`after = true`) or `P` (`false`)                                                                   |
+| `require("markwright.links").expr_paste_visual()`             | Visual `p`                                                                                                     |
+| `require("markwright.links").is_url(s)` / `url_at(line, col)` | Plain helpers (not mappings)                                                                                   |
+| `require("markwright.title").fetch(url, cb)`                  | Async title fetch; `cb(title)` runs on the main loop (`title` is `nil` on failure)                             |
 
 Other features are plain functions, suitable for normal (non-`expr`) mappings:
 
