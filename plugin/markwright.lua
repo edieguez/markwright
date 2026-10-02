@@ -23,11 +23,17 @@ local table_sub = {
   row = function()
     require("markwright.tables").add_row()
   end,
+  rowabove = function()
+    require("markwright.tables").add_row(true)
+  end,
   delrow = function()
     require("markwright.tables").delete_row()
   end,
   col = function()
     require("markwright.tables").add_col()
+  end,
+  colleft = function()
+    require("markwright.tables").add_col(true)
   end,
   delcol = function()
     require("markwright.tables").delete_col()
@@ -71,7 +77,10 @@ local subcommands = {
   footnote = function()
     require("markwright.footnotes").insert()
   end,
-  image = function()
+  image = function(args)
+    if args.fargs[2] == "rename" then
+      return require("markwright.images").rename()
+    end
     require("markwright.images").paste()
   end,
   toc = function()
@@ -89,7 +98,10 @@ local subcommands = {
   table = function(args)
     local fn = table_sub[args.fargs[2] or ""]
     if not fn then
-      vim.notify("markwright: :Markwright table {create|csv|tocsv|align|row|delrow|col|delcol}", vim.log.levels.ERROR)
+      vim.notify(
+        "markwright: :Markwright table {create|csv|tocsv|align|row|rowabove|delrow|col|colleft|delcol}",
+        vim.log.levels.ERROR
+      )
       return
     end
     fn(args)
@@ -124,6 +136,11 @@ end, {
     local words = vim.split((line:gsub("^%S*%s*", "")), "%s+")
     if #words >= 2 and words[1] == "table" then
       return sorted_keys(table_sub, lead)
+    end
+    if #words == 2 and words[1] == "image" then
+      return vim.tbl_filter(function(n)
+        return n:find(lead, 1, true) == 1
+      end, { "rename" })
     end
     if #words == 2 and words[1] == "check" then
       return vim.tbl_filter(function(n)

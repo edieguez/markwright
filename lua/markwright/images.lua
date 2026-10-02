@@ -361,4 +361,119 @@ function M.paste_visual()
   M.paste({ range = { s[1] - 1, s[2], e[1] - 1, ecol }, alt = vim.trim(text) })
 end
 
+-- Rename ---------------------------------------------------------------------------
+
+--- Strip `<...>` from a link destination.
+local function bare_dest(dest)
+  return (dest:gsub("^<(.*)>$", "%1"))
+end
+
+--- The image under the cursor: its destination text and node, or nil.
+local function image_at(buf, row, col)
+  local p = ts.parse(buf, row)
+  local node = p and ts.ancestor(ts.inline_node(p, row, col), { image = true })
+  if not node then
+    return nil
+  end
+  for c in node:iter_children() do
+    if c:type() == "link_destination" then
+      return vim.treesitter.get_node_text(c, buf)
+    end
+  end
+end
+
+--- Every link/image destination (and `[ref]: dest` definition) in `buf` that
+--- points at `abs`, as { row, scol, ecol } (0-based, ecol exclusive).
+local function references(buf, abs)
+  local follow = require("markwright.follow")
+  local found = {}
+  local lines = api.nvim_buf_get_lines(buf, 0, -1, false)
+  local function check(row, s, dest)
+    local d = bare_dest(dest)
+    if d == "" or d:match("^%a[%w+.-]*:") then
+      return
+    end
+    if follow.resolve_path(buf, d:gsub("#.*$", "")) == abs then
+      table.insert(found, { row, s - 1, s - 1 + #dest })
+    end
+  end
+  for i, line in ipairs(lines) do
+    local row = i - 1
+    for s, dest in line:gmatch("%]%(()(<[^>]*>)") do
+      check(row, s, dest)
+    end
+    for s, dest in line:gmatch("%]%(()([^%s)<][^%s)]*)") do
+      check(row, s, dest)
+    end
+    local s, dest = line:match("^%s?%s?%s?%[[^%]]+%]:%s*()(%S+)")
+    if s then
+      check(row, s, dest)
+    end
+  end
+  -- skip code spans and blocks
+  return vim.tbl_filter(function(r)
+    return not ts.code_context(ts.parse(buf, r[1]), r[1], r[2])
+  end, found)
+end
+
+--- Rename the image file under the cursor on disk and update every reference
+--- to it in the buffer. The new name keeps the old extension if none is typed.
+function M.rename()
+  local buf = api.nvim_get_current_buf()
+  local row, col = unpack(api.nvim_win_get_cursor(0))
+  row = row - 1
+  local dest = image_at(buf, row, col)
+  if not dest then
+    return util.warn("no image under the cursor")
+  end
+  local path = bare_dest(dest):gsub("#.*$", "")
+  if path:match("^%a[%w+.-]*:") then
+    return util.warn("not a local file: " .. path)
+  end
+  local abs = require("markwright.follow").resolve_path(buf, path)
+  if not vim.uv.fs_stat(abs) then
+    return util.warn("file not found: " .. abs)
+  end
+  local dir, old = abs:match("^(.*)/([^/]+)$")
+  ask("Rename image: ", old, function(input)
+    if not input or vim.trim(input) == "" then
+      return
+    end
+    input = vim.trim(input)
+    if input:find("[/\\]") then
+      return util.warn("type a file name, not a path")
+    end
+    local ext = input:match("%.(%w+)$") or old:match("%.(%w+)$")
+    local stem = M.sanitize(input)
+    if stem == "" then
+      return
+    end
+    local new = ext and (stem .. "." .. ext) or stem
+    if new == old then
+      return
+    end
+    local target = dir .. "/" .. new
+    -- (a case-only change on a case-insensitive disk "exists" as the same file)
+    if vim.uv.fs_stat(target) and target:lower() ~= abs:lower() then
+      return util.warn(new .. " already exists")
+    end
+    local ok, err = vim.uv.fs_rename(abs, target)
+    if not ok then
+      return util.warn("rename failed: " .. tostring(err))
+    end
+    local refs = references(buf, abs)
+    util.undo_break(buf)
+    for k = #refs, 1, -1 do
+      local r = refs[k]
+      local written = bare_dest(api.nvim_buf_get_text(buf, r[1], r[2], r[1], r[3], {})[1])
+      local prefix = written:match("^(.*/)") or ""
+      local anchor = written:match("(#.*)$") or ""
+      api.nvim_buf_set_text(buf, r[1], r[2], r[1], r[3], { prefix .. M.encode_path(new) .. anchor })
+    end
+    vim.notify(
+      ("markwright: renamed to %s (%d reference%s updated in this buffer)"):format(new, #refs, #refs == 1 and "" or "s")
+    )
+  end)
+end
+
 return M

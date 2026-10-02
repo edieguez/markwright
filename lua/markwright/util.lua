@@ -71,7 +71,11 @@ end
 --- Start a new undo block so each plugin action is one undo step
 --- (API edits are otherwise joined with the previous change).
 function M.undo_break(buf)
-  vim.bo[buf].undolevels = vim.bo[buf].undolevels
+  -- setting 'undolevels' syncs undo for the *current* buffer: run it in `buf`,
+  -- since callbacks (pickers, prompts) can fire while another window is current
+  vim.api.nvim_buf_call(buf, function()
+    vim.bo[buf].undolevels = vim.bo[buf].undolevels
+  end)
 end
 
 -- Key fallbacks ------------------------------------------------------------

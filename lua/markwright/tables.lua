@@ -546,14 +546,19 @@ function M.to_csv()
   end)
 end
 
---- Add an empty row below the cursor (below the delimiter when on the header).
-function M.add_row()
+--- Add an empty row below the cursor (below the delimiter when on the header),
+--- or above it with `above = true` (not above the header: a table's first row
+--- is always its header).
+function M.add_row(above)
   local t, buf = current()
   if not t then
     return util.warn("not in a table")
   end
   local i, c = cursor_cell(buf, t)
-  local at = math.max(i, 2) + 1
+  if above and i <= 2 then
+    return util.warn("can't add a row above the header")
+  end
+  local at = above and i or math.max(i, 2) + 1
   table.insert(t.rows, at, empty_row(ncols(t)))
   write(buf, t, { at, c, 0 })
 end
@@ -576,13 +581,16 @@ function M.delete_row()
   api.nvim_win_set_cursor(0, { t.sr + ni, pos[ni][math.min(c, #pos[ni])].s })
 end
 
---- Add an empty column right of the cursor.
-function M.add_col()
+--- Add an empty column right of the cursor, or left of it with `left = true`.
+function M.add_col(left)
   local t, buf = current()
   if not t then
     return util.warn("not in a table")
   end
   local i, c = cursor_cell(buf, t)
+  if left then
+    c = c - 1 -- insert after the previous column
+  end
   local n = ncols(t)
   for _, r in ipairs(t.rows) do
     while #r < n do
