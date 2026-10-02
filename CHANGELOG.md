@@ -6,6 +6,7 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ### Added
 
+- **Completion dates**: checking a checkbox appends the date and time it was done (`- [x] task ✅ 2026-10-02 15:52`); unchecking removes it. Set the format with `lists.done_date` (any `os.date` format, e.g. `"✅ %Y-%m-%d"` for Obsidian Tasks), or `false` to turn it off.
 - **Table extras**: `<leader>mtH` / `<leader>mtL` move the column left / right and `<leader>mtJ` / `<leader>mtK` move the row down / up (with counts); `<leader>mts` sorts by the column under the cursor (again for descending; numbers compare as numbers, empty cells last); `<leader>mtT` transposes; `<leader>mty` copies the table as CSV to the clipboard without changing it. Also `:Markwright table sort`, `transpose` and `yank`.
 - **Rename image files**: `<leader>mr` (or `:Markwright image rename`) on an image renames the file on disk and updates every link to it in the buffer. The prompt is prefilled with the current name; the extension is kept if you don't type one.
 

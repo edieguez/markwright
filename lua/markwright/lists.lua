@@ -429,6 +429,76 @@ end
 
 -- Checkboxes ----------------------------------------------------------------------
 
+M.clock = os.time -- replaced in tests
+
+-- os.date conversions → Lua patterns (digits); anything else matches loosely
+local DATE_PAT = {
+  Y = "%d%d%d%d",
+  y = "%d%d",
+  m = "%d%d",
+  d = "%d%d",
+  e = " ?%d?%d",
+  H = "%d%d",
+  I = "%d%d",
+  M = "%d%d",
+  S = "%d%d",
+  p = "%a%a",
+  j = "%d%d%d",
+  F = "%d%d%d%d%-%d%d%-%d%d",
+  R = "%d%d:%d%d",
+  T = "%d%d:%d%d:%d%d",
+}
+
+--- Lua pattern matching a stamp written with `fmt`, at the end of a line.
+function M.stamp_pattern(fmt)
+  local out, i = {}, 1
+  while i <= #fmt do
+    local ch = fmt:sub(i, i)
+    if ch == "%" and i < #fmt then
+      local spec = fmt:sub(i + 1, i + 1)
+      table.insert(out, spec == "%" and "%%" or (DATE_PAT[spec] or ".-"))
+      i = i + 2
+    else
+      table.insert(out, (ch:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0")))
+      i = i + 1
+    end
+  end
+  return "%s+" .. table.concat(out) .. "%s*$"
+end
+
+-- stamps written with the default or the Obsidian format are recognized even
+-- if `done_date` has changed since
+local KNOWN = { "✅ %Y-%m-%d %H:%M", "✅ %Y-%m-%d" }
+
+--- Remove a completion stamp from the end of `line`; returns the new line or nil.
+function M.strip_stamp(line, fmt)
+  for _, f in ipairs(fmt and { fmt, unpack(KNOWN) } or KNOWN) do
+    local s = line:find(M.stamp_pattern(f))
+    if s then
+      return line:sub(1, s - 1)
+    end
+  end
+end
+
+--- Add or remove the completion stamp after the checkbox changed on `row`.
+local function stamp(buf, row, checked)
+  local fmt = opts().done_date
+  if not fmt then
+    return
+  end
+  local line = get_line(buf, row)
+  local stripped = M.strip_stamp(line, fmt)
+  if checked then
+    if stripped then
+      return -- already stamped
+    end
+    local base = line:gsub("%s+$", "")
+    api.nvim_buf_set_text(buf, row, #base, row, #line, { " " .. os.date(fmt, M.clock()) })
+  elseif stripped then
+    api.nvim_buf_set_text(buf, row, #stripped, row, #line, { "" })
+  end
+end
+
 --- Set (state = "x" / " "), toggle (state = nil) or add a checkbox on `row`.
 --- Returns true if the row is a list item.
 local function set_checkbox(buf, row, state)
@@ -439,14 +509,21 @@ local function set_checkbox(buf, row, state)
   end
   local c = item.content_col
   if item.check then
-    local new = state or (item.check == " " and "x" or " ")
+    local was = item.check ~= " "
+    local new = state or (was and " " or "x")
     api.nvim_buf_set_text(buf, row, c + 1, row, c + 2, { new })
+    if was ~= (new ~= " ") then
+      stamp(buf, row, new ~= " ")
+    end
   elseif opts().checkbox_add then
     local box = "[" .. (state or " ") .. "] "
     if item.space == "" then
       box = " " .. box:gsub(" $", "")
     end
     api.nvim_buf_set_text(buf, row, c, row, c, { box })
+    if state == "x" then
+      stamp(buf, row, true)
+    end
   end
   return true
 end

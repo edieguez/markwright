@@ -39,6 +39,9 @@ M.defaults = {
     auto_renumber = true,
     checkbox_add = true,
     checkbox_key = "<CR>", -- normal mode; "" to disable
+    -- checking an item appends this (os.date format), unchecking removes it;
+    -- false = off. "✅ %Y-%m-%d" is the Obsidian Tasks format.
+    done_date = "✅ %Y-%m-%d %H:%M",
   },
   nav = {
     -- heading motions (normal, visual and operator-pending); false or "" disables one
@@ -122,6 +125,10 @@ local function validate(opts)
   end
   if t ~= "" and not t:match("^<.+>$") and vim.fn.strchars(t) < 2 then
     error("markwright: insert.trigger must be at least two characters (or a key like '<C-g>')")
+  end
+  local dd = opts.lists and opts.lists.done_date
+  if dd ~= false and dd ~= nil and (type(dd) ~= "string" or dd == "") then
+    error("markwright: lists.done_date must be a non-empty os.date format or false")
   end
   if type(opts.filetypes) ~= "table" then
     error("markwright: filetypes must be a list")
