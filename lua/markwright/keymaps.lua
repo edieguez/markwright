@@ -81,7 +81,7 @@ function M.attach(buf)
   map("n", P .. "tt", tables.create, "Create table")
   map("n", P .. "tc", tables.from_csv_paragraph, "CSV → table (paragraph)")
   map("x", P .. "tc", "<Esc><Cmd>lua require('markwright.tables').from_csv_visual()<CR>", "CSV → table")
-  map("n", P .. "tx", tables.to_csv, "Table → CSV")
+  map("n", P .. "tC", tables.to_csv, "Table → CSV")
   -- h/j/k/l add a column left / row below / row above / column right
   map("n", P .. "th", function()
     tables.add_col(true)
@@ -114,7 +114,7 @@ function M.attach(buf)
   map("n", P .. "tS", function()
     tables.sort(true)
   end, "Sort by this column (descending)")
-  map("n", P .. "tT", tables.transpose, "Transpose")
+  map("n", P .. "tf", tables.transpose, "Flip (transpose)")
   map("n", P .. "ty", tables.yank_csv, "Copy as CSV")
   map("n", P .. "tdr", tables.delete_row, "Delete row")
   map("n", P .. "tdc", tables.delete_col, "Delete column")
@@ -148,10 +148,11 @@ function M.attach(buf)
 
   -- list tools (<P>l…)
   local lt = require("markwright.listtools")
-  map("n", P .. "lj", function()
+  -- J/K move, like <P>tJ / <P>tK for table rows
+  map("n", P .. "lJ", function()
     lt.move(1)
   end, "Move item down (with children)")
-  map("n", P .. "lk", function()
+  map("n", P .. "lK", function()
     lt.move(-1)
   end, "Move item up (with children)")
   map("n", P .. "ls", function()
@@ -220,7 +221,8 @@ function M.attach(buf)
     "<Esc><Cmd>lua require('markwright.images').paste_visual()<CR>",
     "Paste image (selection = alt text)"
   )
-  map("n", P .. "r", function()
+  -- uppercase = acts on an existing image
+  map("n", P .. "P", function()
     require("markwright.images").rename()
   end, "Rename image file")
 
@@ -233,10 +235,10 @@ function M.attach(buf)
     require("markwright.callouts").unwrap()
   end, "Callout: remove")
 
-  -- toc
-  map("n", P .. "T", function()
+  -- table of contents: the outline (<P>o) written into the file
+  map("n", P .. "O", function()
     require("markwright.toc").insert()
-  end, "Insert / update TOC")
+  end, "Insert / update table of contents")
 
   local ok, wk = pcall(require, "which-key")
   if ok and wk.add then

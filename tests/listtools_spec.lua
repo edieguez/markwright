@@ -29,24 +29,24 @@ end
 
 local cases = {
   -- move
-  { "move down with children", NESTED, { 1, 2 }, " mlj", { "- b", "- a", "  - a1", "  - a2", "- c" }, { 2, 2 } },
-  { "move up with children", NESTED, { 4, 0 }, " mlk", { "- b", "- a", "  - a1", "  - a2", "- c" }, { 1, 0 } },
+  { "move down with children", NESTED, { 1, 2 }, " mlJ", { "- b", "- a", "  - a1", "  - a2", "- c" }, { 2, 2 } },
+  { "move up with children", NESTED, { 4, 0 }, " mlK", { "- b", "- a", "  - a1", "  - a2", "- c" }, { 1, 0 } },
   {
     "cursor on a child moves the child",
     NESTED,
     { 2, 4 },
-    " mlj",
+    " mlJ",
     { "- a", "  - a2", "  - a1", "- b", "- c" },
     { 3, 4 },
   },
-  { "count", NESTED, { 1, 0 }, "2 mlj", { "- b", "- c", "- a", "  - a1", "  - a2" }, { 3, 0 } },
-  { "no move past the last sibling", NESTED, { 5, 0 }, " mlj", NESTED },
-  { "a child doesn't leave its parent", NESTED, { 3, 4 }, " mlj", NESTED },
+  { "count", NESTED, { 1, 0 }, "2 mlJ", { "- b", "- c", "- a", "  - a1", "  - a2" }, { 3, 0 } },
+  { "no move past the last sibling", NESTED, { 5, 0 }, " mlJ", NESTED },
+  { "a child doesn't leave its parent", NESTED, { 3, 4 }, " mlJ", NESTED },
   {
     "ordered lists are renumbered",
     { "1. one", "2. two", "3. three" },
     { 1, 0 },
-    " mlj",
+    " mlJ",
     { "1. two", "2. one", "3. three" },
     { 2, 0 },
   },
@@ -54,20 +54,20 @@ local cases = {
     "blank lines between items stay in place",
     { "- a", "", "- b", "  more b", "", "- c" },
     { 1, 0 },
-    " mlj",
+    " mlJ",
     { "- b", "  more b", "", "- a", "", "- c" },
     { 4, 0 },
   },
-  { "move is one undo step", { "1. a", "2. b" }, { 1, 0 }, { " mlj", "u" }, { "1. a", "2. b" } },
-  { "move in a blockquote", { "> - a", "> - b" }, { 1, 3 }, " mlj", { "> - b", "> - a" } },
+  { "move is one undo step", { "1. a", "2. b" }, { 1, 0 }, { " mlJ", "u" }, { "1. a", "2. b" } },
+  { "move in a blockquote", { "> - a", "> - b" }, { 1, 3 }, " mlJ", { "> - b", "> - a" } },
   {
     "progress cookies follow",
     { "- P [/]", "  - [x] a", "  - [ ] b", "- Q [/]", "  - [ ] c" },
     { 3, 4 },
-    " mlk",
+    " mlK",
     { "- P [1/2]", "  - [ ] b", "  - [x] a", "- Q [0/1]", "  - [ ] c" },
   },
-  { "not on a list item", { "text" }, { 1, 0 }, " mlj", { "text" } },
+  { "not on a list item", { "text" }, { 1, 0 }, " mlJ", { "text" } },
 
   -- sort
   {
