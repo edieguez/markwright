@@ -419,7 +419,7 @@ local cases = {
         "![other](assets/other.png)",
       }, { 1, 2 })
       H.queue = { "my diagram" }
-      H.feed(" mr")
+      H.feed(" mP")
       eq(exists(dir .. "/assets/shot.png"), false)
       eq(vim.fn.readfile(dir .. "/assets/my-diagram.png"), { "png" })
       eq(lines(), {
@@ -446,7 +446,7 @@ local cases = {
         default = o.default
         cb("b.PNG")
       end
-      H.feed(" mr")
+      H.feed(" mP")
       vim.ui.input = real
       eq(default, "a.png")
       eq(exists(dir .. "/assets/b.PNG"), true)
@@ -460,7 +460,7 @@ local cases = {
       vim.fn.writefile({ "png" }, dir .. "/my assets/a (1).png")
       doc({ "![](my%20assets/a%20%281%29.png)" }, { 1, 0 })
       H.queue = { "new" }
-      H.feed(" mr")
+      H.feed(" mP")
       eq(exists(dir .. "/my assets/new.png"), true)
       eq(lines(), { "![](my%20assets/new.png)" })
       vim.fn.delete(dir .. "/my assets", "rf")
@@ -474,7 +474,7 @@ local cases = {
       vim.fn.writefile({ "2" }, dir .. "/assets/b.png")
       doc({ "![](assets/a.png)" }, { 1, 0 })
       H.queue = { "b" }
-      H.feed(" mr")
+      H.feed(" mP")
       eq(vim.fn.readfile(dir .. "/assets/a.png"), { "1" })
       eq(vim.fn.readfile(dir .. "/assets/b.png"), { "2" })
       eq(lines(), { "![](assets/a.png)" })
@@ -487,12 +487,12 @@ local cases = {
       vim.fn.writefile({ "1" }, dir .. "/assets/a.png")
       doc({ "![](assets/a.png)" }, { 1, 0 })
       H.queue = { nil }
-      H.feed(" mr")
+      H.feed(" mP")
       eq(exists(dir .. "/assets/a.png"), true)
       for _, l in ipairs({ "![](https://x.io/a.png)", "![](assets/missing.png)", "plain text" }) do
         doc({ l }, { 1, 2 })
         H.queue = { "z" }
-        H.feed(" mr")
+        H.feed(" mP")
         eq(lines(), { l })
       end
       eq(exists(dir .. "/assets/z.png"), false)

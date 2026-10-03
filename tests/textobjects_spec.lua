@@ -74,60 +74,60 @@ local cases = {
   { "dac in inline code", { "a `co de` b" }, { 1, 4 }, "dac", { "a  b" } },
   { "dic skips padding", { "`` `x ``" }, { 1, 4 }, "dic", { "``  ``" } },
   {
-    "dic in a fenced block",
+    "dif in a fenced block",
     { "a", "```lua", "x = 1", "y = 2", "```", "b" },
     { 3, 0 },
-    "dic",
+    "dif",
     { "a", "```lua", "```", "b" },
   },
-  { "dac removes the block", { "a", "```lua", "x = 1", "```", "b" }, { 3, 0 }, "dac", { "a", "b" } },
+  { "daf removes the block", { "a", "```lua", "x = 1", "```", "b" }, { 3, 0 }, "daf", { "a", "b" } },
   {
-    "yic from the fence line",
+    "yif from the fence line",
     fn = function()
-      local text, typ = yanked({ "```", "x", "y", "```" }, { 1, 0 }, "yic")
+      local text, typ = yanked({ "```", "x", "y", "```" }, { 1, 0 }, "yif")
       eq({ text, typ }, { "x\ny\n", "V" })
     end,
   },
-  { "cic replaces block content", { "```", "old", "```" }, { 2, 0 }, "cicnew<Esc>", { "```", "new", "```" } },
-  { "empty block: nothing", { "```", "```" }, { 1, 0 }, "dic", { "```", "```" } },
+  { "cif replaces block content", { "```", "old", "```" }, { 2, 0 }, "cifnew<Esc>", { "```", "new", "```" } },
+  { "empty block: nothing", { "```", "```" }, { 1, 0 }, "dif", { "```", "```" } },
   {
     "indented code block",
     { "text", "", "    code", "    more", "", "end" },
     { 3, 4 },
-    "dic",
+    "dif",
     { "text", "", "", "end" },
   },
 
   -- heading sections
-  { "dih: content only", SECTIONS, { 6, 0 }, "dih", { "# A", "", "text a", "", "## B", "", "## C", "c1" } },
-  { "dah: heading + content", SECTIONS, { 6, 0 }, "dah", { "# A", "", "text a", "", "## C", "c1" } },
-  { "dah from the heading line", SECTIONS, { 5, 0 }, "dah", { "# A", "", "text a", "", "## C", "c1" } },
-  { "d2ah: parent section", SECTIONS, { 6, 0 }, "d2ah", { "" } },
-  { "dih on a parent includes subsections", SECTIONS, { 3, 0 }, "dih", { "# A", "" } },
-  { "cih", SECTIONS, { 6, 0 }, "cihnew<Esc>", { "# A", "", "text a", "", "## B", "new", "", "## C", "c1" } },
-  { "setext heading", { "Title", "=====", "body", "more" }, { 3, 0 }, "dih", { "Title", "=====" } },
-  { "headings in code don't count", { "# A", "```", "# not", "```", "x" }, { 5, 0 }, "dih", { "# A" } },
+  { "di#: content only", SECTIONS, { 6, 0 }, "di#", { "# A", "", "text a", "", "## B", "", "## C", "c1" } },
+  { "da#: heading + content", SECTIONS, { 6, 0 }, "da#", { "# A", "", "text a", "", "## C", "c1" } },
+  { "da# from the heading line", SECTIONS, { 5, 0 }, "da#", { "# A", "", "text a", "", "## C", "c1" } },
+  { "d2a#: parent section", SECTIONS, { 6, 0 }, "d2a#", { "" } },
+  { "di# on a parent includes subsections", SECTIONS, { 3, 0 }, "di#", { "# A", "" } },
+  { "ci#", SECTIONS, { 6, 0 }, "ci#new<Esc>", { "# A", "", "text a", "", "## B", "new", "", "## C", "c1" } },
+  { "setext heading", { "Title", "=====", "body", "more" }, { 3, 0 }, "di#", { "Title", "=====" } },
+  { "headings in code don't count", { "# A", "```", "# not", "```", "x" }, { 5, 0 }, "di#", { "# A" } },
 
   -- table cells
-  { "di| deletes cell text", T, { 1, 8 }, "di|", { "| a   |   |", "| --- | --- |", "| 1   | 2   |" } },
-  { "ci| then realign", T, { 1, 8 }, "ci|X<Esc>", { "| a   | X   |", "| --- | --- |", "| 1   | 2   |" } },
-  { "ci| in an empty cell", { "| a |   |", "|---|---|" }, { 1, 7 }, "ci|z<Esc>", { "| a   | z   |", "| --- | --- |" } },
+  { "diz deletes cell text", T, { 1, 8 }, "diz", { "| a   |   |", "| --- | --- |", "| 1   | 2   |" } },
+  { "ciz then realign", T, { 1, 8 }, "cizX<Esc>", { "| a   | X   |", "| --- | --- |", "| 1   | 2   |" } },
+  { "ciz in an empty cell", { "| a |   |", "|---|---|" }, { 1, 7 }, "cizz<Esc>", { "| a   | z   |", "| --- | --- |" } },
   {
-    "yi| copies the cell",
+    "yiz copies the cell",
     fn = function()
-      eq(yanked(T, { 3, 2 }, "yi|"), "1")
+      eq(yanked(T, { 3, 2 }, "yiz"), "1")
     end,
   },
-  { "outside a table: nothing", { "a | b" }, { 1, 0 }, "di|", { "a | b" } },
+  { "outside a table: nothing", { "a | b" }, { 1, 0 }, "diz", { "a | b" } },
 
   -- list items
-  { "diL: the item's text", LIST, { 1, 8 }, "diL", { "- [ ] ", "  - child", "    more", "- two" } },
-  { "daL: item with children", LIST, { 1, 8 }, "daL", { "- two" } },
-  { "daL on a child", LIST, { 2, 5 }, "daL", { "- [ ] item one", "- two" } },
-  { "d2aL: parent item", LIST, { 2, 5 }, "d2aL", { "- two" } },
-  { "ciL across continuation lines", LIST, { 2, 5 }, "ciLX<Esc>", { "- [ ] item one", "  - X", "- two" } },
-  { "ordered item", { "1. first", "2. second" }, { 2, 4 }, "ciLnew<Esc>", { "1. first", "2. new" } },
-  { "not in a list: nothing", { "text" }, { 1, 0 }, "daL", { "text" } },
+  { "dix: the item's text", LIST, { 1, 8 }, "dix", { "- [ ] ", "  - child", "    more", "- two" } },
+  { "dax: item with children", LIST, { 1, 8 }, "dax", { "- two" } },
+  { "dax on a child", LIST, { 2, 5 }, "dax", { "- [ ] item one", "- two" } },
+  { "d2ax: parent item", LIST, { 2, 5 }, "d2ax", { "- two" } },
+  { "cix across continuation lines", LIST, { 2, 5 }, "cixX<Esc>", { "- [ ] item one", "  - X", "- two" } },
+  { "ordered item", { "1. first", "2. second" }, { 2, 4 }, "cixnew<Esc>", { "1. first", "2. new" } },
+  { "not in a list: nothing", { "text" }, { 1, 0 }, "dax", { "text" } },
 
   -- emphasis
   { "di* bold", { "a **bold** b" }, { 1, 5 }, "di*", { "a **** b" } },
@@ -159,18 +159,19 @@ local cases = {
     "cicY<Esc>",
     { "text", "", "use `Y` here" },
   },
-  { "dic: code block below", { "text", "```", "a", "```" }, { 1, 0 }, "dic", { "text", "```", "```" } },
+  { "ic doesn't match a code block", { "```", "x", "```" }, { 2, 0 }, "dic", { "```", "x", "```" } },
+  { "dif: code block below", { "text", "```", "a", "```" }, { 1, 0 }, "dif", { "text", "```", "```" } },
   { "ci*: emphasis on the next line", { "plain", "a **b** c" }, { 1, 0 }, "ci*Z<Esc>", { "plain", "a **Z** c" } },
   { "di*: highlight on the next line", { "plain", "a ==h== c" }, { 1, 0 }, "di*", { "plain", "a ==== c" } },
-  { "ciL: list item below", { "intro", "", "- item" }, { 1, 0 }, "ciLW<Esc>", { "intro", "", "- W" } },
+  { "cix: list item below", { "intro", "", "- item" }, { 1, 0 }, "cixW<Esc>", { "intro", "", "- W" } },
   {
-    "ci|: table below",
+    "ciz: table below",
     { "intro", "", "| a | b |", "|---|---|" },
     { 1, 0 },
-    "ci|V<Esc>",
+    "cizV<Esc>",
     { "intro", "", "| V   | b   |", "| --- | --- |" },
   },
-  { "dah: before the first heading, the next section", { "intro", "", "# A", "a" }, { 1, 0 }, "dah", { "intro", "" } },
+  { "da#: before the first heading, the next section", { "intro", "", "# A", "a" }, { 1, 0 }, "da#", { "intro", "" } },
   { "vik selects the next link", { "x", "[ab](u)" }, { 1, 0 }, "vikd", { "x", "[](u)" } },
   {
     "the next one after the cursor, not the first on the line",
@@ -208,7 +209,10 @@ local cases = {
     fn = function()
       H.buf({ "x" })
       eq(vim.fn.maparg("ik", "o") ~= "", true)
-      eq(vim.fn.maparg("a<Bar>", "x") ~= "", true)
+      eq(vim.fn.maparg("az", "x") ~= "", true)
+      eq(vim.fn.maparg("i#", "o") ~= "", true)
+      eq(vim.fn.maparg("ax", "o") ~= "", true)
+      eq(vim.fn.maparg("if", "o") ~= "", true)
       eq(vim.fn.maparg("iu", "o") ~= "", true)
       eq(vim.fn.maparg("au", "o"), "")
       vim.cmd("enew!")

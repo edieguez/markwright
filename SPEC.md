@@ -24,7 +24,7 @@ Status: **1.0.0 released** — updated 2026-10-02. Sections 1–13 describe what
 - [x] **External URL checker** — `:Markwright check urls`: async curl HEAD→GET, concurrency/timeout, broken = warning, 401/403/429 = info, diagnostics + quickfix (§14.23)
 - [x] **GitHub callouts** — `<P>a` wrap paragraph / selection / code block (type picker) or change type (picker again), `<P>A` remove, plain quote → callout, `:Markwright callout`, `<CR>`/`o`/`O` continue quotes (§14.11)
 - [x] **Heading navigation** — `]]`/`[[`, `][`/`[]` same level, `[u` parent, `<P>o` outline via `vim.ui.select`; counts, jumplist, operators (§14.9)
-- [x] **Text objects** — `ik`/`ak` link, `iu` URL, `ic`/`ac` code, `ih`/`ah` section, `i|`/`a|` cell, `iL`/`aL` list item, `i*`/`a*` emphasis; counts, empty objects, dot-repeat (§14.8)
+- [x] **Text objects** — `ik`/`ak` link, `iu` URL, `ic`/`ac` inline code, `if`/`af` code block, `i#`/`a#` section, `iz`/`az` cell, `ix`/`ax` list item, `i*`/`a*` emphasis; counts, empty objects, dot-repeat (§14.8)
 - [x] **Links** (§7)
   - [x] link key: clipboard URL / prompt / bare URL → titled link / unlink
   - [x] async page titles (curl), domain fallback
@@ -44,7 +44,7 @@ Status: **1.0.0 released** — updated 2026-10-02. Sections 1–13 describe what
 - [x] **TOC** — markers, nested entries, refresh on save (§9.6)
 - [x] **Link diagnostics** — files, anchors, references, footnotes; on open/save; `:Markwright check` (§10)
 - [x] **Image paste, macOS** — screenshots, Finder files, paths, URLs; `assets/`; alt text (§13.1)
-- [x] **Tests** — 657 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
+- [x] **Tests** — 658 headless cases feeding real keys; pass on Neovim 0.10.0, 0.10.4 and 0.11 (§11)
 - [x] **Verified on macOS + LazyVim** (2026-09-30): clipboard links, live titles, `gx`, image paste (screenshot / Finder / browser), `<CR>` with blink.cmp + mini.pairs, `<Tab>` in snippets/lists/tables, `;;` hint with noice, no duplicate diagnostics
 
 ### Release 1.0.0
@@ -74,7 +74,7 @@ Status: **1.0.0 released** — updated 2026-10-02. Sections 1–13 describe what
 - [x] List tools: move items with children, sort, convert lines ↔ bullets / numbers / checkboxes — `<P>l…` (§14.12)
 - [x] Checkbox progress counters `[2/5]` / `[40%]` (§14.13)
 - [x] Completion dates on checked tasks, with time: `lists.done_date` (§14.14)
-- [x] Table extras: move columns/rows (`<P>tH/tL/tJ/tK`), sort (`<P>ts`), transpose (`<P>tT`), copy as CSV (`<P>ty`) (§14.15)
+- [x] Table extras: move columns/rows (`<P>tH/tL/tJ/tK`), sort (`<P>ts`), flip/transpose (`<P>tf`), copy as CSV (`<P>ty`) (§14.15)
 - [ ] Section operations: move heading sections, promote/demote with children (§14.16)
 - [ ] Inline ↔ reference link conversion (§14.17)
 - [ ] Footnote renumbering (§14.18)
@@ -251,25 +251,30 @@ All buffer-local, Markdown only. `<P>` = configured prefix (default `<leader>m`)
 | n | `<P>n` | Insert footnote |
 | n | `<P>tt` | Create table |
 | n, x | `<P>tc` | CSV/TSV lines → table: the paragraph under the cursor (n) or the selection (x) |
+| n | `<P>tC` | Table → CSV (asks for the separator); `<P>ty` copies instead |
 | n | `<P>th` / `<P>tl` | Add column left / right |
 | n | `<P>tj` / `<P>tk` | Add row below / above (not above the header) |
 | n | `<P>tdr` / `<P>tdc` | Delete row / column |
 | n | `<P>tH` / `<P>tL` · `<P>tJ` / `<P>tK` | Move column left / right · row down / up (`[count]`) |
-| n | `<P>ts` / `<P>tS` · `<P>tT` · `<P>ty` | Sort by column ascending / descending · transpose · copy as CSV (§14.15) |
+| n | `<P>ts` / `<P>tS` · `<P>tf` · `<P>ty` | Sort by column ascending / descending · flip (transpose) · copy as CSV (§14.15) |
 | n | `<P>ta` | Align table now |
-| n | `<P>T` | Insert/update TOC |
+| n | `<P>O` | Insert/update the table of contents (the outline written into the file) |
 | n, x | `<P>p` | Paste image (visual: selection = alt text) |
-| n | `<P>r` | Rename the image file under the cursor and update its links in the buffer (§13.1) |
+| n | `<P>P` | Rename the image file under the cursor and update its links in the buffer (§13.1) |
 | i | `;;` + `i`/`b`/`s`/`c`/`h`/`k` | Formatting while typing (trigger configurable) |
 | n, x, o | `]]`/`[[`, `][`/`[]`, `[u` | Heading navigation (§14.9; configurable under `nav`) |
 | n | `<P>o` | Outline picker (§14.9) |
+| n | `<P>lJ` / `<P>lK` · `<P>ls` / `<P>lS` · `<P>ld` | List: move item with children · sort A→Z / Z→A · done last (§14.12) |
+| n, x | `<P>lb` / `<P>ln` / `<P>lc` (`B`/`N`/`C`) | List converters: this level (and below) → bullets / numbers / checkboxes (§14.12) |
 | n, x | `<P>a` | Callout: wrap paragraph (n) / selection (x), or change type, both with the type picker (§14.11). Block key: acts at once |
 | n | `<P>A` | Remove callout (§14.11) |
-| o, x | `ik`/`ak`, `iu`, `ic`/`ac`, `ih`/`ah`, `i\|`/`a\|`, `iL`/`aL`, `i*`/`a*` | Text objects (§14.8; letters configurable under `textobjects`) |
+| o, x | `ik`/`ak`, `iu`, `ic`/`ac`, `if`/`af`, `i#`/`a#`, `iz`/`az`, `ix`/`ax`, `i*`/`a*` | Text objects (§14.8; letters configurable under `textobjects`) |
 
-**Planned keys** (§14; all **[OPEN]** until implemented): `<P>v` rich paste (later); move sections; `<P>+`/`<P>_` promote/demote with children; inline ↔ reference link (`<P>r` is taken by image rename). (List tools ended up under `<P>l…`, table extras under `<P>t…`.)
+**Planned keys** (§14; all **[OPEN]** until implemented): `<P>v` rich paste (later); move sections; `<P>+`/`<P>_` promote/demote with children; inline ↔ reference link (`<P>r`, free since image rename moved to `<P>P`). (List tools ended up under `<P>l…`, table extras under `<P>t…`.)
 
-Keys already taken under `<P>`: `i b s c h I B S C H l = - f n p T tt tc tr tR tk tK ta`.
+**Mnemonic rules** (keymap review, 2026-10-03): each letter means one thing at the top level and in text objects (`c` inline code, `f` fence, `h` highlight, `k` link, `#` heading section); inside a submenu (`<P>t…`, `<P>l…`) letters may mean something else (`tc` CSV, `lc` checkbox, `tf` flip). At the top level uppercase is the companion or reverse of lowercase (`a`/`A` callout wrap/remove, `o`/`O` outline / table of contents, `p`/`P` paste / rename image); in submenus uppercase moves (`tH tJ tK tL`, `lJ lK`), sorts descending (`S`), reverses (`tC`) or reaches deeper (`lB lN lC`).
+
+Keys taken under `<P>`: `i b s c h k f n = - a A o O p P t… l…` (`r` reserved for inline ↔ reference links).
 
 ---
 
@@ -411,7 +416,7 @@ GitHub style: lowercase, strip punctuation except `-` and `_`, spaces → `-`, k
 ### 9.4 Tables (`tables.lua`)
 - **Create** (`<P>tt`): prompt `rows x cols` (e.g. `3x4`), insert header row, delimiter row and empty body rows, cursor in first header cell.
 - **CSV → table** (`<P>tc`: the paragraph under the cursor in normal mode, the selection in visual mode; `:'<,'>Markwright table csv`): the lines; asks `Separator:` prefilled with the detected one (candidates `\t` `,` `;` `|` `:`; a candidate that splits every line into the same number > 1 of fields wins, most fields first; else the one splitting the first line most; else `,`). Any typed separator works, including multi-character ones; `\t`/`tab` = tab; cancel does nothing. Honor quoted fields; trim fields; first line becomes the header; escape `|` in cells. (Changed 2026-09-30: detection used to consider only `\t , ;` on the first line, so other separators produced a single column.)
-- **Table → CSV** (`<P>tx`, `:Markwright table tocsv`; implemented 2026-09-30): replaces the table under the cursor with CSV lines — the opposite of `<P>tc`. Asks `Separator:` prefilled with `tables.csv_separator` (default `,`); `\t`/`tab` mean a tab, empty input means the default, cancel does nothing. Delimiter row dropped; short rows padded; fields quoted when they contain the separator, a `"` or edge spaces (quotes doubled); `\|` unescaped; indentation kept (tables in list items). One undo step; CSV → table → CSV round-trips.
+- **Table → CSV** (`<P>tC`, changed 2026-10-03 from `<P>tx` to pair with `<P>tc`; `:Markwright table tocsv`; implemented 2026-09-30): replaces the table under the cursor with CSV lines — the opposite of `<P>tc`. Asks `Separator:` prefilled with `tables.csv_separator` (default `,`); `\t`/`tab` mean a tab, empty input means the default, cancel does nothing. Delimiter row dropped; short rows padded; fields quoted when they contain the separator, a `"` or edge spaces (quotes doubled); `\|` unescaped; indentation kept (tables in list items). One undo step; CSV → table → CSV round-trips.
 - **Row/column editing (keys changed 2026-10-02, hjkl):** `<P>th` / `<P>tl` add a column left / right; `<P>tj` / `<P>tk` add a row below / above (above the header is refused: a table's first row is its header; below the header goes below the delimiter); `<P>tdr` / `<P>tdc` delete the row / column (updates the delimiter row). Commands: `:Markwright table row|rowabove|delrow|col|colleft|delcol`. (Previously `<P>tr`/`<P>tR`/`<P>tk`/`<P>tK`.)
 - **Cell navigation:** `<Tab>` / `<S-Tab>` in insert mode inside a table → next/previous cell; `<Tab>` in the last cell adds a new row.
 - **Align:** pad cells so pipes line up, using display width (`vim.fn.strdisplaywidth`, for accents/CJK/emoji); respect alignment markers (`:---`, `:---:`, `---:`). Runs on `InsertLeave` when the cursor was in a table, after row/col edits, and via `<P>ta`.
@@ -422,7 +427,7 @@ GitHub style: lowercase, strip punctuation except `-` and `_`, spaces → `-`, k
 - Navigation via `gx` (section 8).
 
 ### 9.6 TOC (`toc.lua`)
-- `<P>T` / `:Markwright toc`: insert TOC at cursor between `<!-- toc -->` and `<!-- tocstop -->`, or regenerate if markers exist.
+- `<P>O` (changed 2026-10-03 from `<P>T`: the outline `<P>o`, written into the file) / `:Markwright toc`: insert TOC at cursor between `<!-- toc -->` and `<!-- tocstop -->`, or regenerate if markers exist.
 - On `BufWritePre`, if markers exist and `update_on_save`, regenerate (no-op if unchanged, so the buffer isn't modified needlessly).
 - Nested `-` list of `[Heading](#slug)` entries, respecting `min_level`/`max_level`. Skip headings inside code blocks and the TOC itself.
 
@@ -483,7 +488,7 @@ Decisions (all configurable under `images`):
 - Link path relative to the file, spaces/parens URL-encoded. Alt text from a typed name (default timestamp → empty), or `prompt` / `empty`.
 - Still open: Linux/WSL backends (`wl-paste`, `xclip`, `powershell.exe`), compression/WebP, cleanup of unreferenced images.
 
-- **Rename** (`<P>r`, `:Markwright image rename`; implemented 2026-10-02): cursor on an inline image with a local destination; `vim.ui.input` prefilled with the file name; renames the file in its folder with `vim.uv.fs_rename` (no extension typed → old one kept; name sanitized like paste: spaces → `-`, no path separators), then rewrites every destination in the buffer that resolves to the old file (images, links, `[ref]:` definitions; `./`, `%20`, `<…>` forms; `#fragment` kept; skips code) as one undo step. Refuses existing targets (a case-only change on a case-insensitive disk is allowed), remote URLs and missing files. Other files aren't updated (link diagnostics flag them); undo doesn't rename the file back.
+- **Rename** (`<P>P`, changed 2026-10-03 from `<P>r`; `:Markwright image rename`; implemented 2026-10-02): cursor on an inline image with a local destination; `vim.ui.input` prefilled with the file name; renames the file in its folder with `vim.uv.fs_rename` (no extension typed → old one kept; name sanitized like paste: spaces → `-`, no path separators), then rewrites every destination in the buffer that resolves to the old file (images, links, `[ref]:` definitions; `./`, `%20`, `<…>` forms; `#fragment` kept; skips code) as one undo step. Refuses existing targets (a case-only change on a case-insensitive disk is allowed), remote URLs and missing files. Other files aren't updated (link diagnostics flag them); undo doesn't rename the file back.
 
 ### 13.2 Insert-mode formatting keys — **implemented (2026-09-30)**
 - Trigger `;;` (config `insert.trigger`: 2+ characters, a key like `<C-g>`, or `""` to disable), then `i` `b` `s` `c` `h` `k`. Chosen for portability: plain characters work in every terminal and layout; `<C-m>` (= Enter), `<C-i>` (= Tab), Option/Meta keys and completion-plugin keys were ruled out.
@@ -567,15 +572,17 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 |---|---|---|---|
 | Link | link text; image alt text; the URL inside `<…>`; a bare URL | whole `[text](url)` / `![alt](src)` / `<url>` / reference link | `ik` / `ak` |
 | Link URL | destination (inside `<…>` if bracketed); for reference links, the URL on the `[ref]:` line | — | `iu` |
-| Code | inline code: content (without padding spaces) · block: lines between the fences | with backticks · whole block (trailing blank lines excluded) | `ic` / `ac` |
-| Heading section | content under the heading, blank lines at both ends trimmed | heading + content up to the next heading of the same or higher level | `ih` / `ah` |
-| Table cell | trimmed cell text | cell incl. padding (between the pipes) | `i\|` / `a\|` |
-| List item | item text (no marker/checkbox), incl. continuation lines of its paragraph | item + its children (line-wise) | `iL` / `aL` |
+| Inline code | content (without padding spaces) | with backticks | `ic` / `ac` |
+| Code block | lines between the fences (indented block: its lines) | whole block, fences included (trailing blank lines excluded) | `if` / `af` (**f**ence) |
+| Heading section | content under the heading, blank lines at both ends trimmed | heading + content up to the next heading of the same or higher level | `i#` / `a#` |
+| Table cell | trimmed cell text | cell incl. padding (between the pipes) | `iz` / `az` ("zell") |
+| List item | item text (no marker/checkbox), incl. continuation lines of its paragraph | item + its children (line-wise) | `ix` / `ax` (the x in `[x]`) |
 | Emphasis | inside `*`, `**`, `~~`, `==` (innermost) | including the markers | `i*` / `a*` |
 
+- Changed 2026-10-03 (keymap review): `ic`/`ac` is inline code only and code blocks moved to `if`/`af` (matching `<P>c` / `<P>f`); sections `ih` → `i#` (`h` is highlight); cells `i|` → `iz` (the pipe read as "between pipes"); list items `iL` → `ix` (lowercase; `il` is mini.ai's "last" prefix).
 - Decided 2026-09-30: link text uses **`ik`/`ak`** (not `il`/`al`, which mini.ai uses as its "last" prefix); `k` also became the link key everywhere (`<P>k`, `;;k`).
 - Operator-pending and visual modes, buffer-local in Markdown. Implemented as `expr` mappings: the range is computed, then selected through a `<Cmd>` that recomputes it at execution time, so dot-repeat works at the new cursor position.
-- Counts climb outward: `2ah` parent section, `2aL` parent item, `2i*` next enclosing span.
+- Counts climb outward: `2a#` parent section, `2ax` parent item, `2i*` next enclosing span.
 - Not inside an object → the **next** one after the cursor, across lines (like mini.ai's default `cover_or_next`), within `textobjects.search_lines` (default 500) lines; never backwards; nothing found → the operator is cancelled. Implemented with per-object anchor lists (start positions of links/bare URLs, code spans and blocks, headings, tables, list items, emphasis and `==` spans); the object is evaluated at the first anchor after the cursor. ~6–8 ms per search over 500 lines of the README. (Fixed 2026-09-30: the first version only searched the rest of the current line.)
 - Empty objects (`[](u)`, empty fence, empty cell): the operator is cancelled; for `c`, insert mode starts at the spot.
 - Section, code-block and around-item objects are line-wise; the rest are character-wise.
@@ -613,7 +620,7 @@ Extends §13.1 with backends behind the same `backend()` interface (`info`, `sav
 
 ### 14.12 List tools (priority 2) — **implemented (2026-10-02)**
 Keys chosen 2026-10-02: a `<P>l` submenu (which-key group "list"), like `<P>t` for tables. New module `listtools.lua`, built on the tree-sitter `list_item` tree.
-- `<P>lj` / `<P>lk` (`:Markwright list down|up`): move the item under the cursor, with its children, past `[count]` siblings; clamped at the first/last sibling (a child never leaves its parent). Item blocks exclude trailing blank lines; the blank gaps between items stay in place. Ordered lists are renumbered from the list's original first number (re-indenting children when a number's width changes). Cursor follows. Opt-in `lists.move_keys = { down = "<M-j>", up = "<M-k>" }`: on list items they move the item, elsewhere they run the previously defined mapping (LazyVim's move-line).
+- `<P>lJ` / `<P>lK` (changed 2026-10-03 from `lj`/`lk`, matching the table row moves `<P>tJ`/`<P>tK`; `:Markwright list down|up`): move the item under the cursor, with its children, past `[count]` siblings; clamped at the first/last sibling (a child never leaves its parent). Item blocks exclude trailing blank lines; the blank gaps between items stay in place. Ordered lists are renumbered from the list's original first number (re-indenting children when a number's width changes). Cursor follows. Opt-in `lists.move_keys = { down = "<M-j>", up = "<M-k>" }`: on list items they move the item, elsewhere they run the previously defined mapping (LazyVim's move-line).
 - `<P>ls` / `<P>lS` (`:Markwright list sort [desc]`): sort the siblings A→Z / Z→A (case-insensitive, checkbox and emphasis markers ignored; decided 2026-10-02: `s`/`S`, replacing the "again → Z→A" toggle). `<P>ld` (`:Markwright list sort done`): stable partition, done (`[x]`/`[X]`) items last. Children move with their parent; renumbered.
 - Converters `<P>lb` / `<P>ln` / `<P>lc` → bullets / numbers / checkboxes (`:[range]Markwright list bullet|number|checkbox [all]`). Scope (decided 2026-10-02, after use): lowercase = the cursor's level, i.e. the list item under the cursor (also from a continuation line) and its siblings; their children and continuation lines are only re-indented by the marker width change, so nested lists of another style are left alone. Uppercase `<P>lB` / `<P>lN` / `<P>lC` = the cursor's level and every sub-list below it, any depth (the rows from the first sibling to the end of the last sibling's subtree); parents and anything above are untouched, and on a top-level item this is the whole list (decided 2026-10-02). On plain lines (no list): the paragraph. Visual: exactly the selected lines, every level. Plain lines get the style, items of another style switch; if every converted item already has the style it is removed (plain lines), so each key toggles. Existing bullet characters and number delimiters are kept (a `*` list becomes `* [ ]`, a numbered list stays numbered as `1. [ ]`); new markers come from `lists.bullet` (`-` `*` `+`, default `-`) and `lists.number_delim` (`.` `)`, default `.`). In every-level mode, indented lines nest under the closest less-indented line at its new content column, numbering restarts per level. Blank lines, headings, fences and code blocks are skipped; `>` prefixes kept.
 - **Checklists are protected** (decided 2026-10-02): whenever a conversion would remove checkboxes, checked or not (→ bullets, numbers or plain), `vim.ui.select` asks "N checklist items (D done) would lose their checkbox. Convert them?". Yes converts everything; No converts the rest and leaves every list level containing such an item (a checklist; levels = tree-sitter `list` nodes) exactly as it is, re-indented only to stay nested; Cancel or `<Esc>` changes nothing. No is offered only when something outside the checklists would change (never for a single level). Levels are all-or-nothing, so a list never mixes checkboxes with bullets or numbers. Converting into checkboxes never asks. The plan is computed first and applied only if the lines are unchanged when the answer comes. Converting into checkboxes never asks.
@@ -635,8 +642,8 @@ Keys chosen 2026-10-02, matching the `h`/`j`/`k`/`l` add keys:
 - `<P>tH` / `<P>tL`: move the current column left / right, `[count]` steps (alignment markers move with it; the cursor follows; clamped at the edges).
 - `<P>tJ` / `<P>tK`: move the current body row down / up, `[count]` steps (header and delimiter stay; clamped).
 - `<P>ts` / `<P>tS` (`:Markwright table sort [desc]`): sort body rows by the column under the cursor (cursor anywhere in the column, header included), ascending / descending (decided 2026-10-02: `s`/`S` like list sorting, replacing the first version's "again → descending" toggle). Numeric when every non-empty cell is a number after removing emphasis markers, a leading `$ € £ ¥`, a trailing `%` and thousands commas; else case-insensitive text (ISO dates sort as text). Empty cells last in both directions; stable.
-- `<P>tT` (`:Markwright table transpose`): rows ↔ columns over header + body; the first column becomes the header; alignments reset to none; the cursor follows its cell.
-- `<P>ty` (`:Markwright table yank`): copy the table as CSV (same separator prompt and quoting as `<P>tx`) to the `"` register, and to `+` when a clipboard provider exists; the table is untouched.
+- `<P>tf` (**f**lip; changed 2026-10-03 from `<P>tT`; `:Markwright table transpose`): rows ↔ columns over header + body; the first column becomes the header; alignments reset to none; the cursor follows its cell.
+- `<P>ty` (`:Markwright table yank`): copy the table as CSV (same separator prompt and quoting as `<P>tC`) to the `"` register, and to `+` when a clipboard provider exists; the table is untouched.
 - Each edit is one undo step.
 
 ### 14.16 Section operations (priority 2)
