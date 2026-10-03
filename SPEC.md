@@ -2,7 +2,7 @@
 
 A Neovim plugin (LazyVim-friendly) for editing Markdown: inline formatting toggles, links, lists, headings, tables, code fences, footnotes, TOC, link diagnostics, image paste and formatting while typing.
 
-Status: **1.0.0 released** — updated 2026-10-02. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
+Status: **3.0.0 released** — updated 2026-10-03. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
 
 ---
 
@@ -55,6 +55,17 @@ Status: **1.0.0 released** — updated 2026-10-02. Sections 1–13 describe what
 - [x] CI workflow and `Makefile` targets (`fmt`, `lint`, `check`)
 - [x] `CHANGELOG.md`, `v1.0.0` git tag (2026-10-02; earlier tags v0.1.0, v0.1.1 and v2.0.0 were removed and folded into 1.0.0)
 - [x] Pushed to GitHub with the `v1.0.0` tag (2026-10-02)
+
+### Releases after 1.0.0
+
+Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major version marks every release that changed default keys.
+
+- [x] `v2.0.0` — table keys on `h`/`j`/`k`/`l`, image rename, callout-marker and undo fixes
+- [x] `v2.1.0` — table extras (move, sort, transpose, copy as CSV)
+- [x] `v2.2.0` — completion dates
+- [x] `v2.3.0` — checkbox progress counters
+- [x] `v2.4.0` — list tools (move, sort, converters)
+- [x] `v3.0.0` — keymap review with mnemonics, `s`/`S` sorting, one-level converters with checklist protection
 
 ### Not implemented
 
