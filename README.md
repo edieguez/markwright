@@ -6,7 +6,7 @@ Markdown editing for Neovim that feels native: one key adds a format, the same k
 
 Built for LazyVim, and it works with any Neovim setup from 0.10 on (tested on 0.10.0, 0.10.4 and 0.11).
 
-> **Status: early release (0.1).** All core features are implemented, covered by 300+ headless tests, and used daily on macOS with LazyVim: inline formatting (also while typing), links, `gx`, lists, checkboxes, headings, code fences, footnotes, tables, TOC, link diagnostics and image paste (macOS). Expect rough edges on other setups; [issues](https://github.com/edieguez/markwright/issues) are welcome. See [Roadmap](#roadmap).
+> **Status: 1.0.** Inline formatting (also while typing), links, `gx`, text objects, heading navigation, callouts, lists and list tools, checkboxes with completion dates and progress counters, headings, code fences, footnotes, tables, TOC, link diagnostics and image paste (macOS) are implemented. A headless test suite covers them and runs in CI on Neovim 0.10.0, stable and nightly, on Linux and macOS. Image paste is macOS only for now. [Issues](https://github.com/edieguez/markwright/issues) are welcome; see [Roadmap](#roadmap) for what's planned.
 
 ```lua
 -- lazy.nvim / LazyVim
@@ -101,15 +101,18 @@ All five share one engine, so they behave the same way:
   - `<Tab>`/`<S-Tab>` nest and un-nest items together with their children.
   - Ordered lists renumber themselves.
   - `<leader>ml…` moves an item with its children, sorts a list, and converts lines to bullets, numbers or checkboxes and back.
-- **Checkboxes:** **`<CR>` in normal mode** toggles `[ ]` ↔ `[x]`, and adds a checkbox to a plain list item.
+- **Checkboxes:**
+  - **`<CR>` in normal mode** toggles `[ ]` ↔ `[x]`, and adds a checkbox to a plain list item.
+  - Checking an item stamps when it was done (`✅ 2026-10-02 15:52`); unchecking removes the stamp.
+  - `[/]` or `[%]` on a parent item fills in its progress: `[2/3]`, `[66%]`.
 - **Heading navigation:** `]]`/`[[` jump between headings, `][`/`[]` between headings of the same level, `[u` to the parent, and `<leader>mo` opens an outline to pick from.
 - **GitHub callouts:** `<leader>ma` wraps a paragraph in `> [!NOTE]` (or TIP, IMPORTANT, WARNING, CAUTION), changes the type of an existing one (same picker), and `<leader>mA` removes it.
 - **Headings:** `<leader>m=` adds a `#`, `<leader>m-` removes one. They take counts and convert setext headings.
 - **Image paste** (`<leader>mp`, macOS): saves a screenshot, copied image or Finder file into `assets/` next to the file and inserts `![alt](assets/name.png)`. `<leader>mP` on an image renames its file on disk and updates the links.
 
-### Coming next
+### Not yet available
 
-Text objects, heading navigation, rich-text paste, callouts, image paste on Linux/WSL, `:help` docs and more. The full list, with what's done and what isn't, is in [Roadmap](#roadmap).
+Image paste on Linux and WSL, a `:help` file, section moves, inline ↔ reference link conversion and more are planned. See [Roadmap](#roadmap).
 
 ---
 
@@ -286,55 +289,55 @@ And images (take a screenshot with ⌘⇧⌃4 first):
 
 Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes` in [Configuration](#configuration)). The prefix defaults to `<leader>m`. With LazyVim's default leader that is `Space m`.
 
-| Keys                                               | Mode                             | Action                                                                                                      |
-| -------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `<leader>mi`                                       | normal                           | Toggle **italic** (on plain text, + motion: `<leader>miiw`)                                                 |
-| `<leader>mb`                                       | normal                           | Toggle **bold** (`<leader>mbiw`, `<leader>mb_`)                                                             |
-| `<leader>ms`                                       | normal                           | Toggle **strikethrough**                                                                                    |
-| `<leader>mc`                                       | normal                           | Toggle **inline code**                                                                                      |
-| `<leader>mh`                                       | normal                           | Toggle **highlight**                                                                                        |
-| `<leader>mi` `mb` `ms` `mc` `mh`                   | visual                           | Toggle the format on the selection                                                                          |
-| `;;` then `i` `b` `s` `c` `h` `k`                  | insert                           | **Formatting while typing**: open a pair, or jump out of it (see below)                                     |
-| `<leader>mk`                                       | normal                           | **Link**: create, convert a bare URL, or remove (`<leader>mkiw` on text)                                    |
-| `<leader>mk`                                       | visual                           | **Link** the selection, or remove the link it's in                                                          |
-| `]]` / `[[` · `][` / `[]` · `[u`                   | normal, visual, operator-pending | Next / previous heading · same-level heading · parent heading                                               |
-| `<leader>mo`                                       | normal                           | **Outline**: pick a heading to jump to                                                                      |
-| `<leader>ma`                                       | normal                           | **Callout**: wrap the paragraph, or change the type of the one under the cursor                             |
-| `<leader>ma`                                       | visual                           | **Callout**: wrap the selected lines                                                                        |
-| `<leader>mA`                                       | normal                           | Remove the callout                                                                                          |
-| `ik` `iu` `ic` `if` `i#` `iz` `ix` `i*` (and `a…`) | operator-pending, visual         | **Text objects** (see below)                                                                                |
-| `p`                                                | visual                           | Paste; a URL over the selection makes `[selection](url)`                                                    |
-| `p` / `P`                                          | normal                           | Paste; a bare URL becomes `[Page Title](url)`                                                               |
-| `gx`                                               | normal                           | **Follow** link, anchor, file, image or footnote                                                            |
-| `<leader>mf`                                       | normal                           | Insert a **code fence**                                                                                     |
-| `<leader>mf`                                       | visual                           | Wrap the selected lines in a code fence                                                                     |
-| `<leader>mn`                                       | normal                           | Insert a **footnote**                                                                                       |
-| `<leader>mtt`                                      | normal                           | Create a **table**                                                                                          |
-| `<leader>mtc`                                      | normal, visual                   | Convert CSV/TSV lines to a table (the paragraph under the cursor, or the selection)                         |
-| `<leader>mtC`                                      | normal                           | Convert the table under the cursor to CSV (asks for the separator)                                          |
-| `<leader>mth` / `<leader>mtl`                      | normal                           | Add a column left / right                                                                                   |
-| `<leader>mtj` / `<leader>mtk`                      | normal                           | Add a row below / above                                                                                     |
-| `<leader>mtdr` / `<leader>mtdc`                    | normal                           | Delete the row / column                                                                                     |
-| `<leader>mtH` / `<leader>mtL`                      | normal                           | Move the column left / right                                                                                |
-| `<leader>mtJ` / `<leader>mtK`                      | normal                           | Move the row down / up                                                                                      |
-| `<leader>mts` / `<leader>mtS`                      | normal                           | Sort by the column under the cursor, ascending / descending                                                 |
-| `<leader>mtf`                                      | normal                           | **Flip**: transpose rows ↔ columns                                                                          |
-| `<leader>mty`                                      | normal                           | Copy the table as CSV to the clipboard                                                                      |
-| `<leader>mta`                                      | normal                           | Align the table now                                                                                         |
-| `<Tab>` / `<S-Tab>`                                | insert                           | Next / previous table cell; nest / un-nest a list item (native `<Tab>` elsewhere)                           |
-| `<leader>mO`                                       | normal                           | Insert or update the **table of contents**                                                                  |
-| `<CR>`                                             | normal                           | **Toggle checkbox** on a list item (native `<CR>` elsewhere)                                                |
-| `<CR>`                                             | visual                           | Check all list items in the selection (or uncheck if all are checked)                                       |
-| `<CR>`                                             | insert                           | **Continue the list** (native `<CR>` elsewhere)                                                             |
-| `o` / `O`                                          | normal                           | Open a line below / above; continues lists and blockquotes                                                  |
-| `<leader>mlJ` / `<leader>mlK`                      | normal                           | **Move** the list item down / up, with its children                                                         |
-| `<leader>mls` / `<leader>mlS` / `<leader>mld`      | normal                           | **Sort** the list A→Z / Z→A / done items last                                                               |
-| `<leader>mlb` / `<leader>mln` / `<leader>mlc`      | normal, visual                   | Convert to bullets / numbers / checkboxes: the cursor's level (uppercase `B` `N` `C`: that level and below) |
-| `<leader>m=`                                       | normal, visual                   | **Heading**: add a `#` (count works: `2<leader>m=`)                                                         |
-| `<leader>m-`                                       | normal, visual                   | **Heading**: remove a `#`                                                                                   |
-| `<leader>mp`                                       | normal                           | **Paste image** from the clipboard (macOS)                                                                  |
-| `<leader>mp`                                       | visual                           | Paste image; the selection becomes the alt text                                                             |
-| `<leader>mP`                                       | normal                           | **Rename** the image file under the cursor (on disk) and update its links                                   |
+| Keys                                               | Mode                             | Action                                                                                                      | Mnemonic                                          |
+| -------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `<leader>mi`                                       | normal                           | Toggle **italic** (on plain text, + motion: `<leader>miiw`)                                                 | **i**talic                                        |
+| `<leader>mb`                                       | normal                           | Toggle **bold** (`<leader>mbiw`, `<leader>mb_`)                                                             | **b**old                                          |
+| `<leader>ms`                                       | normal                           | Toggle **strikethrough**                                                                                    | **s**trike                                        |
+| `<leader>mc`                                       | normal                           | Toggle **inline code**                                                                                      | **c**ode                                          |
+| `<leader>mh`                                       | normal                           | Toggle **highlight**                                                                                        | **h**ighlight                                     |
+| `<leader>mi` `mb` `ms` `mc` `mh`                   | visual                           | Toggle the format on the selection                                                                          | Same letters                                      |
+| `;;` then `i` `b` `s` `c` `h` `k`                  | insert                           | **Formatting while typing**: open a pair, or jump out of it (see below)                                     | Same letters as `<leader>m…`                      |
+| `<leader>mk`                                       | normal                           | **Link**: create, convert a bare URL, or remove (`<leader>mkiw` on text)                                    | lin**k** (`l` is the list menu)                   |
+| `<leader>mk`                                       | visual                           | **Link** the selection, or remove the link it's in                                                          | lin**k** (`l` is the list menu)                   |
+| `]]` / `[[` · `][` / `[]` · `[u`                   | normal, visual, operator-pending | Next / previous heading · same-level heading · parent heading                                               | Vim's `]]` / `[[`; **u**p                         |
+| `<leader>mo`                                       | normal                           | **Outline**: pick a heading to jump to                                                                      | **o**utline                                       |
+| `<leader>ma`                                       | normal                           | **Callout**: wrap the paragraph, or change the type of the one under the cursor                             | GitHub **a**lert (callout)                        |
+| `<leader>ma`                                       | visual                           | **Callout**: wrap the selected lines                                                                        | GitHub **a**lert (callout)                        |
+| `<leader>mA`                                       | normal                           | Remove the callout                                                                                          | Uppercase: the reverse of `a`                     |
+| `ik` `iu` `ic` `if` `i#` `iz` `ix` `i*` (and `a…`) | operator-pending, visual         | **Text objects** (see below)                                                                                | See [Text objects](#text-objects)                 |
+| `p`                                                | visual                           | Paste; a URL over the selection makes `[selection](url)`                                                    | —                                                 |
+| `p` / `P`                                          | normal                           | Paste; a bare URL becomes `[Page Title](url)`                                                               | —                                                 |
+| `gx`                                               | normal                           | **Follow** link, anchor, file, image or footnote                                                            | Vim's `gx`                                        |
+| `<leader>mf`                                       | normal                           | Insert a **code fence**                                                                                     | **f**ence                                         |
+| `<leader>mf`                                       | visual                           | Wrap the selected lines in a code fence                                                                     | **f**ence                                         |
+| `<leader>mn`                                       | normal                           | Insert a **footnote**                                                                                       | foot**n**ote                                      |
+| `<leader>mtt`                                      | normal                           | Create a **table**                                                                                          | **t**able, **t**able                              |
+| `<leader>mtc`                                      | normal, visual                   | Convert CSV/TSV lines to a table (the paragraph under the cursor, or the selection)                         | **C**SV → table                                   |
+| `<leader>mtC`                                      | normal                           | Convert the table under the cursor to CSV (asks for the separator)                                          | Uppercase: the reverse of `c`                     |
+| `<leader>mth` / `<leader>mtl`                      | normal                           | Add a column left / right                                                                                   | `h` / `l`: left / right, as in Vim                |
+| `<leader>mtj` / `<leader>mtk`                      | normal                           | Add a row below / above                                                                                     | `j` / `k`: down / up, as in Vim                   |
+| `<leader>mtdr` / `<leader>mtdc`                    | normal                           | Delete the row / column                                                                                     | **d**elete **r**ow / **c**olumn                   |
+| `<leader>mtH` / `<leader>mtL`                      | normal                           | Move the column left / right                                                                                | Uppercase `h` / `l`: move instead of add          |
+| `<leader>mtJ` / `<leader>mtK`                      | normal                           | Move the row down / up                                                                                      | Uppercase `j` / `k`: move instead of add          |
+| `<leader>mts` / `<leader>mtS`                      | normal                           | Sort by the column under the cursor, ascending / descending                                                 | **s**ort; uppercase reverses                      |
+| `<leader>mtf`                                      | normal                           | **Flip**: transpose rows ↔ columns                                                                          | **f**lip                                          |
+| `<leader>mty`                                      | normal                           | Copy the table as CSV to the clipboard                                                                      | **y**ank, as in Vim                               |
+| `<leader>mta`                                      | normal                           | Align the table now                                                                                         | **a**lign                                         |
+| `<Tab>` / `<S-Tab>`                                | insert                           | Next / previous table cell; nest / un-nest a list item (native `<Tab>` elsewhere)                           | —                                                 |
+| `<leader>mO`                                       | normal                           | Insert or update the **table of contents**                                                                  | Uppercase `o`: the outline, written into the file |
+| `<CR>`                                             | normal                           | **Toggle checkbox** on a list item (native `<CR>` elsewhere)                                                | —                                                 |
+| `<CR>`                                             | visual                           | Check all list items in the selection (or uncheck if all are checked)                                       | —                                                 |
+| `<CR>`                                             | insert                           | **Continue the list** (native `<CR>` elsewhere)                                                             | —                                                 |
+| `o` / `O`                                          | normal                           | Open a line below / above; continues lists and blockquotes                                                  | —                                                 |
+| `<leader>mlJ` / `<leader>mlK`                      | normal                           | **Move** the list item down / up, with its children                                                         | `J` / `K`: down / up, like `j` / `k`              |
+| `<leader>mls` / `<leader>mlS` / `<leader>mld`      | normal                           | **Sort** the list A→Z / Z→A / done items last                                                               | **s**ort; uppercase reverses; **d**one last       |
+| `<leader>mlb` / `<leader>mln` / `<leader>mlc`      | normal, visual                   | Convert to bullets / numbers / checkboxes: the cursor's level (uppercase `B` `N` `C`: that level and below) | **b**ullets, **n**umbers, **c**heckboxes          |
+| `<leader>m=`                                       | normal, visual                   | **Heading**: add a `#` (count works: `2<leader>m=`)                                                         | `=` is `+` without Shift: add                     |
+| `<leader>m-`                                       | normal, visual                   | **Heading**: remove a `#`                                                                                   | `-`: remove                                       |
+| `<leader>mp`                                       | normal                           | **Paste image** from the clipboard (macOS)                                                                  | **p**aste, as in Vim                              |
+| `<leader>mp`                                       | visual                           | Paste image; the selection becomes the alt text                                                             | **p**aste, as in Vim                              |
+| `<leader>mP`                                       | normal                           | **Rename** the image file under the cursor (on disk) and update its links                                   | Uppercase `p`: on a pasted image                  |
 
 **Operator examples** (on plain text, the key waits for one of these):
 
@@ -351,9 +354,21 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `<leader>mbik` | the text of the next link (markwright's [text objects](#text-objects) work too) |
 | `<leader>mkiw` | link the word                                                                   |
 
-The key acts at once, without a motion, when there's nothing to choose: inside a span of that format (it removes the span, from anywhere inside it, markers included), inside code (warning), or on whitespace (empty pair). `_` means "the current line" for every markwright operator, just as `d_` does for `d`. There are no doubled keys (`<leader>mbb`): `<leader>mii` would swallow the `i…` text objects (`<leader>miiw`), so for consistency none of the keys have one, and `<leader>mbb` is simply `<leader>mb` + the `b` motion.
+The key acts at once, without a motion, when there's nothing to choose: inside a span of that format (it removes the span, from anywhere inside it, markers included), inside code (warning), or on whitespace (empty pair). `_` means "the current line" for every markwright operator, just as `d_` does for `d`. Keys are never doubled: `<leader>mbb` is `<leader>mb` followed by the `b` motion, and `<leader>mii…` starts an `i…` text object (`<leader>miiw`).
 
-If which-key is installed (it is in LazyVim), the prefix is registered as a **markdown** group, and `<leader>mt` as a **table** subgroup, so the keys show up in the popup.
+If which-key is installed (it is in LazyVim), the prefix is registered as a **markdown** group, with `<leader>mt` (**table**), `<leader>mtd` (**delete**) and `<leader>ml` (**list**) as subgroups, so the keys show up in the popup.
+
+### How the keys are organized
+
+The keys follow a few rules, so most of them can be guessed:
+
+- **One letter, from the action's name.** Under `<leader>m`: **i**talic, **b**old, **s**trike, **c**ode, **h**ighlight, lin**k**, **f**ence, foot**n**ote, c**a**llout (GitHub calls them **a**lerts), **o**utline, **p**aste image.
+- **Uppercase is the companion of the lowercase key:** its reverse (`A` removes a callout, `tC` turns a table back into CSV, `S` sorts Z→A), a stronger version (`O` writes the outline into the file as a TOC; `lB` `lN` `lC` also convert the sub-lists), or the same object acted on differently (`P` renames a pasted image; `tH` `tJ` `tK` `tL` move instead of add).
+- **Submenus group related tools:** `<leader>mt…` for **t**ables, `<leader>ml…` for **l**ists. Inside a submenu a letter has its own meaning: `<leader>mtc` is **C**SV, not code.
+- **Vim's own keys keep their meaning:** `h` `j` `k` `l` are left, down, up, right; `J` / `K` move down / up; `y` yanks; `d` deletes (`<leader>mtdr`, `<leader>mtdc`); `_` is the current line.
+- **A letter keeps its meaning across normal mode, insert mode and text objects:** `c` is inline code in `<leader>mc`, `;;c` and `ic`; `f` is a code fence in `<leader>mf` and `if`; `k` is a link in `<leader>mk`, `;;k` and `ik`.
+
+The text objects use the same letters where they can: `ik` link, `iu` **U**RL, `ic` code, `if` fence, `i#` heading section, `iz` table cell ("**z**ell", since `c` is code), `ix` list item (the **x** in `- [x]`), `i*` emphasis.
 
 ---
 
@@ -468,16 +483,16 @@ With the cursor on whitespace or an empty line in normal mode, the key inserts a
 
 Text objects work with any operator (`d`, `c`, `y`, `>`, `gu`, `<leader>mb`, …) and in visual mode (`v`, `V`). `i` selects the inside, `a` the whole thing:
 
-| Keys        | `i` (inner)                                                           | `a` (around)                                                                    |
-| ----------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `ik` / `ak` | link text, image alt text, the URL inside `<…>`                       | the whole link or image                                                         |
-| `iu`        | the link's URL (for `[text][ref]`, the URL on its `[ref]:` line)      | —                                                                               |
-| `ic` / `ac` | inline code: its text                                                 | inline code with its backticks                                                  |
-| `if` / `af` | code block (**f**ence): the lines between the fences                  | the whole block, fences included                                                |
-| `i#` / `a#` | the section's content, without the heading or surrounding blank lines | the heading and everything up to the next heading of the same or a higher level |
-| `iz` / `az` | the table cell's text ("**z**ell")                                    | the cell including its padding                                                  |
-| `ix` / `ax` | the list item's text, without marker or checkbox (the **x** in `[x]`) | the item with its children                                                      |
-| `i*` / `a*` | text inside `*`, `**`, `~~` or `==` (the innermost)                   | including the markers                                                           |
+| Keys        | `i` (inner)                                                           | `a` (around)                                                                    | Mnemonic                   |
+| ----------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------- | -------------------------- |
+| `ik` / `ak` | link text, image alt text, the URL inside `<…>`                       | the whole link or image                                                         | lin**k**, as `<leader>mk`  |
+| `iu`        | the link's URL (for `[text][ref]`, the URL on its `[ref]:` line)      | —                                                                               | **U**RL                    |
+| `ic` / `ac` | inline code: its text                                                 | inline code with its backticks                                                  | **c**ode, as `<leader>mc`  |
+| `if` / `af` | code block: the lines between the fences                              | the whole block, fences included                                                | **f**ence, as `<leader>mf` |
+| `i#` / `a#` | the section's content, without the heading or surrounding blank lines | the heading and everything up to the next heading of the same or a higher level | the heading's `#`          |
+| `iz` / `az` | the table cell's text                                                 | the cell including its padding                                                  | "**z**ell" (`c` is code)   |
+| `ix` / `ax` | the list item's text, without marker or checkbox                      | the item with its children                                                      | the **x** in `- [x]`       |
+| `i*` / `a*` | text inside `*`, `**`, `~~` or `==` (the innermost)                   | including the markers                                                           | the emphasis marker        |
 
 ```
 cik       change a link's text        see [the docs](url)   →  see [|](url)
@@ -585,7 +600,7 @@ a [text *em*](http://x.io) b                           → a text *em* b
 
 ### Targets
 
-Like the formatting keys, the link key works on the word under the cursor, on a visual selection and on linewise selections. In a linewise selection, list markers and other prefixes are skipped: `- item text` → `- [item text](url)`. Spaces at the edges of a selection stay outside the brackets.
+Like the formatting keys, the link key takes any motion or text object (`<leader>mkiw`, `<leader>mk$`, `<leader>mk_` for the line) and works on visual selections, linewise ones included. In a linewise selection, list markers and other prefixes are skipped: `- item text` → `- [item text](url)`. Spaces at the edges of a selection stay outside the brackets.
 
 ### Bare URLs and page titles
 
@@ -759,7 +774,7 @@ The navigation skips the delimiter row and puts the cursor at the end of the cel
 | `<leader>mtH` / `<leader>mtL` | Move the column under the cursor left / right; its alignment moves with it       |
 | `<leader>mtJ` / `<leader>mtK` | Move the row under the cursor down / up (body rows only: the header stays first) |
 | `<leader>mts` / `<leader>mtS` | Sort the body rows by the column under the cursor, ascending / descending        |
-| `<leader>mtf`                 | **Flip** (transpose): rows become columns, the first column becomes the header              |
+| `<leader>mtf`                 | **Flip** (transpose): rows become columns, the first column becomes the header   |
 
 - **Counts** work for moves: `3<leader>mtJ` moves the row three down. The cursor follows the cell it was on.
 - **Sorting:** `<leader>mts` sorts ascending and `<leader>mtS` descending (the same `s`/`S` pair as for lists). When every cell in the column is a number, they compare as numbers (`9` before `10`); `$`, `€`, `£`, `¥`, `%`, thousands commas and emphasis markers are ignored. Otherwise the text is compared without case. ISO dates (`2026-10-02`) sort correctly as text. Empty cells always go last, and equal cells keep their order. The cursor can be anywhere in the column, the header included.
@@ -1195,35 +1210,36 @@ With `images.smart_paste = true`, pressing `p` (with `clipboard=unnamedplus`, as
 
 ## Commands
 
-| Command                                                | Description                                                                                             |                                                                         |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `:Markwright bold`                                     | Toggle bold on the word under the cursor                                                                |                                                                         |
-| `:Markwright italic`                                   | Toggle italic                                                                                           |                                                                         |
-| `:Markwright strike`                                   | Toggle strikethrough                                                                                    |                                                                         |
-| `:Markwright code`                                     | Toggle inline code                                                                                      |                                                                         |
-| `:Markwright highlight`                                | Toggle highlight                                                                                        |                                                                         |
-| `:Markwright link`                                     | Like `<leader>mk`, but links the word under the cursor instead of waiting for a motion                  |                                                                         |
-| `:Markwright follow`                                   | Same as `gx`                                                                                            |                                                                         |
-| `:Markwright fence`                                    | Insert a code fence; with a range (`:'<,'>Markwright fence`) wrap those lines                           |                                                                         |
-| `:Markwright callout [type\|remove]`                   | Wrap in / retype / remove a callout; with a range, wrap those lines                                     |                                                                         |
-| `:Markwright outline`                                  | Pick a heading from an outline and jump to it                                                           |                                                                         |
-| `:Markwright footnote`                                 | Insert a footnote                                                                                       |                                                                         |
-| `:Markwright image`                                    | Paste the clipboard image (macOS)                                                                       |                                                                         |
-| `:Markwright image rename`                             | Rename the image file under the cursor and update its links                                             |                                                                         |
-| `:Markwright toc`                                      | Insert or update the table of contents                                                                  |                                                                         |
-| `:Markwright check`                                    | Run link diagnostics now and report the count                                                           |                                                                         |
-| `:Markwright check urls`                               | Check external links (in the background) and report broken ones as diagnostics and in the quickfix list |                                                                         |
-| `:Markwright table create`                             | Create a table                                                                                          |                                                                         |
-| `:'<,'>Markwright table csv`                           | Convert the range from CSV/TSV                                                                          |                                                                         |
-| `:Markwright table tocsv`                              | Convert the table under the cursor to CSV (asks for the separator)                                      |                                                                         |
-| `:Markwright table align`                              | Align the table under the cursor                                                                        |                                                                         |
-| `:Markwright table row` / `rowabove` / `delrow`        | Add a row below / above, delete the row                                                                 |                                                                         |
-| `:Markwright list up` / `down` / `sort [desc           | done]` / `bullet` / `number` / `checkbox`                                                               | List tools (see [List tools](#list-tools)); the converters take a range |
-| `:Markwright table sort [desc]` / `transpose` / `yank` | Sort by the column under the cursor / transpose / copy as CSV                                           |                                                                         |
-| `:Markwright table col` / `colleft` / `delcol`         | Add a column right / left, delete the column                                                            |                                                                         |
-| `:Markwright health`                                   | Run `:checkhealth markwright`                                                                           |                                                                         |
+| Command                                                        | Description                                                                                             |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `:Markwright bold`                                             | Toggle bold on the word under the cursor                                                                |
+| `:Markwright italic`                                           | Toggle italic                                                                                           |
+| `:Markwright strike`                                           | Toggle strikethrough                                                                                    |
+| `:Markwright code`                                             | Toggle inline code                                                                                      |
+| `:Markwright highlight`                                        | Toggle highlight                                                                                        |
+| `:Markwright link`                                             | Like `<leader>mk`, but links the word under the cursor instead of waiting for a motion                  |
+| `:Markwright follow`                                           | Same as `gx`                                                                                            |
+| `:Markwright fence`                                            | Insert a code fence; with a range (`:'<,'>Markwright fence`) wrap those lines                           |
+| `:Markwright callout [type\|remove]`                           | Wrap in / retype / remove a callout; with a range, wrap those lines                                     |
+| `:Markwright outline`                                          | Pick a heading from an outline and jump to it                                                           |
+| `:Markwright footnote`                                         | Insert a footnote                                                                                       |
+| `:Markwright image`                                            | Paste the clipboard image (macOS)                                                                       |
+| `:Markwright image rename`                                     | Rename the image file under the cursor and update its links                                             |
+| `:Markwright toc`                                              | Insert or update the table of contents                                                                  |
+| `:Markwright check`                                            | Run link diagnostics now and report the count                                                           |
+| `:Markwright check urls`                                       | Check external links (in the background) and report broken ones as diagnostics and in the quickfix list |
+| `:Markwright table create`                                     | Create a table                                                                                          |
+| `:'<,'>Markwright table csv`                                   | Convert the range from CSV/TSV                                                                          |
+| `:Markwright table tocsv`                                      | Convert the table under the cursor to CSV (asks for the separator)                                      |
+| `:Markwright table align`                                      | Align the table under the cursor                                                                        |
+| `:Markwright table row` / `rowabove` / `delrow`                | Add a row below / above, delete the row                                                                 |
+| `:Markwright table sort [desc]` / `transpose` / `yank`         | Sort by the column under the cursor / transpose / copy as CSV                                           |
+| `:Markwright table col` / `colleft` / `delcol`                 | Add a column right / left, delete the column                                                            |
+| `:Markwright list up` / `down` / `sort [desc\|done]`           | Move the list item / sort the list (see [List tools](#list-tools))                                      |
+| `:[range]Markwright list bullet` / `number` / `checkbox [all]` | Convert to bullets / numbers / checkboxes; `all` includes the sub-lists                                 |
+| `:Markwright health`                                           | Run `:checkhealth markwright`                                                                           |
 
-Subcommands tab-complete, including the `table` actions.
+Subcommands tab-complete, including the `table` and `list` actions.
 
 ---
 
@@ -1418,26 +1434,29 @@ Link entry points (all `expr = true` except where noted):
 
 Other features are plain functions, suitable for normal (non-`expr`) mappings:
 
-| Function                                                                                                          | Use                                                                                                                         |
-| ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `require("markwright.follow").follow()`                                                                           | `gx` behavior at the cursor                                                                                                 |
-| `require("markwright.follow").open_target(buf, dest)`                                                             | Follow a destination string (`#anchor`, path, URL)                                                                          |
-| `require("markwright.fence").insert()` / `wrap(buf, srow, erow)`                                                  | Code fence at the cursor / around 0-based rows                                                                              |
-| `require("markwright.callouts").toggle(type?)`                                                                    | Callout at the cursor: wrap the paragraph or change the type (`type` skips the picker)                                      |
-| `require("markwright.footnotes").insert()`                                                                        | Footnote at the cursor                                                                                                      |
-| `require("markwright.tables").create()` / `align()` / `add_row()` / `delete_row()` / `add_col()` / `delete_col()` | Table commands at the cursor                                                                                                |
-| `require("markwright.tables").from_csv(buf, srow, erow)`                                                          | Convert 0-based rows from CSV/TSV                                                                                           |
-| `require("markwright.tables").from_csv_paragraph()`                                                               | CSV → table for the paragraph under the cursor (prompts for the separator)                                                  |
-| `require("markwright.tables").to_csv()` / `to_csv_lines(model, sep)`                                              | Table under the cursor → CSV (prompts) / CSV lines for a model from `read(buf, srow, erow)`                                 |
-| `require("markwright.tables").expr_tab(dir)`                                                                      | `expr` mapping for insert-mode cell navigation (`1` / `-1`)                                                                 |
-| `require("markwright.toc").insert()` / `update(buf)`                                                              | Insert or refresh the TOC                                                                                                   |
-| `require("markwright.diagnostics").check(buf)` / `collect(buf)`                                                   | Publish / just compute link diagnostics                                                                                     |
-| `require("markwright.slug").slug(text)`                                                                           | GitHub-style anchor for heading text                                                                                        |
-| `require("markwright.textobjects").expr(name, inner)`                                                             | `expr` mapping (modes `o`, `x`) for a text object; `name` is `link`, `url`, `code`, `section`, `cell`, `item` or `emphasis` |
-| `require("markwright.nav").heading(dir)` / `sibling(dir)` / `parent()` / `outline()`                              | Heading motions (`dir` = `1` / `-1`, count from `vim.v.count1`) and the outline picker                                      |
-| `require("markwright.lists").expr_enter()` / `expr_open(below)` / `expr_checkbox()` / `expr_tab(dir)`             | `expr` mappings for insert `<CR>`, `o`/`O`, the checkbox key and insert `<Tab>` (tables + lists)                            |
-| `require("markwright.lists").toggle_range(srow, erow)` / `renumber(buf, row)`                                     | Check or uncheck a range of 0-based rows / renumber the list around a row                                                   |
-| `require("markwright.headings").change(buf, srow, erow, delta)`                                                   | Add (`delta > 0`) or remove `#` on 0-based rows                                                                             |
+| Function                                                                                                                   | Use                                                                                                                                  |
+| -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `require("markwright.follow").follow()`                                                                                    | `gx` behavior at the cursor                                                                                                          |
+| `require("markwright.follow").open_target(buf, dest)`                                                                      | Follow a destination string (`#anchor`, path, URL)                                                                                   |
+| `require("markwright.fence").insert()` / `wrap(buf, srow, erow)`                                                           | Code fence at the cursor / around 0-based rows                                                                                       |
+| `require("markwright.callouts").toggle(type?)`                                                                             | Callout at the cursor: wrap the paragraph or change the type (`type` skips the picker)                                               |
+| `require("markwright.footnotes").insert()`                                                                                 | Footnote at the cursor                                                                                                               |
+| `require("markwright.tables").create()` / `align()` / `add_row(above)` / `delete_row()` / `add_col(left)` / `delete_col()` | Table commands at the cursor                                                                                                         |
+| `require("markwright.tables").from_csv(buf, srow, erow)`                                                                   | Convert 0-based rows from CSV/TSV                                                                                                    |
+| `require("markwright.tables").from_csv_paragraph()`                                                                        | CSV → table for the paragraph under the cursor (prompts for the separator)                                                           |
+| `require("markwright.tables").to_csv()` / `to_csv_lines(model, sep)`                                                       | Table under the cursor → CSV (prompts) / CSV lines for a model from `read(buf, srow, erow)`                                          |
+| `require("markwright.tables").move_row(dir)` / `move_col(dir)` / `sort(desc)` / `transpose()` / `yank_csv()`               | Table tools at the cursor (`dir` = `1` / `-1`, count from `vim.v.count1`)                                                            |
+| `require("markwright.tables").expr_tab(dir)`                                                                               | `expr` mapping for insert-mode cell navigation (`1` / `-1`)                                                                          |
+| `require("markwright.toc").insert()` / `update(buf)`                                                                       | Insert or refresh the TOC                                                                                                            |
+| `require("markwright.diagnostics").check(buf)` / `collect(buf)`                                                            | Publish / just compute link diagnostics                                                                                              |
+| `require("markwright.slug").slug(text)`                                                                                    | GitHub-style anchor for heading text                                                                                                 |
+| `require("markwright.textobjects").expr(name, inner)`                                                                      | `expr` mapping (modes `o`, `x`) for a text object; `name` is `link`, `url`, `code`, `fence`, `section`, `cell`, `item` or `emphasis` |
+| `require("markwright.nav").heading(dir)` / `sibling(dir)` / `parent()` / `outline()`                                       | Heading motions (`dir` = `1` / `-1`, count from `vim.v.count1`) and the outline picker                                               |
+| `require("markwright.lists").expr_enter()` / `expr_open(below)` / `expr_checkbox()` / `expr_tab(dir)`                      | `expr` mappings for insert `<CR>`, `o`/`O`, the checkbox key and insert `<Tab>` (tables + lists)                                     |
+| `require("markwright.lists").toggle_range(srow, erow)` / `renumber(buf, row)`                                              | Check or uncheck a range of 0-based rows / renumber the list around a row                                                            |
+| `require("markwright.listtools").move(dir)` / `sort(mode)`                                                                 | Move the list item (`dir` = `1` / `-1`) / sort its list (`mode` = `"asc"`, `"desc"` or `"done"`)                                     |
+| `require("markwright.listtools").convert(style, all)` / `convert_lines(style, srow, erow)`                                 | Convert to `"bullet"`, `"number"` or `"checkbox"`: the cursor's level (`all`: and the sub-lists) / 0-based rows                      |
+| `require("markwright.headings").change(buf, srow, erow, delta)`                                                            | Add (`delta > 0`) or remove `#` on 0-based rows                                                                                      |
 
 ---
 
@@ -1487,7 +1506,7 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 - A slow site may exceed `links.title_timeout_ms`.
 - You can test a URL from the shell with `curl -sL <url> | grep -i '<title'`.
 
-**My `p` behaves differently in Markdown.** Only a single-line URL in the register triggers smart paste; everything else is native. If you use yanky.nvim, markwright' buffer-local `p`/`P` take priority in Markdown buffers. Disable them with `links.smart_paste_normal = false` and `links.smart_paste_visual = false`.
+**My `p` behaves differently in Markdown.** Only a single-line URL in the register triggers smart paste; everything else is native. If you use yanky.nvim, markwright's buffer-local `p`/`P` take priority in Markdown buffers. Disable them with `links.smart_paste_normal = false` and `links.smart_paste_visual = false`.
 
 **`gx` does something different from before.** In Markdown buffers markwright owns `gx` and falls back to the default behavior when the cursor isn't on a link. To keep your own mapping, set `follow.key = ""` (or another key).
 
@@ -1530,15 +1549,15 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 
 The full plan lives in [SPEC.md](SPEC.md): **§0 is a checklist** of what's implemented and what isn't, and **§14** describes every planned feature in detail.
 
-**Done:** inline formatting, formatting while typing, text objects, heading navigation, callouts, links and titles, smart paste, `gx`, headings, lists and checkboxes, code fences, tables, footnotes, TOC, link diagnostics, image paste (macOS).
+**Done:** inline formatting, formatting while typing, text objects, heading navigation, callouts, links and titles, smart paste, `gx`, headings, lists and checkboxes, list tools (move, sort, convert), completion dates, progress counters, code fences, tables and table tools (move, sort, transpose, CSV), footnotes, TOC, link diagnostics, image paste (macOS).
 
 **Planned:**
 
-| Priority | Features                                                                                                                   |
-| -------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Next     | Moving list items, checkbox progress `[2/5]`, table sorting, section moves, inline ↔ reference links, footnote renumbering |
-| Later    | Front matter helpers, word count, link completion, rich-text paste (HTML → Markdown)                                       |
-| Platform | Image paste on Linux/WSL, `:help markwright`                                                                               |
+| Priority | Features                                                                                                           |
+| -------- | ------------------------------------------------------------------------------------------------------------------ |
+| Next     | Section moves (with promote / demote), inline ↔ reference links, footnote renumbering                              |
+| Later    | Front matter helpers, word count, link completion, three-state checkboxes `[-]`, rich-text paste (HTML → Markdown) |
+| Platform | Image paste on Linux/WSL, `:help markwright`                                                                       |
 
 Out of scope: wiki-style `[[links]]` and rendering or preview. Use `render-markdown.nvim` or `markview.nvim` for rendering.
 
@@ -1599,9 +1618,10 @@ In `tests/links_spec.lua` the clipboard, `vim.ui.input` and the title fetcher ar
 | `links_spec.lua`       | link key, titles, smart paste                                                                               |
 | `follow_spec.lua`      | `gx`, slugs                                                                                                 |
 | `blocks_spec.lua`      | code fences, footnotes                                                                                      |
-| `tables_spec.lua`      | tables, `<Tab>` fallback                                                                                    |
+| `tables_spec.lua`      | tables, table tools, `<Tab>` fallback                                                                       |
 | `doc_spec.lua`         | TOC, diagnostics                                                                                            |
-| `lists_spec.lua`       | lists, checkboxes, renumbering, headings                                                                    |
+| `lists_spec.lua`       | lists, checkboxes, completion dates, progress counters, renumbering, headings                               |
+| `listtools_spec.lua`   | list tools: move, sort, converters and the checklist prompt                                                 |
 | `nav_spec.lua`         | heading motions, counts, siblings, parents, operators, outline                                              |
 | `callouts_spec.lua`    | callouts: wrap, pick, change type, convert, remove, commands                                                |
 | `urlcheck_spec.lua`    | external URL checker (mocked requests, plus real curl against a local server)                               |
@@ -1640,7 +1660,8 @@ markwright/
 │   ├── fence.lua             code fences
 │   ├── footnotes.lua         footnote insertion
 │   ├── tables.lua            tables: parse, render, edit, navigate
-│   ├── lists.lua             list continuation, nesting, checkboxes, renumbering
+│   ├── lists.lua             list continuation, nesting, checkboxes, renumbering, progress
+│   ├── listtools.lua         move, sort and convert list items
 │   ├── headings.lua          add / remove #
 │   ├── images.lua            image paste (macOS backend)
 │   ├── insert.lua            formatting while typing (;; trigger)
