@@ -72,7 +72,7 @@ All five share one engine, so they behave the same way:
 - **Knows Markdown structure.** List markers, checkboxes, `>` and `#` are never wrapped.
 - **Skips code.** Nothing gets broken inside code blocks or code spans.
 - **Behaves like a native command.** Every action is dot-repeatable (`.`) and undoes in a single `u`.
-- **While typing, too.** In insert mode, type `;;` then `b` for `**|**` (or `i`, `s`, `c`, `h`, `k`). The same keys jump past the closing marker. There's no delay on normal `;` typing, and it works in any terminal.
+- **While typing, too.** In insert mode, type `;;` then `b` for `**|**` (or `i`, `s`, `c`, `h`, `k`). The same keys jump past the closing marker. `;;n` drops a footnote and `;;p` pastes an image without leaving insert mode. There's no delay on normal `;` typing, and it works in any terminal.
 - **Text objects.** `cik` changes a link's text, `yiu` copies its URL, `da#` deletes a section, `ciz` a table cell, `dax` a list item with its children, `dif` a code block's content, `ci*` the text inside `**…**`.
 
 **Links** follow the same idea. `<leader>mk` acts at once on a link, a bare URL or whitespace, and waits for a motion on plain text (`<leader>mkiw`, `<leader>mk$`):
@@ -297,7 +297,7 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `<leader>mc`                                       | normal                           | Toggle **inline code**                                                                                      | **c**ode                                          |
 | `<leader>mh`                                       | normal                           | Toggle **highlight**                                                                                        | **h**ighlight                                     |
 | `<leader>mi` `mb` `ms` `mc` `mh`                   | visual                           | Toggle the format on the selection                                                                          | Same letters                                      |
-| `;;` then `i` `b` `s` `c` `h` `k`                  | insert                           | **Formatting while typing**: open a pair, or jump out of it (see below)                                     | Same letters as `<leader>m…`                      |
+| `;;` then `i` `b` `s` `c` `h` `k` `n` `p`          | insert                           | **Formatting while typing**: open a pair or jump out of it; footnote, image                                 | Same letters as `<leader>m…`                      |
 | `<leader>mk`                                       | normal                           | **Link**: create, convert a bare URL, or remove (`<leader>mkiw` on text)                                    | lin**k** (`l` is the list menu)                   |
 | `<leader>mk`                                       | visual                           | **Link** the selection, or remove the link it's in                                                          | lin**k** (`l` is the list menu)                   |
 | `]]` / `[[` · `][` / `[]` · `[u`                   | normal, visual, operator-pending | Next / previous heading · same-level heading · parent heading                                               | Vim's `]]` / `[[`; **u**p                         |
@@ -366,7 +366,7 @@ The keys follow a few rules, so most of them can be guessed:
 - **Uppercase is the companion of the lowercase key:** its reverse (`A` removes a callout, `tC` turns a table back into CSV, `S` sorts Z→A), a stronger version (`O` writes the outline into the file as a TOC; `lB` `lN` `lC` also convert the sub-lists), or the same object acted on differently (`P` renames a pasted image; `tH` `tJ` `tK` `tL` move instead of add).
 - **Submenus group related tools:** `<leader>mt…` for **t**ables, `<leader>ml…` for **l**ists. Inside a submenu a letter has its own meaning: `<leader>mtc` is **C**SV, not code.
 - **Vim's own keys keep their meaning:** `h` `j` `k` `l` are left, down, up, right; `J` / `K` move down / up; `y` yanks; `d` deletes (`<leader>mtdr`, `<leader>mtdc`); `_` is the current line.
-- **A letter keeps its meaning across normal mode, insert mode and text objects:** `c` is inline code in `<leader>mc`, `;;c` and `ic`; `f` is a code fence in `<leader>mf` and `if`; `k` is a link in `<leader>mk`, `;;k` and `ik`.
+- **A letter keeps its meaning across normal mode, insert mode and text objects:** `c` is inline code in `<leader>mc`, `;;c` and `ic`; `f` is a code fence in `<leader>mf` and `if`; `k` is a link in `<leader>mk`, `;;k` and `ik`; `n` is a footnote in `<leader>mn` and `;;n`; `p` pastes an image in `<leader>mp` and `;;p`.
 
 The text objects use the same letters where they can: `ik` link, `iu` **U**RL, `ic` code, `if` fence, `i#` heading section, `iz` table cell ("**z**ell", since `c` is code), `ix` list item (the **x** in `- [x]`), `i*` emphasis.
 
@@ -533,8 +533,10 @@ In insert mode, type **`;;`** and then a letter:
 | `c` | `` `\|` `` | jumps past the backtick |
 | `h` | `==\|==` | jumps past `==` |
 | `k` | `[\|]()`, or `[\|](url)` when the clipboard holds a URL | 1st: into the `()`; 2nd: past `)` |
+| `n` | `[^1]\|`: a footnote reference, with its empty definition added at the end of the file | — (each press adds a new footnote) |
+| `p` | `![alt](assets/name.png)\|`: the clipboard image, saved as with [`<leader>mp`](#pasting-images) (macOS) | — |
 
-(`|` is the cursor.)
+(`|` is the cursor.) `n` and `p` keep you typing after what they insert: fill in the footnote later with `gx` on the reference, which jumps to its definition.
 
 Keys typed exactly as shown:
 
@@ -546,7 +548,7 @@ Keys typed exactly as shown:
 
 ### How it waits
 
-- **No time limit.** After `;;` the command line shows the options (`i italic · b bold · …`) and waits as long as you like for the letter.
+- **No time limit.** After `;;` the command line shows the options (`i italic · b bold · … · n footnote · p image`) and waits as long as you like for the letter.
 - **No lag when typing a single `;`.** The plugin doesn't use a Vim mapping for `;;`, which would pause after every semicolon for `timeoutlen`. Only the second `;` is checked, and only if the first one was typed right before it. An existing `;` you moved the cursor next to doesn't count.
 - **Nothing you type is lost.** If the key after `;;` isn't one of the letters, you get `;;` plus that key, exactly as typed: `;;x` stays `;;x`, `;;;` stays `;;;`, and `;;<CR>` inserts `;;` and then does whatever Enter does (including continuing a list). `<Esc>` puts back the `;;` and leaves insert mode normally.
 
@@ -714,6 +716,8 @@ Text here.       <leader>mn  →   Text here.[^1]
 
                                  [^1]: |
 ```
+
+While typing, `;;n` inserts the reference and the definition the same way but leaves the cursor after the reference, so you can finish the sentence first (see [Formatting while typing](#formatting-while-typing)).
 
 Use `gx` on a reference or definition to jump between them. Link diagnostics warn about references without a definition and definitions nobody references.
 
@@ -1181,6 +1185,7 @@ Other details:
 - Inside code blocks nothing is pasted.
 - One `u` removes the link; the saved file stays.
 - `:Markwright image` does the same as `<leader>mp`.
+- **In insert mode,** `;;p` pastes at the cursor (not after it) and you keep typing after the link, prompts included.
 
 ### Renaming an image
 

@@ -36,6 +36,24 @@ local cases = {
   { "jump out of a pair typed by hand", { "**x**" }, { 1, 2 }, "a;;b!<Esc>", { "**x**!" } },
   { "multibyte text", { "" }, { 1, 0 }, "i;;iaçã;;iü<Esc>", { "*açã*ü" } },
 
+  -- footnotes
+  { "footnote while typing", { "" }, { 1, 0 }, "iSee;;n more<Esc>", { "See[^1] more", "", "[^1]: " } },
+  {
+    "footnote takes the next number",
+    { "Text[^1]", "", "[^1]: a" },
+    { 1, 7 },
+    "a;;n x<Esc>",
+    { "Text[^1][^2] x", "", "[^1]: a", "[^2]: " },
+  },
+  {
+    "footnote in the middle of a line",
+    { "one two" },
+    { 1, 2 },
+    "a;;n<Esc>",
+    { "one[^1] two", "", "[^1]: " },
+  },
+  { "no footnote inside inline code", { "`x`" }, { 1, 1 }, "a;;n<Esc>", { "`x;;n`" } },
+
   -- the README examples, typed exactly
   {
     "readme: bold/italic sentence",
