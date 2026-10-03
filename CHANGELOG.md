@@ -4,6 +4,12 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-10-03
+
+### Added
+
+- **Footnotes and images while typing**: in insert mode, `;;n` inserts the next footnote reference (`[^3]`) and its empty definition at the end of the file, and `;;p` pastes the clipboard image at the cursor (macOS), with the same name prompt as `<leader>mp`. Both leave you typing right after what they inserted; `gx` on the reference jumps to the definition when you're ready to write it.
+
 ## [3.0.0] - 2026-10-03
 
 ### Changed
@@ -97,7 +103,8 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/edieguez/markwright/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/edieguez/markwright/compare/v2.4.0...v3.0.0
 [2.4.0]: https://github.com/edieguez/markwright/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/edieguez/markwright/compare/v2.2.0...v2.3.0

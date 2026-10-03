@@ -120,6 +120,46 @@ local cases = {
     end,
   },
   {
+    ";;p pastes at the insert cursor and keeps typing",
+    fn = function()
+      mock.info = SHOT
+      doc({ "see here" }, { 1, 3 })
+      A("x")()
+      H.feed("i;;pmore<Esc>")
+      eq(lines(), { "see![x](assets/x.png)more here" })
+      eq(exists(dir .. "/assets/x.png"), true)
+    end,
+  },
+  {
+    ";;p at the end of the line",
+    fn = function()
+      mock.info = SHOT
+      doc({ "see" }, { 1, 2 })
+      A("x")()
+      H.feed("a ;;p!<Esc>")
+      eq(lines(), { "see ![x](assets/x.png)!" })
+    end,
+  },
+  {
+    ";;p cancelled: keeps typing",
+    fn = function()
+      mock.info = SHOT
+      doc({ "" }, { 1, 0 })
+      A(nil)()
+      H.feed("ia;;pb<Esc>")
+      eq(lines(), { "ab" })
+    end,
+  },
+  {
+    ";;p without an image: warns, keeps typing",
+    fn = function()
+      mock.info = "«class utf8», 40"
+      doc({ "" }, { 1, 0 })
+      H.feed("ia;;pb<Esc>")
+      eq(lines(), { "ab" })
+    end,
+  },
+  {
     "visual selection becomes the alt text",
     fn = function()
       mock.info = SHOT

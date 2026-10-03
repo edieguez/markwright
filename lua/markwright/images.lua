@@ -242,6 +242,13 @@ end
 --- cursor character (like `p`), or at the start of an empty line.
 local function insert(buf, target, text)
   util.undo_break(buf)
+  if target.insert then
+    -- insert mode (`;;p`): exactly at the cursor, then keep typing after it
+    local row, col = target.row, target.col
+    api.nvim_buf_set_text(buf, row, col, row, col, { text })
+    target.col = col + #text
+    return
+  end
   if target.range then
     local r = target.range
     api.nvim_buf_set_text(buf, r[1], r[2], r[3], r[4], { text })
@@ -265,12 +272,55 @@ local function ask(prompt, default, cb)
   vim.ui.input({ prompt = prompt, default = default }, cb)
 end
 
---- Paste the clipboard image. `target` is {row, col} or {range = {sr,sc,er,ec}, alt = text}.
+--- Paste the clipboard image. `target` is {row, col}, {range = {sr,sc,er,ec}, alt = text},
+--- or {row, col, insert = true} to paste at an insert-mode cursor and keep typing.
 function M.paste(target)
   local buf = api.nvim_get_current_buf()
+  if target and target.insert then
+    return M._paste(buf, target, function()
+      M.resume_insert(buf, target)
+      -- a floating prompt (snacks.input, dressing…) may stop insert mode
+      -- while it closes, after this callback: check again once it's gone
+      if not target.prompted then
+        return
+      end
+      vim.schedule(function()
+        local cur = api.nvim_win_get_cursor(0)
+        local left = cur[1] == target.row + 1 and cur[2] == math.max(target.col - 1, 0)
+        if api.nvim_get_mode().mode == "n" and left and vim.fn.getchar(1) == 0 then
+          M.resume_insert(buf, target)
+        end
+      end)
+    end)
+  end
+  return M._paste(buf, target, function() end)
+end
+
+--- Back to insert mode at `target` (prompts may have left it).
+function M.resume_insert(buf, target)
+  if api.nvim_get_current_buf() ~= buf then
+    return
+  end
+  local line = api.nvim_buf_get_lines(buf, target.row, target.row + 1, false)[1] or ""
+  local col = math.min(target.col, #line)
+  if api.nvim_get_mode().mode:sub(1, 1) == "i" then
+    api.nvim_win_set_cursor(0, { target.row + 1, col })
+    return
+  end
+  if col >= #line then
+    api.nvim_win_set_cursor(0, { target.row + 1, col })
+    vim.cmd("startinsert!")
+  else
+    api.nvim_win_set_cursor(0, { target.row + 1, col })
+    vim.cmd("startinsert")
+  end
+end
+
+function M._paste(buf, target, after)
   local backend = M.backend()
   if not backend then
-    return util.warn("image paste is only supported on macOS for now")
+    util.warn("image paste is only supported on macOS for now")
+    return after()
   end
   if not target then
     local row, col = unpack(api.nvim_win_get_cursor(0))
@@ -278,15 +328,18 @@ function M.paste(target)
   end
   local crow = target.range and target.range[1] or target.row
   if ts.code_context(ts.parse(buf, crow), crow, 0) then
-    return util.warn("image paste skipped inside code")
+    util.warn("image paste skipped inside code")
+    return after()
   end
 
   M.detect(backend, function(src, err)
     if not src then
-      return util.warn(err or "the clipboard has no image")
+      util.warn(err or "the clipboard has no image")
+      return after()
     end
     if src.kind == "url" then
-      return insert(buf, target, ("![%s](%s)"):format(target.alt or "", src.url))
+      insert(buf, target, ("![%s](%s)"):format(target.alt or "", src.url))
+      return after()
     end
 
     local o = opts()
@@ -302,10 +355,12 @@ function M.paste(target)
       local path = M.free_path(dir, name, ext)
       local function done(ok, e)
         if not ok then
-          return util.warn("could not save image: " .. tostring(e))
+          util.warn("could not save image: " .. tostring(e))
+          return after()
         end
         insert(buf, target, link_for(buf, path, alt))
         util.notify("saved " .. vim.fn.fnamemodify(path, ":~:."))
+        after()
       end
       if src.kind == "data" then
         backend.save_image(path, done)
@@ -325,10 +380,12 @@ function M.paste(target)
         return finish(name, target.alt)
       end
       if o.alt == "prompt" then
+        target.prompted = true
         return ask("Alt text: ", typed and alt_from(name) or "", function(alt)
-          if alt ~= nil then
-            finish(name, vim.trim(alt))
+          if alt == nil then
+            return after()
           end
+          finish(name, vim.trim(alt))
         end)
       end
       local alt = ""
@@ -339,10 +396,12 @@ function M.paste(target)
     end
 
     if o.prompt_name then
+      target.prompted = true
       ask("Image name: ", default, function(name)
-        if name ~= nil then
-          with_name(name)
+        if name == nil then
+          return after()
         end
+        with_name(name)
       end)
     else
       with_name(default)

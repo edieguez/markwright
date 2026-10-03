@@ -19,6 +19,8 @@ M.KEYS = {
   { key = "c", fmt = "code", label = "code" },
   { key = "h", fmt = "highlight", label = "highlight" },
   { key = "k", fmt = "link", label = "link" },
+  { key = "n", action = "footnote", label = "footnote" },
+  { key = "p", action = "image", label = "image" },
 }
 
 local function trigger()
@@ -250,7 +252,12 @@ function M.menu(restore, ctx)
   end
   if entry then
     reset(buf)
-    if entry.fmt == "link" then
+    if entry.action == "footnote" then
+      require("markwright.footnotes").insert_inline()
+    elseif entry.action == "image" then
+      local row, col = cursor()
+      require("markwright.images").paste({ row = row, col = col, insert = true })
+    elseif entry.fmt == "link" then
       M.link(buf)
     else
       M.pair(buf, entry.fmt)
