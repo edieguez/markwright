@@ -6,7 +6,7 @@ Markdown editing for Neovim that feels native: one key adds a format, the same k
 
 Built for LazyVim, and it works with any Neovim setup from 0.10 on (tested on 0.10.0, 0.10.4 and 0.11).
 
-> **Status: 1.0.** Inline formatting (also while typing), links, `gx`, text objects, heading navigation, callouts, lists and list tools, checkboxes with completion dates and progress counters, headings, code fences, footnotes, tables, TOC, link diagnostics and image paste (macOS) are implemented. A headless test suite covers them and runs in CI on Neovim 0.10.0, stable and nightly, on Linux and macOS. Image paste is macOS only for now. [Issues](https://github.com/edieguez/markwright/issues) are welcome; see [Roadmap](#roadmap) for what's planned.
+> **Status:** Inline formatting (also while typing), links, `gx`, text objects, heading navigation, callouts, lists and list tools, checkboxes with completion dates and progress counters, headings, code fences, footnotes, tables, TOC, link diagnostics and image paste (macOS) are implemented. A headless test suite covers them and runs in CI on Neovim 0.10.0, stable and nightly, on Linux and macOS. Image paste is macOS only for now. [Issues](https://github.com/edieguez/markwright/issues) are welcome; see [Roadmap](#roadmap) for what's planned.
 
 ```lua
 -- lazy.nvim / LazyVim

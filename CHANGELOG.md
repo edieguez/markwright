@@ -4,28 +4,63 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
-### Added
-
-- **List tools** (`<leader>ml…`): `<leader>mlJ` / `<leader>mlK` move an item with its children (with counts; numbered lists renumber), `<leader>mls` / `<leader>mlS` sort a list A→Z / Z→A, `<leader>mld` puts done items last, and the converters `<leader>mlb` / `<leader>mln` / `<leader>mlc` turn the cursor's level of a list (or a paragraph, or the selection) into bullets / numbers / checkboxes and back; `<leader>mlB` / `mlN` / `mlC` convert that level and every sub-list below it. Removing checkboxes (from any checklist, done or not) asks first: Yes converts the checklists too, No converts the rest and leaves the checklists whole, Cancel stops; a list never mixes checkboxes with bullets or numbers. `lists.bullet` and `lists.number_delim` choose new markers. Opt-in `lists.move_keys` to move items with `<M-j>`/`<M-k>`. Also `:Markwright list …`.
-- **Checkbox progress counters**: type `[0/0]` or `[0%]` (or both) in a parent list item and it shows how many of its sub-tasks are done (`- Release [0/0]`, `- Release [0%]`, `- Release [0/0] [0%]`). Updated when you toggle a checkbox, leave insert mode, edit in normal mode and save; counts roll up through sub-items that have their own counter. `lists.progress = false` turns it off.
-- **Completion dates**: checking a checkbox appends the date and time it was done (`- [x] task ✅ 2026-10-02 15:52`); unchecking removes it. Set the format with `lists.done_date` (any `os.date` format, e.g. `"✅ %Y-%m-%d"` for Obsidian Tasks), or `false` to turn it off.
-- **Table extras**: `<leader>mtH` / `<leader>mtL` move the column left / right and `<leader>mtJ` / `<leader>mtK` move the row down / up (with counts); `<leader>mts` / `<leader>mtS` sort by the column under the cursor, ascending / descending (numbers compare as numbers, empty cells last); `<leader>mtf` transposes (flips); `<leader>mty` copies the table as CSV to the clipboard without changing it. Also `:Markwright table sort`, `transpose` and `yank`.
-- **Rename image files**: `<leader>mP` (or `:Markwright image rename`) on an image renames the file on disk and updates every link to it in the buffer. The prompt is prefilled with the current name; the extension is kept if you don't type one.
+## [3.0.0] - 2026-10-03
 
 ### Changed
 
-- **Keymap review: consistent mnemonics.** Each letter now means one thing at the top level and in text objects; uppercase at the top level is the companion of lowercase. Keys that changed since 1.0.0:
+- **Keymap review: consistent mnemonics.** Each letter now means one thing at the top level, in insert mode and in text objects, and uppercase at the top level is the companion of lowercase. The README has a Mnemonic column and a "How the keys are organized" section. Keys that changed:
 
-  | Old                         | New           | Action                                                                        |
-  | --------------------------- | ------------- | ----------------------------------------------------------------------------- |
-  | `<leader>mT`                | `<leader>mO`  | Table of contents (the **O**utline written into the file; `<leader>mo` jumps) |
-  | `<leader>mtx`               | `<leader>mtC` | Table → CSV (the reverse of `<leader>mtc`)                                    |
-  | `ic` / `ac` on a code block | `if` / `af`   | Code block (**f**ence); `ic` / `ac` is inline code only                       |
-  | `ih` / `ah`                 | `i#` / `a#`   | Heading section (`h` is highlight)                                            |
-  | `i\|` / `a\|`               | `iz` / `az`   | Table cell ("**z**ell")                                                       |
-  | `iL` / `aL`                 | `ix` / `ax`   | List item (the **x** in `[x]`)                                                |
+  | Old                         | New                   | Since | Action                                                                        |
+  | --------------------------- | --------------------- | ----- | ----------------------------------------------------------------------------- |
+  | `<leader>mT`                | `<leader>mO`          | 1.0.0 | Table of contents (the **O**utline written into the file; `<leader>mo` jumps) |
+  | `<leader>mtx`               | `<leader>mtC`         | 1.0.0 | Table → CSV (the reverse of `<leader>mtc`)                                    |
+  | `<leader>mtT`               | `<leader>mtf`         | 2.1.0 | Transpose (**f**lip)                                                          |
+  | `<leader>mts` twice         | `<leader>mtS`         | 2.1.0 | Sort the table descending                                                     |
+  | `<leader>mr`                | `<leader>mP`          | 2.0.0 | Rename the image file (`p` pastes it)                                         |
+  | `<leader>mlj` / `mlk`       | `<leader>mlJ` / `mlK` | 2.4.0 | Move a list item down / up, like `<leader>mtJ` / `mtK`                        |
+  | `<leader>mls` twice         | `<leader>mlS`         | 2.4.0 | Sort the list Z→A                                                             |
+  | `ic` / `ac` on a code block | `if` / `af`           | 1.0.0 | Code block (**f**ence); `ic` / `ac` is inline code only                       |
+  | `ih` / `ah`                 | `i#` / `a#`           | 1.0.0 | Heading section (`h` is highlight)                                            |
+  | `i\|` / `a\|`               | `iz` / `az`           | 1.0.0 | Table cell ("**z**ell")                                                       |
+  | `iL` / `aL`                 | `ix` / `ax`           | 1.0.0 | List item (the **x** in `[x]`)                                                |
 
   Text object letters are configurable under `textobjects` (new `fence` entry).
+- **Sorting uses `s` / `S`** for lists and tables: `s` sorts ascending (pressing it again keeps the order), `S` descending. The commands take an optional `desc`: `:Markwright list sort [desc|done]`, `:Markwright table sort [desc]`.
+- **List converters work on one level.** `<leader>mlb` / `<leader>mln` / `<leader>mlc` convert the cursor's level of a list (its item and siblings) and leave parents and sub-lists of another style alone. The new `<leader>mlB` / `mlN` / `mlC` convert that level and every sub-list below it (`:Markwright list bullet|number|checkbox all`). Plain lines (the paragraph) and visual selections convert as before.
+- **Checklists are protected.** A conversion that would remove checkboxes, checked or not, asks first: Yes converts the checklists too, No converts the rest and leaves every checklist level whole, Cancel stops. A list never mixes checkboxes with bullets or numbers. Converting into checkboxes never asks.
+
+## [2.4.0] - 2026-10-02
+
+### Added
+
+- **List tools** (`<leader>ml…`): `<leader>mlj` / `<leader>mlk` move an item with its children (with counts; numbered lists renumber), `<leader>mls` sorts a list A→Z (again for Z→A), `<leader>mld` puts done items last, and the converters `<leader>mlb` / `<leader>mln` / `<leader>mlc` turn the paragraph or selection into bullets / numbers / checkboxes and back (`lists.bullet` and `lists.number_delim` choose new markers). Opt-in `lists.move_keys` to move items with `<M-j>`/`<M-k>`. Also `:Markwright list …`.
+
+## [2.3.0] - 2026-10-02
+
+### Added
+
+- **Checkbox progress counters**: type `[/]` or `[%]` (or both) in a parent list item and it shows how many of its sub-tasks are done (`- Release [2/3]`, `- Release [66%]`, `- Release [2/3] [66%]`). Updated when you toggle a checkbox, leave insert mode, edit in normal mode and save; counts roll up through sub-items that have their own counter. `lists.progress = false` turns it off.
+
+## [2.2.0] - 2026-10-02
+
+### Added
+
+- **Completion dates**: checking a checkbox appends the date and time it was done (`- [x] task ✅ 2026-10-02 15:52`); unchecking removes it. Set the format with `lists.done_date` (any `os.date` format, e.g. `"✅ %Y-%m-%d"` for Obsidian Tasks), or `false` to turn it off.
+
+## [2.1.0] - 2026-10-02
+
+### Added
+
+- **Table extras**: `<leader>mtH` / `<leader>mtL` move the column left / right and `<leader>mtJ` / `<leader>mtK` move the row down / up (with counts); `<leader>mts` sorts by the column under the cursor (again for descending; numbers compare as numbers, empty cells last); `<leader>mtT` transposes; `<leader>mty` copies the table as CSV to the clipboard without changing it. Also `:Markwright table sort`, `transpose` and `yank`.
+
+## [2.0.0] - 2026-10-02
+
+### Added
+
+- **Rename image files**: `<leader>mr` (or `:Markwright image rename`) on an image renames the file on disk and updates every link to it in the buffer. The prompt is prefilled with the current name; the extension is kept if you don't type one.
+
+### Changed
+
 - **Table keys use `h`/`j`/`k`/`l`**: `<leader>mth` / `<leader>mtl` add a column left / right, `<leader>mtj` / `<leader>mtk` add a row below / above (new). Deleting moved to `<leader>mtdr` (row) and `<leader>mtdc` (column). The old `<leader>mtr`, `mtR`, `mtK` are gone, and `<leader>mtk` now adds a row above instead of a column. New commands `:Markwright table rowabove` and `colleft`.
 
 ### Fixed
@@ -62,5 +97,11 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/edieguez/markwright/compare/v2.4.0...v3.0.0
+[2.4.0]: https://github.com/edieguez/markwright/compare/v2.3.0...v2.4.0
+[2.3.0]: https://github.com/edieguez/markwright/compare/v2.2.0...v2.3.0
+[2.2.0]: https://github.com/edieguez/markwright/compare/v2.1.0...v2.2.0
+[2.1.0]: https://github.com/edieguez/markwright/compare/v2.0.0...v2.1.0
+[2.0.0]: https://github.com/edieguez/markwright/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/edieguez/markwright/releases/tag/v1.0.0
