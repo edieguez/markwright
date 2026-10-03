@@ -66,10 +66,11 @@ M.defaults = {
     enabled = true,
     link = "k", -- ik/ak: link text / whole link (images and autolinks too)
     url = "u", -- iu: link destination
-    code = "c", -- ic/ac: inline code or code block content / whole
-    section = "h", -- ih/ah: heading section content / heading + content
-    cell = "|", -- i|/a|: table cell text / cell with padding
-    item = "L", -- iL/aL: list item text / item with its children
+    code = "c", -- ic/ac: inline code text / with its backticks
+    fence = "f", -- if/af: code block content / the whole block (with fences)
+    section = "#", -- i#/a#: heading section content / heading + content
+    cell = "z", -- iz/az: table cell ("zell") text / cell with padding
+    item = "x", -- ix/ax: list item text / item with its children (the x in [x])
     emphasis = "*", -- i*/a*: inside / around *, **, ~~, ==
     search_lines = 500, -- not inside an object: use the next one within this many lines
   },
@@ -82,7 +83,7 @@ M.defaults = {
   },
   tables = {
     align_on_insert_leave = true,
-    csv_separator = ",", -- default offered by table → CSV (<P>tx); "\t" for tab
+    csv_separator = ",", -- default offered by table → CSV (<P>tC); "\t" for tab
   },
   images = {
     dir = "assets", -- relative to the markdown file's folder; absolute, ~, or function(buf) -> path

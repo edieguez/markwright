@@ -1,4 +1,4 @@
--- Text objects: links, URLs, code, heading sections, table cells, list items,
+-- Text objects: links, URLs, inline code, code fences, heading sections, table cells, list items,
 -- emphasis. Spec: SPEC.md section 14.8.
 local api = vim.api
 local config = require("markwright.config")
@@ -184,6 +184,7 @@ end
 
 local BLOCKS = { fenced_code_block = true, indented_code_block = true }
 
+--- Inline code (`ic` / `ac`).
 function M.code(buf, row, col, inner)
   local p = ts.parse(buf, row)
   if not p then
@@ -203,6 +204,14 @@ function M.code(buf, row, col, inner)
       s, e = s + 1, e - 1 -- padding added for backticks inside
     end
     return { sr = r.sr, sc = s, er = r.sr, ec = e }
+  end
+end
+
+--- Code block (`if` / `af`): the lines between the fences / the whole block.
+function M.fence(buf, row, col, inner)
+  local p = ts.parse(buf, row)
+  if not p then
+    return nil
   end
   local block = ts.ancestor(ts.block_node(p, row, col), BLOCKS)
   if not block then
@@ -523,6 +532,9 @@ ANCHORS.url = ANCHORS.link
 
 ANCHORS.code = function(_, p, from, to, out)
   inline_anchors(p, { code_span = true }, from, to, out)
+end
+
+ANCHORS.fence = function(_, p, from, to, out)
   block_anchors(p, BLOCKS, from, to, out)
 end
 
@@ -691,6 +703,7 @@ M.OBJECTS = {
   link = { fn = M.link, around = true },
   url = { fn = M.url, around = false },
   code = { fn = M.code, around = true },
+  fence = { fn = M.fence, around = true },
   section = { fn = M.section, around = true },
   cell = { fn = M.cell, around = true },
   item = { fn = M.item, around = true },
@@ -698,7 +711,7 @@ M.OBJECTS = {
 }
 
 local function lhs_key(k)
-  return k == "|" and "<Bar>" or k
+  return k == "|" and "<Bar>" or k -- for anyone who configures a pipe
 end
 
 function M.attach(buf)
