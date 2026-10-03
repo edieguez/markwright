@@ -2,7 +2,7 @@
 
 A Neovim plugin (LazyVim-friendly) for editing Markdown: inline formatting toggles, links, lists, headings, tables, code fences, footnotes, TOC, link diagnostics, image paste and formatting while typing.
 
-Status: **3.0.0 released** — updated 2026-10-03. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
+Status: **3.1.0 released** — updated 2026-10-03. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
 
 ---
 
@@ -20,7 +20,7 @@ Status: **3.0.0 released** — updated 2026-10-03. Sections 1–13 describe what
   - [x] per-line multi-line wrapping, prefix skipping, whitespace trimming
   - [x] backtick escalation for inline code; code guard
   - [x] dot-repeat; one undo step per action
-- [x] **Formatting while typing** — `;;` + `i`/`b`/`s`/`c`/`h`/`k`, jump out, configurable trigger (§13.2)
+- [x] **Formatting while typing** — `;;` + `i`/`b`/`s`/`c`/`h`/`k`, jump out, configurable trigger; `;;n` footnote, `;;p` image (§13.2)
 - [x] **External URL checker** — `:Markwright check urls`: async curl HEAD→GET, concurrency/timeout, broken = warning, 401/403/429 = info, diagnostics + quickfix (§14.23)
 - [x] **GitHub callouts** — `<P>a` wrap paragraph / selection / code block (type picker) or change type (picker again), `<P>A` remove, plain quote → callout, `:Markwright callout`, `<CR>`/`o`/`O` continue quotes (§14.11)
 - [x] **Heading navigation** — `]]`/`[[`, `][`/`[]` same level, `[u` parent, `<P>o` outline via `vim.ui.select`; counts, jumplist, operators (§14.9)
@@ -66,6 +66,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 - [x] `v2.3.0` — checkbox progress counters
 - [x] `v2.4.0` — list tools (move, sort, converters)
 - [x] `v3.0.0` — keymap review with mnemonics, `s`/`S` sorting, one-level converters with checklist protection
+- [x] `v3.1.0` — `;;n` footnote and `;;p` image while typing
 
 ### Not implemented
 
@@ -507,6 +508,7 @@ Decisions (all configurable under `images`):
 - Unknown key → the trigger text plus that key are typed as-is; `<Esc>` restores the trigger and leaves insert mode. Key triggers pass unknown keys to their previous meaning (`<C-g>u`, plugin mappings).
 - Pressing the same format again right before its closing marker jumps out (tracked with extmarks; falls back to the text shape for pairs typed by hand). Links go text → URL → out; a clipboard URL skips the URL stage.
 - Off in code blocks; in inline code only `c` (jump out) right before the closing backtick.
+- `n` and `p` (added 2026-10-03, same letters as `<P>n` / `<P>p`) insert at the cursor and keep insert mode after what they insert: `n` adds `[^n]` and its empty definition at the end of the file without jumping there (`gx` jumps later); `p` runs the image paste at the insert cursor, prompts included, and returns to insert mode after the link (also when a floating prompt stopped insert mode, or was cancelled). Block-level actions (fence, callout, heading, table) are not offered: they start at the beginning of a line, where typing them is as short as `;;` + a letter.
 
 ### 13.3 `<Tab>`/`<CR>` conflict with completion/snippets — **resolved (2026-09-29)**
 Shared helper in `util.lua` (`completion_active`, `save_fallback`, `fallback`): insert-mode `<Tab>`/`<S-Tab>`/`<CR>` act only in a table or on a list item and when no completion menu (blink.cmp, nvim-cmp, pum) or snippet is active. Otherwise they call the mapping that existed when the buffer attached (captured with `maparg`, e.g. mini.pairs `<CR>`), or the native key. Verified on macOS with blink.cmp and mini.pairs (2026-09-30).
