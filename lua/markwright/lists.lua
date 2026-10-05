@@ -566,9 +566,41 @@ local function has_cookies(buf)
   return false
 end
 
---- Fill every progress cookie in `buf` from its item's direct children: those
---- with a checkbox count (done when checked); a child without a checkbox but
---- with its own cookie counts too (done when complete), so counts roll up.
+--- The line that labels a block-level `list`: the heading or the last line
+--- of the paragraph right above it (blank lines between are fine). 0-based
+--- row, or nil when the block above is something else.
+local function label_row(buf, list)
+  local prev = list:prev_named_sibling()
+  while prev and (prev:type() == "block_quote_marker" or prev:type() == "block_continuation") do
+    prev = prev:prev_named_sibling()
+  end
+  if not prev then
+    return nil
+  end
+  local t = prev:type()
+  if t == "atx_heading" then
+    return (prev:range())
+  elseif t == "setext_heading" then
+    for c in prev:iter_children() do
+      if c:type():match("^setext_h%d_underline$") then
+        return (c:range()) - 1
+      end
+    end
+  elseif t == "paragraph" then
+    local first = prev:range()
+    for row = list:range() - 1, first, -1 do
+      if not get_line(buf, row):match("^[%s>]*$") then
+        return row
+      end
+    end
+  end
+end
+
+--- Fill every progress cookie in `buf`. A list item's cookies count its
+--- direct children: those with a checkbox count (done when checked); a child
+--- without a checkbox but with its own cookie counts too (done when complete),
+--- so counts roll up. A heading or paragraph line right above a list counts
+--- that list's items the same way.
 ---@param o? { join?: boolean }
 function M.update_progress(buf, o)
   if not opts().progress or not has_cookies(buf) then
@@ -583,48 +615,73 @@ function M.update_progress(buf, o)
     return false
   end
   local edits = {}
-  -- returns: "task" (checked / unchecked) state of `node` as a child, or nil
-  local function visit(node)
-    local done, total = 0, 0
-    for c in node:iter_children() do
-      if c:type() == "list" then
-        for _, li in ipairs(list_items(c)) do
-          local state = visit(li)
-          if state ~= nil then
-            total = total + 1
-            done = done + (state and 1 or 0)
-          end
+  -- fill the cookies on `row` from byte `from`; returns how many it found
+  local function fill(row, from, done, total)
+    local line = get_line(buf, row)
+    local n = 0
+    for _, cookie in ipairs(find_cookies(line, from)) do
+      -- `[/]` written in inline code is an example, not a cookie
+      if not ts.code_context(ts.parse(buf, row), row, cookie.s - 1) then
+        n = n + 1
+        local text
+        if cookie.pct then
+          text = ("[%d%%]"):format(total == 0 and 0 or math.floor(done * 100 / total))
+        else
+          text = ("[%d/%d]"):format(done, total)
+        end
+        if line:sub(cookie.s, cookie.e - 1) ~= text then
+          table.insert(edits, { row, cookie.s - 1, cookie.e - 1, text })
         end
       end
     end
+    return n
+  end
+  local visit
+  -- done / total over the items of `list` that count as tasks
+  local function count(list)
+    local done, total = 0, 0
+    for _, li in ipairs(list_items(list)) do
+      local state = visit(li)
+      if state ~= nil then
+        total = total + 1
+        done = done + (state and 1 or 0)
+      end
+    end
+    return done, total
+  end
+  -- returns: the task state (checked / unchecked) of `node` as a child, or nil
+  visit = function(node)
+    local done, total = 0, 0
+    for c in node:iter_children() do
+      if c:type() == "list" then
+        local d, t = count(c)
+        done, total = done + d, total + t
+      end
+    end
     local row = node:range()
-    local line = get_line(buf, row)
-    local item = M.parse(line)
+    local item = M.parse(get_line(buf, row))
     if not item then
       return nil
     end
-    local cookies = find_cookies(line, item.text_col + 1)
-    for _, cookie in ipairs(cookies) do
-      local text
-      if cookie.pct then
-        text = ("[%d%%]"):format(total == 0 and 0 or math.floor(done * 100 / total))
-      else
-        text = ("[%d/%d]"):format(done, total)
-      end
-      if line:sub(cookie.s, cookie.e - 1) ~= text then
-        table.insert(edits, { row, cookie.s - 1, cookie.e - 1, text })
-      end
-    end
+    local found = fill(row, item.text_col + 1, done, total)
     if item.check then
       return item.check ~= " "
-    elseif #cookies > 0 then
+    elseif found > 0 then
       return total > 0 and done == total
     end
     return nil
   end
   local function walk(n)
-    if n:type() == "list_item" then
+    local t = n:type()
+    if t == "list_item" then
       return visit(n) -- visit() recurses into nested lists itself
+    elseif t == "list" then
+      local done, total = count(n)
+      local row = label_row(buf, n)
+      if row and not M.parse(get_line(buf, row)) then
+        fill(row, 1, done, total)
+      end
+      return
     end
     for c in n:iter_children() do
       walk(c)

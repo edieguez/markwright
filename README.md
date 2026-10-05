@@ -104,7 +104,7 @@ All five share one engine, so they behave the same way:
 - **Checkboxes:**
   - **`<CR>` in normal mode** toggles `[ ]` ↔ `[x]`, and adds a checkbox to a plain list item.
   - Checking an item stamps when it was done (`✅ 2026-10-02 15:52`); unchecking removes the stamp.
-  - `[/]` or `[%]` on a parent item fills in its progress: `[2/3]`, `[66%]`.
+  - `[/]` or `[%]` on a parent item, a heading or a line above a checklist fills in its progress: `[2/3]`, `[66%]`.
 - **Heading navigation:** `]]`/`[[` jump between headings, `][`/`[]` between headings of the same level, `[u` to the parent, and `<leader>mo` opens an outline to pick from.
 - **GitHub callouts:** `<leader>ma` wraps a paragraph in `> [!NOTE]` (or TIP, IMPORTANT, WARNING, CAUTION), changes the type of an existing one (same picker), and `<leader>mA` removes it.
 - **Headings:** `<leader>m=` adds a `#`, `<leader>m-` removes one. They take counts and convert setext headings.
@@ -975,7 +975,7 @@ Unchecking removes stamps in the current format, and also the default and Obsidi
 
 #### Progress counters
 
-Type `[/]` or `[%]` (or both, e.g. `- Release [/] [%]` → `- Release [2/3] [66%]`) anywhere in a parent item, and markwright fills in how many of its sub-tasks are done:
+Type `[/]` or `[%]` (or both, e.g. `- Release [/] [%]` → `- Release [2/3] [66%]`) anywhere in a parent item, or on the heading or line of text right above a checklist, and markwright fills in how many of the tasks are done:
 
 ```
 - Release [/]            - Release [2/3]            - Release [%]            - Release [66%]
@@ -984,10 +984,18 @@ Type `[/]` or `[%]` (or both, e.g. `- Release [/] [%]` → `- Release [2/3] [66%
   - [ ] announce           - [ ] announce             - [ ] announce           - [ ] announce
 ```
 
-- **What counts:** the item's direct sub-items that have a checkbox; checked ones are done. Plain sub-items (`- note`) are ignored, and deeper levels count toward their own parent.
+```
+## Launch [/]            ## Launch [1/2]            Groceries [%]            Groceries [33%]
+                   →                                - [x] milk         →     - [x] milk
+- [x] docs               - [x] docs                 - [ ] eggs               - [ ] eggs
+- [ ] tag                - [ ] tag                  - [ ] bread              - [ ] bread
+```
+
+- **What counts:** the item's direct sub-items that have a checkbox; checked ones are done. For a heading or line above a list, the list's top-level items. Plain sub-items (`- note`) are ignored, and deeper levels count toward their own parent.
 - **Counts roll up:** a sub-item without a checkbox but with its own cookie (`- Phase 1 [0/0]`) counts as one task, done when all of its tasks are. A parent with its own checkbox (`- [ ] Docs [0/0]`) is never checked automatically.
 - **When it updates:** right after you toggle a checkbox, when you leave insert mode (so a cookie you just typed fills in), after normal-mode edits such as `dd`, and on save. The update joins the same undo step as the change that caused it.
-- Items without a cookie are never changed, and `[1/2](url)` is a link, not a cookie. Set `lists.progress = false` to turn it off.
+- **Above a list** means the block right before it: an ATX or setext heading, the last line of a paragraph, or a callout title (`> [!NOTE] Todo [/]`). Blank lines between are fine; a heading followed by other text first isn't a label.
+- Items without a cookie are never changed, `[1/2](url)` is a link, and `` `[/]` `` in inline code is just text. Set `lists.progress = false` to turn it off.
 
 ### List tools
 
