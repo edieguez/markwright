@@ -2,7 +2,7 @@
 
 A Neovim plugin (LazyVim-friendly) for editing Markdown: inline formatting toggles, links, lists, headings, tables, code fences, footnotes, TOC, link diagnostics, image paste and formatting while typing.
 
-Status: **3.1.0 released** — updated 2026-10-03. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
+Status: **3.2.0 released** — updated 2026-10-05. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
 
 ---
 
@@ -67,6 +67,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 - [x] `v2.4.0` — list tools (move, sort, converters)
 - [x] `v3.0.0` — keymap review with mnemonics, `s`/`S` sorting, one-level converters with checklist protection
 - [x] `v3.1.0` — `;;n` footnote and `;;p` image while typing
+- [x] `v3.2.0` — progress counters on the heading or line above a checklist
 
 ### Not implemented
 
@@ -84,7 +85,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 
 **New features — priority 2**
 - [x] List tools: move items with children, sort, convert lines ↔ bullets / numbers / checkboxes — `<P>l…` (§14.12)
-- [x] Checkbox progress counters `[2/5]` / `[40%]` (§14.13)
+- [x] Checkbox progress counters `[2/5]` / `[40%]`, on parent items and on the heading or line above a list (§14.13)
 - [x] Completion dates on checked tasks, with time: `lists.done_date` (§14.14)
 - [x] Table extras: move columns/rows (`<P>tH/tL/tJ/tK`), sort (`<P>ts`), flip/transpose (`<P>tf`), copy as CSV (`<P>ty`) (§14.15)
 - [ ] Section operations: move heading sections, promote/demote with children (§14.16)
@@ -643,6 +644,7 @@ Keys chosen 2026-10-02: a `<P>l` submenu (which-key group "list"), like `<P>t` f
 - A list item whose first line contains a cookie `[/]`, `[n/m]`, `[%]` or `[n%]` (after its own checkbox; a cookie followed by `(` is a link; every cookie on the line is filled, so `[/] [%]` shows both) shows its direct children's progress: `- Release [2/5]` / `- Release [40%]` (percent rounded down; no children → `[0/0]` / `[0%]`).
 - Counted children: direct sub-items with a checkbox (done when checked). A sub-item without a checkbox but with a cookie counts as one task, done when complete, so counts roll up (post-order over the tree-sitter `list_item` tree). Items without a cookie are never changed; a parent's own checkbox isn't auto-checked.
 - Updated after the plugin toggles a checkbox (same undo step), on InsertLeave and normal-mode TextChanged (joined, not after undo/redo), and on save. Cheap pre-check: nothing is parsed unless some line contains a cookie. Lists in code blocks aren't list items, so they're left alone.
+- **Labels above a list** (added 2026-10-05): a heading, or the last line of a paragraph, that is the block right before a list (blank lines between are fine) labels that list. Its cookies count the list's top-level items by the same rules (checkbox items; items with their own cookie roll up). Works for ATX and setext headings, plain paragraphs and callout titles (`> [!NOTE] Todo [/]`). A heading followed by other text before the list is not a label. Cookies inside inline code (`` `[/]` ``) are never filled, on labels or items.
 - Config `lists.progress = true` (default).
 
 ### 14.14 Completion dates (priority 2) — **implemented (2026-10-02)**
