@@ -4,6 +4,16 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-10-05
+
+### Added
+
+- **Progress counters above a list**: `[/]` and `[%]` also work on a heading or a line of text right above a checklist (blank lines between are fine): `## Tasks [2/3]`, `Groceries [66%]`, `> [!NOTE] Todo [1/2]`. They count the list's items the same way a parent item counts its sub-items.
+
+### Fixed
+
+- A progress cookie written in inline code (`` `[/]` ``) is no longer filled in.
+
 ## [3.1.0] - 2026-10-03
 
 ### Added
@@ -103,7 +113,8 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v3.1.0...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v3.2.0...HEAD
+[3.2.0]: https://github.com/edieguez/markwright/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/edieguez/markwright/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/edieguez/markwright/compare/v2.4.0...v3.0.0
 [2.4.0]: https://github.com/edieguez/markwright/compare/v2.3.0...v2.4.0
