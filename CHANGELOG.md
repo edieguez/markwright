@@ -4,6 +4,12 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-10-06
+
+### Added
+
+- **Word count and reading time**: `:Markwright stats` (with a range: those lines) shows words, characters and reading time. Code blocks, front matter, HTML, URLs, image alt text, completion stamps and Markdown markup aren't counted. `require("markwright.stats").statusline()` gives `1,234 words · 7 min` (or `52 words selected` in visual mode) for lualine or any statusline, and `require("markwright").stats()` returns the numbers. Reading speed: `stats.wpm` (200).
+
 ## [3.2.0] - 2026-10-05
 
 ### Added
@@ -113,7 +119,8 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v3.2.0...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v3.3.0...HEAD
+[3.3.0]: https://github.com/edieguez/markwright/compare/v3.2.0...v3.3.0
 [3.2.0]: https://github.com/edieguez/markwright/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/edieguez/markwright/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/edieguez/markwright/compare/v2.4.0...v3.0.0

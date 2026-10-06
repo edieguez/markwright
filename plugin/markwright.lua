@@ -118,6 +118,10 @@ local subcommands = {
   toc = function()
     require("markwright.toc").insert()
   end,
+  stats = function(args)
+    local range = args.range > 0 and { args.line1 - 1, args.line2 - 1 } or nil
+    require("markwright.stats").show(range)
+  end,
   check = function(args)
     if args.fargs[2] == "urls" then
       return require("markwright.urlcheck").run(0)
