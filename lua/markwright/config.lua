@@ -112,6 +112,9 @@ M.defaults = {
     on_save = true,
     severity = vim.diagnostic.severity.WARN,
   },
+  stats = {
+    wpm = 200, -- reading speed for the reading time (words per minute)
+  },
 }
 
 ---@type markwright.Config
@@ -145,6 +148,10 @@ local function validate(opts)
   local dd = opts.lists and opts.lists.done_date
   if dd ~= false and dd ~= nil and (type(dd) ~= "string" or dd == "") then
     error("markwright: lists.done_date must be a non-empty os.date format or false")
+  end
+  local wpm = opts.stats and opts.stats.wpm
+  if type(wpm) ~= "number" or wpm <= 0 then
+    error("markwright: stats.wpm must be a positive number")
   end
   if type(opts.filetypes) ~= "table" then
     error("markwright: filetypes must be a list")

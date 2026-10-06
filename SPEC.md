@@ -2,7 +2,7 @@
 
 A Neovim plugin (LazyVim-friendly) for editing Markdown: inline formatting toggles, links, lists, headings, tables, code fences, footnotes, TOC, link diagnostics, image paste and formatting while typing.
 
-Status: **3.2.0 released** — updated 2026-10-05. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
+Status: **3.3.0 released** — updated 2026-10-06. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
 
 ---
 
@@ -68,6 +68,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 - [x] `v3.0.0` — keymap review with mnemonics, `s`/`S` sorting, one-level converters with checklist protection
 - [x] `v3.1.0` — `;;n` footnote and `;;p` image while typing
 - [x] `v3.2.0` — progress counters on the heading or line above a checklist
+- [x] `v3.3.0` — word count and reading time
 
 ### Not implemented
 
@@ -94,7 +95,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 
 **New features — priority 3**
 - [ ] Front matter helpers (§14.19)
-- [ ] Word count / reading time (§14.20)
+- [x] Word count / reading time: `:Markwright stats`, statusline component (§14.20)
 - [ ] Link completion for paths and `#anchors` (§14.21)
 - [ ] Optional: 3-state checkboxes `[-]` (§14.22)
 
@@ -679,9 +680,14 @@ Keys chosen 2026-10-02, matching the `h`/`j`/`k`/`l` add keys:
 - `frontmatter.update_on_save = false`: when enabled, refresh an existing `updated:`/`lastmod:` field on save (never adds one).
 - Front matter is ignored by TOC, slugs, diagnostics and word count.
 
-### 14.20 Word count / reading time (priority 3)
-- `require("markwright").stats(buf?)` → `{ words, chars, reading_minutes }`, excluding front matter, code blocks, URLs and markup; uses the visual selection when active.
-- `:Markwright stats` shows the numbers; README includes a lualine component snippet. Reading speed configurable (`stats.wpm = 200`).
+### 14.20 Word count / reading time — **implemented (2026-10-06)**
+- `require("markwright").stats(buf?)` → `{ words, chars, reading_minutes }` (plus `selection = true` when the visual selection is active, which is used then). `require("markwright.stats").count(buf, range)` for any line range or character range; `statusline()` → `1,234 words · 7 min` / `52 words selected` / `""` outside markwright buffers.
+- Excluded, from the tree-sitter block tree: front matter (`minus_metadata`/`plus_metadata`), fenced and indented code, HTML blocks, reference definitions (footnote definitions are kept), thematic breaks, setext underlines, table delimiter rows. Per line, with patterns: block prefixes (`>`, list markers, checkboxes, `#`, callout markers, footnote labels), completion stamps, HTML comments/tags/entities, images (alt text too), link destinations (link text counts), autolinks, bare URLs, footnote references, progress cookies, emphasis/code/highlight markers, escapes, table pipes.
+- Words: runs of letters/digits; `'` `’` `-` `_` `.` `,` `:` `/` inside a run don't split it (`don't`, `well-known`, `3.14`, `15:30`); other punctuation and symbols do. CJK ideographs and kana count one word each. Characters: the cleaned text, one space between words, line breaks not counted.
+- Reading time: `ceil(words / stats.wpm)` (default 200), 0 for an empty document.
+- `:[range]Markwright stats` notifies `N words · N characters · N min read`. No default key.
+- Cached per changedtick; per-line counts are memoized by line text, so after an edit only changed lines are recounted (≈7 ms for a 1,700-line file in the test VM; cached calls are free).
+- README includes a lualine snippet.
 
 ### 14.21 Link completion (priority 3)
 - blink.cmp / nvim-cmp source: file paths after `](`, headings after `#` (`](#` and `](file.md#`), reference labels after `][`.

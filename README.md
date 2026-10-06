@@ -38,6 +38,7 @@ Built for LazyVim, and it works with any Neovim setup from 0.10 on (tested on 0.
 - [Heading navigation](#heading-navigation)
 - [Callouts](#callouts)
 - [Pasting images](#pasting-images)
+- [Word count and reading time](#word-count-and-reading-time)
 - [Commands](#commands)
 - [Configuration](#configuration)
 - [Custom keymaps and Lua API](#custom-keymaps-and-lua-api)
@@ -109,6 +110,7 @@ All five share one engine, so they behave the same way:
 - **GitHub callouts:** `<leader>ma` wraps a paragraph in `> [!NOTE]` (or TIP, IMPORTANT, WARNING, CAUTION), changes the type of an existing one (same picker), and `<leader>mA` removes it.
 - **Headings:** `<leader>m=` adds a `#`, `<leader>m-` removes one. They take counts and convert setext headings.
 - **Image paste** (`<leader>mp`, macOS): saves a screenshot, copied image or Finder file into `assets/` next to the file and inserts `![alt](assets/name.png)`. `<leader>mP` on an image renames its file on disk and updates the links.
+- **Word count and reading time:** `:Markwright stats`, or a statusline component that shows the words in the document or the selection.
 
 ### Not yet available
 
@@ -1221,6 +1223,39 @@ With `images.smart_paste = true`, pressing `p` (with `clipboard=unnamedplus`, as
 
 ---
 
+## Word count and reading time
+
+`:Markwright stats` shows how long the document is:
+
+```
+markwright: 1,234 words · 7,012 characters · 7 min read
+```
+
+- **What counts:** the text a reader sees. Front matter, code blocks, HTML blocks, link and image URLs, bare URLs, reference definitions, image alt text, completion stamps and Markdown markup (`**`, `#`, list markers, checkboxes, table pipes…) are left out. Link text, headings, table cells, inline code and footnote text count.
+- **Words:** hyphenated words, contractions and numbers like `3.14` count once; Chinese and Japanese characters count one word each. **Characters** include one space between words.
+- **Reading time** rounds up at 200 words per minute; change it with `stats.wpm`.
+- **Part of the document:** `:'<,'>Markwright stats` (or any range) counts those lines.
+
+### In the statusline
+
+`require("markwright.stats").statusline()` returns `1,234 words · 7 min`, or `52 words selected` in visual mode, and an empty string outside Markdown buffers. Counts are cached and only edited lines are counted again, so it's cheap to call on every redraw. With lualine (LazyVim):
+
+```lua
+{
+  "nvim-lualine/lualine.nvim",
+  opts = function(_, opts)
+    table.insert(opts.sections.lualine_x, 1, {
+      function() return require("markwright.stats").statusline() end,
+      cond = function() return vim.bo.filetype == "markdown" end,
+    })
+  end,
+}
+```
+
+For your own format, `require("markwright").stats()` returns `{ words, chars, reading_minutes }` for the current buffer, or for the visual selection (with `selection = true`) when one is active.
+
+---
+
 ## Commands
 
 | Command                                                        | Description                                                                                             |
@@ -1239,6 +1274,7 @@ With `images.smart_paste = true`, pressing `p` (with `clipboard=unnamedplus`, as
 | `:Markwright image`                                            | Paste the clipboard image (macOS)                                                                       |
 | `:Markwright image rename`                                     | Rename the image file under the cursor and update its links                                             |
 | `:Markwright toc`                                              | Insert or update the table of contents                                                                  |
+| `:[range]Markwright stats`                                     | Word count, characters and reading time (of the range, if given)                                        |
 | `:Markwright check`                                            | Run link diagnostics now and report the count                                                           |
 | `:Markwright check urls`                                       | Check external links (in the background) and report broken ones as diagnostics and in the quickfix list |
 | `:Markwright table create`                                     | Create a table                                                                                          |
@@ -1355,6 +1391,9 @@ require("markwright").setup({
     on_save = true,
     severity = vim.diagnostic.severity.WARN,
   },
+  stats = {
+    wpm = 200,                      -- reading speed for the reading time
+  },
 
   lists = {
     continue_on_enter = true,       -- <CR> / o / O continue lists
@@ -1447,29 +1486,30 @@ Link entry points (all `expr = true` except where noted):
 
 Other features are plain functions, suitable for normal (non-`expr`) mappings:
 
-| Function                                                                                                                   | Use                                                                                                                                  |
-| -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `require("markwright.follow").follow()`                                                                                    | `gx` behavior at the cursor                                                                                                          |
-| `require("markwright.follow").open_target(buf, dest)`                                                                      | Follow a destination string (`#anchor`, path, URL)                                                                                   |
-| `require("markwright.fence").insert()` / `wrap(buf, srow, erow)`                                                           | Code fence at the cursor / around 0-based rows                                                                                       |
-| `require("markwright.callouts").toggle(type?)`                                                                             | Callout at the cursor: wrap the paragraph or change the type (`type` skips the picker)                                               |
-| `require("markwright.footnotes").insert()`                                                                                 | Footnote at the cursor                                                                                                               |
-| `require("markwright.tables").create()` / `align()` / `add_row(above)` / `delete_row()` / `add_col(left)` / `delete_col()` | Table commands at the cursor                                                                                                         |
-| `require("markwright.tables").from_csv(buf, srow, erow)`                                                                   | Convert 0-based rows from CSV/TSV                                                                                                    |
-| `require("markwright.tables").from_csv_paragraph()`                                                                        | CSV → table for the paragraph under the cursor (prompts for the separator)                                                           |
-| `require("markwright.tables").to_csv()` / `to_csv_lines(model, sep)`                                                       | Table under the cursor → CSV (prompts) / CSV lines for a model from `read(buf, srow, erow)`                                          |
-| `require("markwright.tables").move_row(dir)` / `move_col(dir)` / `sort(desc)` / `transpose()` / `yank_csv()`               | Table tools at the cursor (`dir` = `1` / `-1`, count from `vim.v.count1`)                                                            |
-| `require("markwright.tables").expr_tab(dir)`                                                                               | `expr` mapping for insert-mode cell navigation (`1` / `-1`)                                                                          |
-| `require("markwright.toc").insert()` / `update(buf)`                                                                       | Insert or refresh the TOC                                                                                                            |
-| `require("markwright.diagnostics").check(buf)` / `collect(buf)`                                                            | Publish / just compute link diagnostics                                                                                              |
-| `require("markwright.slug").slug(text)`                                                                                    | GitHub-style anchor for heading text                                                                                                 |
-| `require("markwright.textobjects").expr(name, inner)`                                                                      | `expr` mapping (modes `o`, `x`) for a text object; `name` is `link`, `url`, `code`, `fence`, `section`, `cell`, `item` or `emphasis` |
-| `require("markwright.nav").heading(dir)` / `sibling(dir)` / `parent()` / `outline()`                                       | Heading motions (`dir` = `1` / `-1`, count from `vim.v.count1`) and the outline picker                                               |
-| `require("markwright.lists").expr_enter()` / `expr_open(below)` / `expr_checkbox()` / `expr_tab(dir)`                      | `expr` mappings for insert `<CR>`, `o`/`O`, the checkbox key and insert `<Tab>` (tables + lists)                                     |
-| `require("markwright.lists").toggle_range(srow, erow)` / `renumber(buf, row)`                                              | Check or uncheck a range of 0-based rows / renumber the list around a row                                                            |
-| `require("markwright.listtools").move(dir)` / `sort(mode)`                                                                 | Move the list item (`dir` = `1` / `-1`) / sort its list (`mode` = `"asc"`, `"desc"` or `"done"`)                                     |
-| `require("markwright.listtools").convert(style, all)` / `convert_lines(style, srow, erow)`                                 | Convert to `"bullet"`, `"number"` or `"checkbox"`: the cursor's level (`all`: and the sub-lists) / 0-based rows                      |
-| `require("markwright.headings").change(buf, srow, erow, delta)`                                                            | Add (`delta > 0`) or remove `#` on 0-based rows                                                                                      |
+| Function                                                                                                                   | Use                                                                                                                                            |
+| -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `require("markwright.follow").follow()`                                                                                    | `gx` behavior at the cursor                                                                                                                    |
+| `require("markwright.follow").open_target(buf, dest)`                                                                      | Follow a destination string (`#anchor`, path, URL)                                                                                             |
+| `require("markwright.fence").insert()` / `wrap(buf, srow, erow)`                                                           | Code fence at the cursor / around 0-based rows                                                                                                 |
+| `require("markwright.callouts").toggle(type?)`                                                                             | Callout at the cursor: wrap the paragraph or change the type (`type` skips the picker)                                                         |
+| `require("markwright.footnotes").insert()`                                                                                 | Footnote at the cursor                                                                                                                         |
+| `require("markwright.tables").create()` / `align()` / `add_row(above)` / `delete_row()` / `add_col(left)` / `delete_col()` | Table commands at the cursor                                                                                                                   |
+| `require("markwright.tables").from_csv(buf, srow, erow)`                                                                   | Convert 0-based rows from CSV/TSV                                                                                                              |
+| `require("markwright.tables").from_csv_paragraph()`                                                                        | CSV → table for the paragraph under the cursor (prompts for the separator)                                                                     |
+| `require("markwright.tables").to_csv()` / `to_csv_lines(model, sep)`                                                       | Table under the cursor → CSV (prompts) / CSV lines for a model from `read(buf, srow, erow)`                                                    |
+| `require("markwright.tables").move_row(dir)` / `move_col(dir)` / `sort(desc)` / `transpose()` / `yank_csv()`               | Table tools at the cursor (`dir` = `1` / `-1`, count from `vim.v.count1`)                                                                      |
+| `require("markwright.tables").expr_tab(dir)`                                                                               | `expr` mapping for insert-mode cell navigation (`1` / `-1`)                                                                                    |
+| `require("markwright.toc").insert()` / `update(buf)`                                                                       | Insert or refresh the TOC                                                                                                                      |
+| `require("markwright.diagnostics").check(buf)` / `collect(buf)`                                                            | Publish / just compute link diagnostics                                                                                                        |
+| `require("markwright").stats(buf?)` / `require("markwright.stats").statusline()` / `count(buf, range)`                     | Word count and reading time: current buffer or visual selection / statusline text / any range (see [Word count](#word-count-and-reading-time)) |
+| `require("markwright.slug").slug(text)`                                                                                    | GitHub-style anchor for heading text                                                                                                           |
+| `require("markwright.textobjects").expr(name, inner)`                                                                      | `expr` mapping (modes `o`, `x`) for a text object; `name` is `link`, `url`, `code`, `fence`, `section`, `cell`, `item` or `emphasis`           |
+| `require("markwright.nav").heading(dir)` / `sibling(dir)` / `parent()` / `outline()`                                       | Heading motions (`dir` = `1` / `-1`, count from `vim.v.count1`) and the outline picker                                                         |
+| `require("markwright.lists").expr_enter()` / `expr_open(below)` / `expr_checkbox()` / `expr_tab(dir)`                      | `expr` mappings for insert `<CR>`, `o`/`O`, the checkbox key and insert `<Tab>` (tables + lists)                                               |
+| `require("markwright.lists").toggle_range(srow, erow)` / `renumber(buf, row)`                                              | Check or uncheck a range of 0-based rows / renumber the list around a row                                                                      |
+| `require("markwright.listtools").move(dir)` / `sort(mode)`                                                                 | Move the list item (`dir` = `1` / `-1`) / sort its list (`mode` = `"asc"`, `"desc"` or `"done"`)                                               |
+| `require("markwright.listtools").convert(style, all)` / `convert_lines(style, srow, erow)`                                 | Convert to `"bullet"`, `"number"` or `"checkbox"`: the cursor's level (`all`: and the sub-lists) / 0-based rows                                |
+| `require("markwright.headings").change(buf, srow, erow, delta)`                                                            | Add (`delta > 0`) or remove `#` on 0-based rows                                                                                                |
 
 ---
 
@@ -1562,15 +1602,15 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 
 The full plan lives in [SPEC.md](SPEC.md): **§0 is a checklist** of what's implemented and what isn't, and **§14** describes every planned feature in detail.
 
-**Done:** inline formatting, formatting while typing, text objects, heading navigation, callouts, links and titles, smart paste, `gx`, headings, lists and checkboxes, list tools (move, sort, convert), completion dates, progress counters, code fences, tables and table tools (move, sort, transpose, CSV), footnotes, TOC, link diagnostics, image paste (macOS).
+**Done:** inline formatting, formatting while typing, text objects, heading navigation, callouts, links and titles, smart paste, `gx`, headings, lists and checkboxes, list tools (move, sort, convert), completion dates, progress counters, word count and reading time, code fences, tables and table tools (move, sort, transpose, CSV), footnotes, TOC, link diagnostics, image paste (macOS).
 
 **Planned:**
 
-| Priority | Features                                                                                                           |
-| -------- | ------------------------------------------------------------------------------------------------------------------ |
-| Next     | Section moves (with promote / demote), inline ↔ reference links, footnote renumbering                              |
-| Later    | Front matter helpers, word count, link completion, three-state checkboxes `[-]`, rich-text paste (HTML → Markdown) |
-| Platform | Image paste on Linux/WSL, `:help markwright`                                                                       |
+| Priority | Features                                                                                               |
+| -------- | ------------------------------------------------------------------------------------------------------ |
+| Next     | Section moves (with promote / demote), inline ↔ reference links, footnote renumbering                  |
+| Later    | Front matter helpers, link completion, three-state checkboxes `[-]`, rich-text paste (HTML → Markdown) |
+| Platform | Image paste on Linux/WSL, `:help markwright`                                                           |
 
 Out of scope: wiki-style `[[links]]` and rendering or preview. Use `render-markdown.nvim` or `markview.nvim` for rendering.
 
@@ -1637,6 +1677,7 @@ In `tests/links_spec.lua` the clipboard, `vim.ui.input` and the title fetcher ar
 | `listtools_spec.lua`   | list tools: move, sort, converters and the checklist prompt                                                 |
 | `nav_spec.lua`         | heading motions, counts, siblings, parents, operators, outline                                              |
 | `callouts_spec.lua`    | callouts: wrap, pick, change type, convert, remove, commands                                                |
+| `stats_spec.lua`       | word count, markup and code exclusion, ranges, selection, statusline                                        |
 | `urlcheck_spec.lua`    | external URL checker (mocked requests, plus real curl against a local server)                               |
 | `textobjects_spec.lua` | text objects: every object with d/c/y/visual, counts, empty objects, dot-repeat                             |
 | `insert_spec.lua`      | formatting while typing: pairs, jump out, links, fall-through, code, other triggers                         |
@@ -1686,6 +1727,7 @@ markwright/
 │   ├── diagnostics.lua       broken-link diagnostics
 │   ├── doc.lua               headings, definitions, footnotes, code rows
 │   ├── slug.lua              GitHub-style anchors
+│   ├── stats.lua             word count and reading time
 │   ├── ts.lua                Treesitter helpers
 │   ├── util.lua              prefixes, edit tracker, undo, notify
 │   └── health.lua            :checkhealth markwright
