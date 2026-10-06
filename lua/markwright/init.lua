@@ -54,6 +54,9 @@ local function attach_autocmds(buf)
     once = true,
     callback = function()
       M._attached[buf] = nil
+      if package.loaded["markwright.stats"] then
+        package.loaded["markwright.stats"]._clear(buf)
+      end
       pcall(vim.api.nvim_del_augroup_by_id, group)
     end,
   })
@@ -66,6 +69,12 @@ function M.attach(buf)
   M._attached[buf] = true
   require("markwright.keymaps").attach(buf)
   attach_autocmds(buf)
+end
+
+--- Word count and reading time for `buf` (default: current), or for the
+--- visual selection when one is active: { words, chars, reading_minutes }.
+function M.stats(buf)
+  return require("markwright.stats").get(buf)
 end
 
 ---@param opts? markwright.Config
