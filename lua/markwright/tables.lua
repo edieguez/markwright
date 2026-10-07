@@ -307,7 +307,7 @@ function M.create()
   if ts.code_context(ts.parse(buf, row), row, 0) then
     return util.warn("tables skipped inside code")
   end
-  vim.ui.input({ prompt = "Table size (rows x cols): ", default = "2x3" }, function(input)
+  util.input({ prompt = "Table size (rows x cols): ", default = "2x3" }, function(input)
     if not input then
       return
     end
@@ -445,7 +445,7 @@ function M.from_csv_prompt(buf, srow, erow)
   local shown = detected == "\t" and "\\t" or detected
   local ns = api.nvim_create_namespace("markwright_fromcsv")
   local id = api.nvim_buf_set_extmark(buf, ns, srow, 0, { end_row = erow, end_col = 0, right_gravity = false })
-  vim.ui.input({ prompt = "Separator: ", default = shown }, function(input)
+  util.input({ prompt = "Separator: ", default = shown }, function(input)
     local m = api.nvim_buf_get_extmark_by_id(buf, ns, id, { details = true })
     pcall(api.nvim_buf_del_extmark, buf, ns, id)
     if input == nil or not m[1] then
@@ -529,7 +529,7 @@ function M.to_csv()
   local sr, er = t.sr, t.er
   local ns = api.nvim_create_namespace("markwright_tocsv")
   local id = api.nvim_buf_set_extmark(buf, ns, sr, 0, { end_row = er, end_col = 0, right_gravity = false })
-  vim.ui.input({ prompt = "Separator: ", default = shown }, function(input)
+  util.input({ prompt = "Separator: ", default = shown }, function(input)
     local m = api.nvim_buf_get_extmark_by_id(buf, ns, id, { details = true })
     pcall(api.nvim_buf_del_extmark, buf, ns, id)
     if input == nil or not m[1] then
@@ -648,7 +648,7 @@ function M.move_col(dir)
   end
   local i, c, off = cursor_cell(buf, t)
   local n = square(t)
-  local target = math.max(1, math.min(n, c + dir * vim.v.count1))
+  local target = math.max(1, math.min(n, c + dir * util.count1()))
   if target == c then
     return
   end
@@ -670,7 +670,7 @@ function M.move_row(dir)
   if i <= 2 then
     return util.warn("the header row can't move")
   end
-  local target = math.max(3, math.min(#t.rows, i + dir * vim.v.count1))
+  local target = math.max(3, math.min(#t.rows, i + dir * util.count1()))
   if target == i then
     return
   end
@@ -779,7 +779,7 @@ function M.yank_csv()
   end
   local default = config.options.tables.csv_separator
   local shown = default == "\t" and "\\t" or default
-  vim.ui.input({ prompt = "Separator: ", default = shown }, function(input)
+  util.input({ prompt = "Separator: ", default = shown }, function(input)
     if input == nil then
       return
     end

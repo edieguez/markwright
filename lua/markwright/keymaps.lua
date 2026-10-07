@@ -16,9 +16,33 @@ function M.attach(buf)
     return
   end
   local P = km.prefix
+  local util = require("markwright.util")
   local function map(mode, lhs, rhs, desc, opts)
     opts = vim.tbl_extend("force", { buffer = buf, desc = "markwright: " .. desc, silent = true }, opts or {})
     vim.keymap.set(mode, lhs, rhs, opts)
+  end
+  -- actions that change the buffer are repeatable with `.` (see util.lua)
+  local function nmap(lhs, fn, desc)
+    map(
+      "n",
+      lhs,
+      util.repeatable(function()
+        fn()
+      end),
+      desc,
+      { expr = true }
+    )
+  end
+  local function xmap(lhs, fn, desc)
+    map(
+      "x",
+      lhs,
+      util.repeatable_visual(function(_, srow, erow)
+        fn(srow, erow)
+      end),
+      desc,
+      { expr = true }
+    )
   end
 
   -- Inline keys (formatting, links) act at once when there's nothing to choose
@@ -71,7 +95,9 @@ function M.attach(buf)
   map("n", P .. "f", function()
     require("markwright.fence").insert()
   end, "Insert code fence")
-  map("x", P .. "f", "<Esc><Cmd>lua require('markwright.fence').wrap_visual()<CR>", "Wrap in code fence")
+  xmap(P .. "f", function(srow, erow)
+    require("markwright.fence").wrap(vim.api.nvim_get_current_buf(), srow, erow)
+  end, "Wrap in code fence")
   map("n", P .. "n", function()
     require("markwright.footnotes").insert()
   end, "Insert footnote")
@@ -79,51 +105,52 @@ function M.attach(buf)
   -- tables
   local tables = require("markwright.tables")
   map("n", P .. "tt", tables.create, "Create table")
-  map("n", P .. "tc", tables.from_csv_paragraph, "CSV → table (paragraph)")
-  map("x", P .. "tc", "<Esc><Cmd>lua require('markwright.tables').from_csv_visual()<CR>", "CSV → table")
-  map("n", P .. "tC", tables.to_csv, "Table → CSV")
+  nmap(P .. "tc", tables.from_csv_paragraph, "CSV → table (paragraph)")
+  xmap(P .. "tc", function(srow, erow)
+    tables.from_csv_prompt(vim.api.nvim_get_current_buf(), srow, erow)
+  end, "CSV → table")
+  nmap(P .. "tC", tables.to_csv, "Table → CSV")
   -- h/j/k/l add a column left / row below / row above / column right
-  map("n", P .. "th", function()
+  nmap(P .. "th", function()
     tables.add_col(true)
   end, "Add column left")
-  map("n", P .. "tj", function()
+  nmap(P .. "tj", function()
     tables.add_row()
   end, "Add row below")
-  map("n", P .. "tk", function()
+  nmap(P .. "tk", function()
     tables.add_row(true)
   end, "Add row above")
-  map("n", P .. "tl", function()
+  nmap(P .. "tl", function()
     tables.add_col()
   end, "Add column right")
   -- H/J/K/L move the column / row; s sort, T transpose, y copy as CSV
-  map("n", P .. "tH", function()
+  nmap(P .. "tH", function()
     tables.move_col(-1)
   end, "Move column left")
-  map("n", P .. "tJ", function()
+  nmap(P .. "tJ", function()
     tables.move_row(1)
   end, "Move row down")
-  map("n", P .. "tK", function()
+  nmap(P .. "tK", function()
     tables.move_row(-1)
   end, "Move row up")
-  map("n", P .. "tL", function()
+  nmap(P .. "tL", function()
     tables.move_col(1)
   end, "Move column right")
-  map("n", P .. "ts", function()
+  nmap(P .. "ts", function()
     tables.sort()
   end, "Sort by this column (ascending)")
-  map("n", P .. "tS", function()
+  nmap(P .. "tS", function()
     tables.sort(true)
   end, "Sort by this column (descending)")
-  map("n", P .. "tf", tables.transpose, "Flip (transpose)")
+  nmap(P .. "tf", tables.transpose, "Flip (transpose)")
   map("n", P .. "ty", tables.yank_csv, "Copy as CSV")
-  map("n", P .. "tdr", tables.delete_row, "Delete row")
-  map("n", P .. "tdc", tables.delete_col, "Delete column")
-  map("n", P .. "ta", function()
+  nmap(P .. "tdr", tables.delete_row, "Delete row")
+  nmap(P .. "tdc", tables.delete_col, "Delete column")
+  nmap(P .. "ta", function()
     tables.align()
   end, "Align table")
 
   -- lists: <Tab>/<S-Tab> serve both tables and lists
-  local util = require("markwright.util")
   local lists = require("markwright.lists")
   for _, t in ipairs({ { "<Tab>", 1, "Next cell / indent item" }, { "<S-Tab>", -1, "Previous cell / outdent item" } }) do
     util.save_fallback(buf, "i", t[1])
@@ -143,25 +170,27 @@ function M.attach(buf)
   if ck and ck ~= "" then
     util.save_fallback(buf, "n", ck)
     map("n", ck, lists.expr_checkbox, "Toggle checkbox", { expr = true })
-    map("x", ck, "<Esc><Cmd>lua require('markwright.lists').toggle_visual()<CR>", "Toggle checkboxes")
+    xmap(ck, function(srow, erow)
+      lists.toggle_range(srow, erow)
+    end, "Toggle checkboxes")
   end
 
   -- list tools (<P>l…)
   local lt = require("markwright.listtools")
   -- J/K move, like <P>tJ / <P>tK for table rows
-  map("n", P .. "lJ", function()
+  nmap(P .. "lJ", function()
     lt.move(1)
   end, "Move item down (with children)")
-  map("n", P .. "lK", function()
+  nmap(P .. "lK", function()
     lt.move(-1)
   end, "Move item up (with children)")
-  map("n", P .. "ls", function()
+  nmap(P .. "ls", function()
     lt.sort("asc")
   end, "Sort list A→Z")
-  map("n", P .. "lS", function()
+  nmap(P .. "lS", function()
     lt.sort("desc")
   end, "Sort list Z→A")
-  map("n", P .. "ld", function()
+  nmap(P .. "ld", function()
     lt.sort("done")
   end, "Sort list: done items last")
   -- converters: lines ↔ bullets / numbers / checkboxes. Lowercase: the cursor's
@@ -169,15 +198,17 @@ function M.attach(buf)
   -- sub-list below it.
   for key, style in pairs({ b = "bullet", n = "number", c = "checkbox" }) do
     local what = ({ bullet = "bullets", number = "numbers", checkbox = "checkboxes" })[style]
-    map("n", P .. "l" .. key, function()
+    nmap(P .. "l" .. key, function()
       lt.convert(style)
     end, "Convert to " .. what .. " (this level)")
-    map("n", P .. "l" .. key:upper(), function()
+    nmap(P .. "l" .. key:upper(), function()
       lt.convert(style, true)
     end, "Convert to " .. what .. " (this level and below)")
-    local vis = ("<Esc><Cmd>lua require('markwright.listtools').convert_visual(%q)<CR>"):format(style)
-    map("x", P .. "l" .. key, vis, "Convert selection to " .. what)
-    map("x", P .. "l" .. key:upper(), vis, "Convert selection to " .. what)
+    local function vis(srow, erow)
+      lt.convert_lines(style, srow, erow)
+    end
+    xmap(P .. "l" .. key, vis, "Convert selection to " .. what)
+    xmap(P .. "l" .. key:upper(), vis, "Convert selection to " .. what)
   end
   local mk = config.options.lists.move_keys
   if type(mk) == "table" then
@@ -193,14 +224,17 @@ function M.attach(buf)
 
   -- headings
   local headings = require("markwright.headings")
-  map("n", P .. "=", function()
+  nmap(P .. "=", function()
     headings.change_cursor(1)
   end, "Heading: add #")
-  map("n", P .. "-", function()
+  nmap(P .. "-", function()
     headings.change_cursor(-1)
   end, "Heading: remove #")
-  map("x", P .. "=", "<Esc><Cmd>lua require('markwright.headings').change_visual(1)<CR>", "Heading: add #")
-  map("x", P .. "-", "<Esc><Cmd>lua require('markwright.headings').change_visual(-1)<CR>", "Heading: remove #")
+  for key, delta in pairs({ ["="] = 1, ["-"] = -1 }) do
+    xmap(P .. key, function(srow, erow)
+      headings.change(vim.api.nvim_get_current_buf(), srow, erow, delta * util.count1())
+    end, delta > 0 and "Heading: add #" or "Heading: remove #")
+  end
 
   -- heading navigation and outline
   require("markwright.nav").attach(buf)
@@ -227,11 +261,13 @@ function M.attach(buf)
   end, "Rename image file")
 
   -- callouts: block keys act at once on the paragraph (or callout) under the cursor
-  map("n", P .. "a", function()
+  nmap(P .. "a", function()
     require("markwright.callouts").toggle()
   end, "Callout: wrap / change type")
-  map("x", P .. "a", "<Esc><Cmd>lua require('markwright.callouts').wrap_visual()<CR>", "Callout: wrap selection")
-  map("n", P .. "A", function()
+  xmap(P .. "a", function(srow, erow)
+    require("markwright.callouts").wrap_range(vim.api.nvim_get_current_buf(), srow, erow)
+  end, "Callout: wrap selection")
+  nmap(P .. "A", function()
     require("markwright.callouts").unwrap()
   end, "Callout: remove")
 

@@ -4,6 +4,16 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [3.3.2] - 2026-10-06
+
+### Fixed
+
+- **`.` repeats every `<leader>m…` key that changes the buffer.** Only formatting and the link operator repeated before; table, list, heading, callout and checkbox keys, the CSV converters, visual code fences and the link key's at-once actions (remove a link, convert a bare URL, new link) now do too, with their count, and visual keys over as many lines. A repeat reuses the answers to the first run's prompts (callout type, CSV separator, fence language, link URL and text). Keys that start insert mode or create something from a prompt (`<leader>mf`/`<leader>mn` in normal mode, `<leader>mtt`, `<leader>mp`, `<leader>mP`, `<leader>mO`) aren't repeatable.
+
+### Documentation
+
+- Known limitation: with which-key, `<leader>m…` keys don't wait for the next key while a macro is recorded; the README has a workaround.
+
 ## [3.3.1] - 2026-10-06
 
 ### Fixed
@@ -129,7 +139,8 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v3.3.1...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v3.3.2...HEAD
+[3.3.2]: https://github.com/edieguez/markwright/compare/v3.3.1...v3.3.2
 [3.3.1]: https://github.com/edieguez/markwright/compare/v3.3.0...v3.3.1
 [3.3.0]: https://github.com/edieguez/markwright/compare/v3.2.0...v3.3.0
 [3.2.0]: https://github.com/edieguez/markwright/compare/v3.1.0...v3.2.0
