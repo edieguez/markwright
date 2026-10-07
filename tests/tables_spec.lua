@@ -61,6 +61,56 @@ local cases = {
     " mta",
     { "| a   |  b  |   c |", "| :-- | :-: | --: |", "| 1   |  2  |   3 |" },
   },
+  -- counts on add / delete
+  {
+    "3 rows below",
+    { "| a |", "| - |", "| 1 |" },
+    { 3, 2 },
+    "3 mtj",
+    { "| a   |", "| --- |", "| 1   |", "|     |", "|     |", "|     |" },
+  },
+  {
+    "2 rows above",
+    { "| a |", "| - |", "| 1 |" },
+    { 3, 2 },
+    "2 mtk",
+    { "| a   |", "| --- |", "|     |", "|     |", "| 1   |" },
+  },
+  {
+    "2 columns right / left",
+    { "| a | b |", "| - | - |" },
+    { 1, 2 },
+    { "2 mtl" },
+    { "| a   |     |     | b   |", "| --- | --- | --- | --- |" },
+  },
+  {
+    "delete 2 rows",
+    { "| a |", "| - |", "| 1 |", "| 2 |", "| 3 |" },
+    { 3, 2 },
+    "2 mtdr",
+    { "| a   |", "| --- |", "| 3   |" },
+  },
+  {
+    "a count past the last row deletes to the end",
+    { "| a |", "| - |", "| 1 |", "| 2 |" },
+    { 3, 2 },
+    "9 mtdr",
+    { "| a   |", "| --- |" },
+  },
+  {
+    "delete 2 columns",
+    { "| a | b | c |", "| - | - | - |", "| 1 | 2 | 3 |" },
+    { 1, 2 },
+    "2 mtdc",
+    { "| c   |", "| --- |", "| 3   |" },
+  },
+  {
+    "deleting every column is refused",
+    { "| a | b |", "| - | - |" },
+    { 1, 2 },
+    "5 mtdc",
+    { "| a | b |", "| - | - |" },
+  },
   -- empty rows (tree-sitter reads `|  |` after a body row as a delimiter row)
   {
     "empty body row in the middle (one column)",

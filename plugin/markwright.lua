@@ -21,19 +21,19 @@ local table_sub = {
     require("markwright.tables").align()
   end,
   row = function()
-    require("markwright.tables").add_row()
+    require("markwright.tables").add_row(false, 1)
   end,
   rowabove = function()
-    require("markwright.tables").add_row(true)
+    require("markwright.tables").add_row(true, 1)
   end,
   delrow = function()
-    require("markwright.tables").delete_row()
+    require("markwright.tables").delete_row(nil, 1)
   end,
   col = function()
-    require("markwright.tables").add_col()
+    require("markwright.tables").add_col(false, 1)
   end,
   colleft = function()
-    require("markwright.tables").add_col(true)
+    require("markwright.tables").add_col(true, 1)
   end,
   sort = function(args)
     require("markwright.tables").sort(args.fargs[3] == "desc")
@@ -45,7 +45,7 @@ local table_sub = {
     require("markwright.tables").yank_csv()
   end,
   delcol = function()
-    require("markwright.tables").delete_col()
+    require("markwright.tables").delete_col(nil, 1)
   end,
 }
 

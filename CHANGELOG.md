@@ -4,6 +4,10 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **Counts on table row and column keys**, as with Vim's `o` and `dd`: `3<leader>mtj` / `3<leader>mtk` add three rows, `2<leader>mth` / `2<leader>mtl` two columns, `2<leader>mtdr` deletes the cursor's row and the one below, `2<leader>mtdc` the cursor's column and the one to its right. The header, the delimiter row and the last column are never deleted. They repeat with `.` like the move keys.
+
 ## [3.3.4] - 2026-10-06
 
 ### Fixed
