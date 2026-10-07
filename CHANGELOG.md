@@ -4,6 +4,12 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [3.3.4] - 2026-10-06
+
+### Fixed
+
+- **Tables with an empty row** (`|     |`) right after another body row were split in two, or not seen as a table at all with more than one column, so aligning, `<Tab>`, sorting, moving and adding or deleting rows only saw part of the table, and `<leader>mtj` then `.` added just one row. The Markdown parser reads such a row as a delimiter row; markwright now finds tables from the lines themselves.
+
 ## [3.3.3] - 2026-10-06
 
 ### Fixed
@@ -145,7 +151,8 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v3.3.3...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v3.3.4...HEAD
+[3.3.4]: https://github.com/edieguez/markwright/compare/v3.3.3...v3.3.4
 [3.3.3]: https://github.com/edieguez/markwright/compare/v3.3.2...v3.3.3
 [3.3.2]: https://github.com/edieguez/markwright/compare/v3.3.1...v3.3.2
 [3.3.1]: https://github.com/edieguez/markwright/compare/v3.3.0...v3.3.1

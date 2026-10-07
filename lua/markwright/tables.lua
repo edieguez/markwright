@@ -74,26 +74,104 @@ local function align_of(t)
   return "none"
 end
 
+--- Does `line` contain a pipe that isn't escaped?
+local function has_pipe(line)
+  local k = 1
+  while true do
+    local i = line:find("[|\\]", k)
+    if not i then
+      return false
+    end
+    if line:sub(i, i) == "|" then
+      return true
+    end
+    k = i + 2
+  end
+end
+
+--- Is `line` a delimiter row (`| --- | :-: |`)? Returns its cell count.
+local function delimiter_cells(line)
+  local cells = M.split_row(line)
+  if #cells == 0 then
+    return nil
+  end
+  for _, c in ipairs(cells) do
+    if not c.text:match("^:?%-+:?$") then
+      return nil
+    end
+  end
+  return #cells
+end
+
+--- Does `line` start another block (which ends a table)?
+local function block_start(line)
+  return line:match("^%s*#")
+    or line:match("^%s*```")
+    or line:match("^%s*~~~")
+    or line:match("^%s*>")
+    or line:match("^%s*[-*+]%s")
+    or line:match("^%s*%d+[.)]%s")
+    or line:match("^%s*<")
+end
+
 --- Rows (0-based, inclusive) of the table containing `row`, or nil.
+---
+--- Found from the lines rather than the syntax tree: the tree-sitter grammar
+--- takes a row of empty cells (`|   |`) after a body row for a delimiter row
+--- (GFM requires at least one `-`), which splits a table in two, or makes it
+--- an ERROR. A table is a run of non-blank lines with an unescaped `|`; its
+--- header is the line above the first valid delimiter row whose cell count
+--- matches it. Tree-sitter only rules out code blocks.
 function M.find(buf, row)
   local line = api.nvim_buf_get_lines(buf, row, row + 1, false)[1] or ""
-  if not line:find("|", 1, true) then
+  if not has_pipe(line) then
     return nil
   end
-  local p = ts.parse(buf, row)
-  if not p then
+  local n = api.nvim_buf_line_count(buf)
+  local function pipe_line(r)
+    local l = api.nvim_buf_get_lines(buf, r, r + 1, false)[1]
+    return l and not l:match("^%s*$") and has_pipe(l)
+  end
+  -- up through the lines a table can hold (one-cell rows have no pipe),
+  -- down through the pipe lines that may hold the header and delimiter
+  local top, last = row, row
+  while top > 0 do
+    local l = api.nvim_buf_get_lines(buf, top - 1, top, false)[1]
+    if l:match("^%s*$") or (not has_pipe(l) and block_start(l)) then
+      break
+    end
+    top = top - 1
+  end
+  while last < n - 1 and pipe_line(last + 1) do
+    last = last + 1
+  end
+  local lines = api.nvim_buf_get_lines(buf, top, last + 1, false)
+  local header
+  for i = 2, #lines do
+    local cells = delimiter_cells(lines[i])
+    if cells and #M.split_row(lines[i - 1]) == cells then
+      header = top + i - 2
+      break
+    end
+  end
+  if not header or row < header then
     return nil
   end
-  local col = #line:match("^%s*")
-  local node = ts.ancestor(ts.block_node(p, row, col), { pipe_table = true })
-  if not node then
+  -- as in GFM, the body goes on until a blank line or another block, even
+  -- through lines without a pipe (a one-cell row)
+  local bottom = header + 1
+  while bottom < n - 1 do
+    local l = api.nvim_buf_get_lines(buf, bottom + 1, bottom + 2, false)[1]
+    if l:match("^%s*$") or (not has_pipe(l) and block_start(l)) then
+      break
+    end
+    bottom = bottom + 1
+  end
+  local p = ts.parse(buf, header, bottom)
+  if p and ts.code_context(p, header, #line:match("^%s*")) == "block" then
     return nil
   end
-  local sr, _, er, ec = node:range()
-  if ec == 0 then
-    er = er - 1
-  end
-  return sr, er
+  return header, bottom
 end
 
 ---@class markwright.Table
