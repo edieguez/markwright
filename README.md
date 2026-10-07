@@ -1293,21 +1293,26 @@ For your own format, `require("markwright").stats()` returns `{ words, chars, re
 | `:Markwright image`                                            | Paste the clipboard image (macOS)                                                                       |
 | `:Markwright image rename`                                     | Rename the image file under the cursor and update its links                                             |
 | `:Markwright toc`                                              | Insert or update the table of contents                                                                  |
+| `:[range]Markwright heading add\|remove [N]`                   | Add or remove N `#` on the line (or every line in the range)                                            |
+| `:[range]Markwright checkbox`                                  | Toggle the checkbox on the list item (or every item in the range, like visual `<CR>`)                   |
 | `:[range]Markwright stats`                                     | Word count, characters and reading time (of the range, if given)                                        |
 | `:Markwright check`                                            | Run link diagnostics now and report the count                                                           |
 | `:Markwright check urls`                                       | Check external links (in the background) and report broken ones as diagnostics and in the quickfix list |
 | `:Markwright table create`                                     | Create a table                                                                                          |
-| `:'<,'>Markwright table csv`                                   | Convert the range from CSV/TSV                                                                          |
+| `:[range]Markwright table fromcsv`                             | Convert the range (or the paragraph under the cursor) from CSV/TSV; `csv` is the old name               |
 | `:Markwright table tocsv`                                      | Convert the table under the cursor to CSV (asks for the separator)                                      |
 | `:Markwright table align`                                      | Align the table under the cursor                                                                        |
-| `:Markwright table row` / `rowabove` / `delrow`                | Add a row below / above, delete the row                                                                 |
-| `:Markwright table sort [desc]` / `transpose` / `yank`         | Sort by the column under the cursor / transpose / copy as CSV                                           |
-| `:Markwright table col` / `colleft` / `delcol`                 | Add a column right / left, delete the column                                                            |
-| `:Markwright list up` / `down` / `sort [desc\|done]`           | Move the list item / sort the list (see [List tools](#list-tools))                                      |
+| `:Markwright table row` / `rowabove` `[N]`                     | Add N rows below / above                                                                                |
+| `:[range]Markwright table delrow [N]`                          | Delete the row and the N - 1 below it, or the rows in the range                                         |
+| `:[range]Markwright table sort [desc]`                         | Sort by the column under the cursor (only the rows in the range, if given)                              |
+| `:Markwright table transpose` / `yank`                         | Transpose / copy as CSV                                                                                 |
+| `:Markwright table col` / `colleft` / `delcol` `[N]`           | Add N columns right / left, delete N columns                                                            |
+| `:[range]Markwright table move up\|down\|left\|right [N]`      | Move the row (or the rows in the range) or the column N places                                          |
+| `:Markwright list up` / `down` `[N]` / `sort [desc\|done]`     | Move the list item N places / sort the list (see [List tools](#list-tools))                             |
 | `:[range]Markwright list bullet` / `number` / `checkbox [all]` | Convert to bullets / numbers / checkboxes; `all` includes the sub-lists                                 |
 | `:Markwright health`                                           | Run `:checkhealth markwright`                                                                           |
 
-Subcommands tab-complete, including the `table` and `list` actions.
+Subcommands tab-complete, including the `table` and `list` actions. Every key that changes the buffer has a command, for setups that turn the default keys off.
 
 ---
 

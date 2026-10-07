@@ -4,6 +4,16 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [3.5.0] - 2026-10-06
+
+### Added
+
+- **Commands for every key that changes the buffer**, for setups without the default keys: `:[range]Markwright heading add|remove [N]`, `:[range]Markwright checkbox`, `:[range]Markwright table move up|down|left|right [N]`, and `:Markwright table fromcsv` (CSV → table for the range or the paragraph; `csv` still works). `table row`, `rowabove`, `col`, `colleft`, `delrow`, `delcol` and `list up`/`down` take a count; `table delrow`, `sort` and `move up|down` take a range.
+
+### Changed
+
+- Warnings use the same wording throughout ("code fence skipped inside code", "can't move the header row", "that's a callout marker, not a link").
+
 ## [3.4.0] - 2026-10-06
 
 ### Added
@@ -158,7 +168,8 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v3.4.0...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v3.5.0...HEAD
+[3.5.0]: https://github.com/edieguez/markwright/compare/v3.4.0...v3.5.0
 [3.4.0]: https://github.com/edieguez/markwright/compare/v3.3.4...v3.4.0
 [3.3.4]: https://github.com/edieguez/markwright/compare/v3.3.3...v3.3.4
 [3.3.3]: https://github.com/edieguez/markwright/compare/v3.3.2...v3.3.3
