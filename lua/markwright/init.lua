@@ -20,9 +20,7 @@ local function attach_autocmds(buf)
     callback = function()
       -- not after undo/redo: that would re-apply what the user just undid
       local ut = vim.fn.undotree()
-      if ut.seq_cur == ut.seq_last then
-        require("markwright.lists").on_change()
-      end
+      require("markwright.lists").on_change({ undo = ut.seq_cur ~= ut.seq_last })
     end,
   })
   vim.api.nvim_create_autocmd("BufWritePre", {
@@ -69,6 +67,7 @@ function M.attach(buf)
   M._attached[buf] = true
   require("markwright.keymaps").attach(buf)
   attach_autocmds(buf)
+  require("markwright.lists").attach(buf)
 end
 
 --- Word count and reading time for `buf` (default: current), or for the

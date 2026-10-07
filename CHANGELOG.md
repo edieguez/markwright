@@ -4,6 +4,16 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [3.3.1] - 2026-10-06
+
+### Fixed
+
+- **Ordered lists left with stale numbers:**
+  - Deleting or moving a list's first item no longer shifts the whole list: `1.` `2.` `3.` without its first item is `1.` `2.` (it used to stay `2.` `3.`), moving the first item to the end gives `1.` `2.` `3.`, and an item pasted above the first one becomes `1.`. A list that starts at another number (`5.`) keeps it; typing a new number on the first item still restarts the list.
+  - Lists changed away from the cursor (`:g/…/d`, `:m`, `:2d`, `.` repeated elsewhere) are renumbered too.
+  - Deleting the first item of a sub-list (or of a list right after a paragraph) no longer turns the rest into plain text: the new first item becomes `1.`, which CommonMark needs for it to stay a list.
+  - Duplicating the only item of a list (`yyp`) numbers the copy `2.`.
+
 ## [3.3.0] - 2026-10-06
 
 ### Added
@@ -119,7 +129,8 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v3.3.0...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v3.3.1...HEAD
+[3.3.1]: https://github.com/edieguez/markwright/compare/v3.3.0...v3.3.1
 [3.3.0]: https://github.com/edieguez/markwright/compare/v3.2.0...v3.3.0
 [3.2.0]: https://github.com/edieguez/markwright/compare/v3.1.0...v3.2.0
 [3.1.0]: https://github.com/edieguez/markwright/compare/v3.0.0...v3.1.0
