@@ -910,7 +910,10 @@ function M.expr_checkbox()
   if not item then
     return util.fallback(buf, "n", opts().checkbox_key)
   end
-  return cmd("toggle_checkbox")
+  -- repeatable with `.`
+  return util.repeat_keys(function()
+    M.toggle_checkbox()
+  end)
 end
 
 --- Insert-mode <Tab>/<S-Tab>: table cell navigation, list nesting, or fallback.

@@ -247,7 +247,7 @@ end
 
 --- Pick a type from `callouts.types`; `current` is marked in the list.
 local function pick(current, cb)
-  vim.ui.select(opts().types, {
+  util.select(opts().types, {
     prompt = current and "Change callout type" or "Callout type",
     kind = "markwright_callout",
     format_item = function(t)
@@ -326,6 +326,13 @@ function M.wrap_visual(typ)
       return util.warn("unknown callout type")
     end
   end
+  with_type(typ, function(t)
+    M.wrap(buf, sr, er, t)
+  end)
+end
+
+--- Wrap 0-based rows `sr`..`er` (the type is picked, or the default).
+function M.wrap_range(buf, sr, er, typ)
   with_type(typ, function(t)
     M.wrap(buf, sr, er, t)
   end)

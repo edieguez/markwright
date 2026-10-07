@@ -277,7 +277,7 @@ local function tracked(buf, id)
 end
 
 local function input(prompt, default, cb)
-  vim.ui.input({ prompt = prompt, default = default }, cb)
+  util.input({ prompt = prompt, default = default }, cb)
 end
 
 -- Actions ---------------------------------------------------------------
@@ -444,8 +444,11 @@ end
 
 local OPFUNC = "v:lua.require'markwright.links'.opfunc"
 
+-- acts at once, repeatable with `.`
 local function cmd(fn)
-  return ("<Cmd>lua require('markwright.links').%s()<CR>"):format(fn)
+  return util.repeat_keys(function()
+    M[fn]()
+  end)
 end
 
 --- Normal-mode link key.

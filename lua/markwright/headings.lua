@@ -101,7 +101,7 @@ end
 
 --- Normal mode: current line, `count` levels.
 function M.change_cursor(delta)
-  local count = math.max(vim.v.count1, 1)
+  local count = math.max(util.count1(), 1)
   local buf = api.nvim_get_current_buf()
   local row = api.nvim_win_get_cursor(0)[1] - 1
   M.change(buf, row, row, delta * count)
@@ -114,7 +114,7 @@ function M.change_visual(delta)
   local buf = api.nvim_get_current_buf()
   local s = api.nvim_buf_get_mark(buf, "<")[1] - 1
   local e = api.nvim_buf_get_mark(buf, ">")[1] - 1
-  M.change(buf, s, e, delta * math.max(vim.v.count1, 1))
+  M.change(buf, s, e, delta * math.max(util.count1(), 1))
 end
 
 return M

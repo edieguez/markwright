@@ -154,7 +154,7 @@ function M.move(dir)
     return util.warn("not on a list item")
   end
   local blocks, gaps, idx = collect(buf, node)
-  local target = math.max(1, math.min(#blocks, idx + dir * vim.v.count1))
+  local target = math.max(1, math.min(#blocks, idx + dir * util.count1()))
   if target == idx then
     return
   end
@@ -482,7 +482,7 @@ local function run(buf, plan)
     info.boxes == 1 and "it" or "them"
   )
   local choices = info.others > 0 and { "Yes", "No", "Cancel" } or { "Yes", "Cancel" }
-  vim.ui.select(choices, { prompt = prompt }, function(choice)
+  util.select(choices, { prompt = prompt }, function(choice)
     if choice == "Yes" then
       go(false)
     elseif choice == "No" then
