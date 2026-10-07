@@ -72,7 +72,7 @@ All five share one engine, so they behave the same way:
 - **Formats nest.** Italic on `**word**` gives `***word***`.
 - **Knows Markdown structure.** List markers, checkboxes, `>` and `#` are never wrapped.
 - **Skips code.** Nothing gets broken inside code blocks or code spans.
-- **Behaves like a native command.** Every action is dot-repeatable (`.`) and undoes in a single `u`.
+- **Behaves like a native command.** Every action that changes the buffer is dot-repeatable (`.`), reusing the answers to its prompts, and undoes in a single `u`.
 - **While typing, too.** In insert mode, type `;;` then `b` for `**|**` (or `i`, `s`, `c`, `h`, `k`). The same keys jump past the closing marker. `;;n` drops a footnote and `;;p` pastes an image without leaving insert mode. There's no delay on normal `;` typing, and it works in any terminal.
 - **Text objects.** `cik` changes a link's text, `yiu` copies its URL, `da#` deletes a section, `ciz` a table cell, `dax` a list item with its children, `dif` a code block's content, `ci*` the text inside `**…**`.
 
@@ -371,6 +371,22 @@ The keys follow a few rules, so most of them can be guessed:
 - **A letter keeps its meaning across normal mode, insert mode and text objects:** `c` is inline code in `<leader>mc`, `;;c` and `ic`; `f` is a code fence in `<leader>mf` and `if`; `k` is a link in `<leader>mk`, `;;k` and `ik`; `n` is a footnote in `<leader>mn` and `;;n`; `p` pastes an image in `<leader>mp` and `;;p`.
 
 The text objects use the same letters where they can: `ik` link, `iu` **U**RL, `ic` code, `if` fence, `i#` heading section, `iz` table cell ("**z**ell", since `c` is code), `ix` list item (the **x** in `- [x]`), `i*` emphasis.
+
+### Repeating with `.`
+
+Every `<leader>m…` key that changes the buffer repeats with `.`, from the new cursor position, as one undo step each:
+
+```
+<leader>mtk  .  .      three new rows above the cursor's row
+<leader>mlJ  .         move the item down twice
+<CR>  j.  j.           check three items in a row
+<leader>mk  f[.        remove this link, then the next one
+```
+
+- **Counts repeat too:** `2<leader>mtJ` then `.` moves the row two more places.
+- **Visual mode** repeats over as many lines as were selected, starting at the cursor: `Vj<leader>m=` then `jj.` makes the next two lines headings as well.
+- **Answers are reused:** `.` doesn't ask again what the first run asked. A callout repeats with the type you picked, CSV → table with the same separator, a code fence around a selection with the same language, a new link on an empty line with the same URL and text. A repeat only asks what it needs and doesn't know yet, such as the checklist question of a list conversion the first run didn't need.
+- **Not repeatable:** keys that put you in insert mode or create something from a prompt (`<leader>mf` and `<leader>mn` in normal mode, `<leader>mtt`, `<leader>mp`, `<leader>mP`, `<leader>mO`), and keys that don't change the buffer (`<leader>mo`, `<leader>mty`, `gx`). After the insert-mode ones, `.` repeats the text you typed, as with Vim's own `o`.
 
 ---
 
@@ -1484,7 +1500,9 @@ Link entry points (all `expr = true` except where noted):
 | `require("markwright.links").is_url(s)` / `url_at(line, col)` | Plain helpers (not mappings)                                                                                   |
 | `require("markwright.title").fetch(url, cb)`                  | Async title fetch; `cb(title)` runs on the main loop (`title` is `nil` on failure)                             |
 
-Other features are plain functions, suitable for normal (non-`expr`) mappings:
+Other features are plain functions, suitable for normal (non-`expr`) mappings. To make one repeatable with `.`, as the default keys are, wrap it: `vim.keymap.set("n", lhs, require("markwright.util").repeatable(function() require("markwright.tables").add_row() end), { buffer = ev.buf, expr = true })` (`repeatable_visual(function(_, srow, erow) … end)` for visual mode, over the selected rows).
+
+The functions:
 
 | Function                                                                                                                   | Use                                                                                                                                            |
 | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1594,6 +1612,13 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 - **Image paste is macOS only** for now. On Linux and WSL, `<leader>mp` shows a warning; backends for `wl-paste`, `xclip` and PowerShell are planned.
 - **Link diagnostics refresh on open and save**, not while typing. `:Markwright check` re-runs them on demand.
 - **One behavior is provisional** and may change in a future version: when a selection only partly covers a formatted span, the whole span is removed.
+- **`<leader>m…` keys don't wait for the next key while you record a macro** (with which-key). which-key steps aside during macros, so Neovim's `timeoutlen` applies: LazyVim sets it to 300 ms, and a slower `m` after `<Space>` runs the plain `<Space>` (cursor right) instead. Type the keys quickly while recording (replaying with `@` is unaffected), or turn the timeout off while recording:
+
+  ```lua
+  local saved
+  vim.api.nvim_create_autocmd("RecordingEnter", { callback = function() saved = vim.o.timeout; vim.o.timeout = false end })
+  vim.api.nvim_create_autocmd("RecordingLeave", { callback = function() vim.o.timeout = saved end })
+  ```
 - **If you use the marksman language server** (LazyVim's markdown extra installs it), it has its own link checks. If you ever see the same broken link reported twice, disable one of them (`diagnostics.enabled = false` here).
 
 ---
@@ -1679,6 +1704,7 @@ In `tests/links_spec.lua` the clipboard, `vim.ui.input` and the title fetcher ar
 | `callouts_spec.lua`    | callouts: wrap, pick, change type, convert, remove, commands                                                |
 | `stats_spec.lua`       | word count, markup and code exclusion, ranges, selection, statusline                                        |
 | `urlcheck_spec.lua`    | external URL checker (mocked requests, plus real curl against a local server)                               |
+| `repeat_spec.lua`      | dot-repeat of every buffer-changing key, counts, visual mode, reused prompt answers                         |
 | `textobjects_spec.lua` | text objects: every object with d/c/y/visual, counts, empty objects, dot-repeat                             |
 | `insert_spec.lua`      | formatting while typing: pairs, jump out, links, fall-through, code, other triggers                         |
 | `images_spec.lua`      | image paste (mocked clipboard; the real macOS backend runs against fake `osascript`/`pngpaste` executables) |

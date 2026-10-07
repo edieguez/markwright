@@ -46,7 +46,7 @@ function M.insert()
   if in_block(buf, row) then
     return util.warn("already inside a code block")
   end
-  vim.ui.input({ prompt = "Language: " }, function(lang)
+  util.input({ prompt = "Language: " }, function(lang)
     if lang == nil then
       return
     end
@@ -89,7 +89,7 @@ function M.wrap(buf, srow, erow)
   local fence = M.fence_for(lines)
   local ns = api.nvim_create_namespace("markwright_fence")
   local mark = api.nvim_buf_set_extmark(buf, ns, srow, 0, { end_row = erow, end_col = 0, right_gravity = false })
-  vim.ui.input({ prompt = "Language: " }, function(lang)
+  util.input({ prompt = "Language: " }, function(lang)
     local m = api.nvim_buf_get_extmark_by_id(buf, ns, mark, { details = true })
     pcall(api.nvim_buf_del_extmark, buf, ns, mark)
     if lang == nil or not m[1] then

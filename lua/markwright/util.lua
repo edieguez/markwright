@@ -1,3 +1,4 @@
+local api = vim.api
 local M = {}
 
 function M.notify(msg, level)
@@ -184,6 +185,124 @@ function M.char_len(line, col)
     return 2
   end
   return 1
+end
+
+-- Dot-repeat --------------------------------------------------------------------
+--
+-- Actions that aren't operators become repeatable with `.` by running them
+-- from an operator function: the key returns `g@l` (normal mode, the cursor
+-- stays where it is) or `g@` (visual mode, the selected lines), and `.`
+-- runs the operator again at the new cursor or over as many lines. Prompts
+-- go through M.input / M.select: the first run records the answers, `.`
+-- reuses them (like vim-surround), and asks only for what it doesn't have.
+
+---@class markwright.Repeat
+---@field fn fun(r: markwright.Repeat, srow: integer, erow: integer)
+---@field count integer
+---@field visual boolean
+---@field replay boolean false on the first run, true when repeated with `.`
+---@field answers any[]
+---@field n integer prompts asked in this run
+
+M._rep = nil ---@type markwright.Repeat?
+M._active = nil ---@type markwright.Repeat?
+M._count = nil ---@type integer?
+
+--- `vim.v.count1`, or the count of the action being repeated.
+function M.count1()
+  return M._count or vim.v.count1
+end
+
+local function with_active(r, fn, ...)
+  local prev_active, prev_count = M._active, M._count
+  M._active, M._count = r, r.count
+  local ok, err = pcall(fn, ...)
+  M._active, M._count = prev_active, prev_count
+  if not ok then
+    error(err, 0)
+  end
+end
+
+function M._repeat_op(mtype)
+  local r = M._rep
+  if not r then
+    return
+  end
+  local buf = api.nvim_get_current_buf()
+  local s = api.nvim_buf_get_mark(buf, "[")
+  local e = api.nvim_buf_get_mark(buf, "]")
+  if not r.visual then
+    -- `g@l` leaves the cursor where the key was pressed
+    pcall(api.nvim_win_set_cursor, 0, { s[1], s[2] })
+  end
+  r.n = 0
+  with_active(r, r.fn, r, s[1] - 1, e[1] - 1, mtype)
+  r.replay = true
+end
+
+local function start(fn, visual)
+  M._rep = { fn = fn, count = vim.v.count1, visual = visual, replay = false, answers = {}, n = 0 }
+  vim.o.operatorfunc = "v:lua.require'markwright.util'._repeat_op"
+end
+
+--- `expr` rhs for a normal-mode action repeatable with `.`. `fn(r)` runs
+--- with the cursor where the key was pressed; `M.count1()` gives the count.
+---@param fn fun(r: markwright.Repeat)
+function M.repeatable(fn)
+  return function()
+    start(fn, false)
+    return "g@l"
+  end
+end
+
+--- `expr` rhs for a visual-mode action over the selected lines, repeatable
+--- with `.` over as many lines. `fn(r, srow, erow)`, 0-based rows.
+---@param fn fun(r: markwright.Repeat, srow: integer, erow: integer)
+function M.repeatable_visual(fn)
+  return function()
+    start(fn, true)
+    return "g@"
+  end
+end
+
+--- Run `fn` as the action of the next `g@l` from an `expr` mapping that
+--- already decided to act (e.g. after inspecting the cursor).
+function M.repeat_keys(fn)
+  start(fn, false)
+  return "g@l"
+end
+
+-- prompts: record answers on the first run, reuse them when repeated
+local function prompt(kind, items, opts, cb)
+  local r = M._active
+  if r then
+    r.n = r.n + 1
+    local i = r.n
+    if r.replay and r.answers[i] ~= nil then
+      local a = r.answers[i]
+      return with_active(r, cb, a ~= vim.NIL and a or nil)
+    end
+    local real = cb
+    cb = function(answer)
+      r.answers[i] = answer == nil and vim.NIL or answer
+      with_active(r, real, answer)
+    end
+  end
+  if kind == "input" then
+    vim.ui.input(opts, cb)
+  else
+    vim.ui.select(items, opts, cb)
+  end
+end
+
+--- `vim.ui.input`, answered from memory when the action is repeated with `.`.
+function M.input(opts, cb)
+  prompt("input", nil, opts, cb)
+end
+
+--- `vim.ui.select`, answered from memory when the action is repeated with `.`.
+function M.select(items, opts, cb)
+  prompt("select", items, opts, cb)
 end
 
 return M

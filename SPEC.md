@@ -2,7 +2,7 @@
 
 A Neovim plugin (LazyVim-friendly) for editing Markdown: inline formatting toggles, links, lists, headings, tables, code fences, footnotes, TOC, link diagnostics, image paste and formatting while typing.
 
-Status: **3.3.1 released** — updated 2026-10-06. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
+Status: **3.3.2 released** — updated 2026-10-06. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
 
 ---
 
@@ -70,6 +70,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 - [x] `v3.2.0` — progress counters on the heading or line above a checklist
 - [x] `v3.3.0` — word count and reading time
 - [x] `v3.3.1` — list renumbering: remembered start numbers, edits away from the cursor
+- [x] `v3.3.2` — dot-repeat for every buffer-changing key, with reused prompt answers
 
 ### Not implemented
 
@@ -516,6 +517,11 @@ Decisions (all configurable under `images`):
 
 ### 13.3 `<Tab>`/`<CR>` conflict with completion/snippets — **resolved (2026-09-29)**
 Shared helper in `util.lua` (`completion_active`, `save_fallback`, `fallback`): insert-mode `<Tab>`/`<S-Tab>`/`<CR>` act only in a table or on a list item and when no completion menu (blink.cmp, nvim-cmp, pum) or snippet is active. Otherwise they call the mapping that existed when the buffer attached (captured with `maparg`, e.g. mini.pairs `<CR>`), or the native key. Verified on macOS with blink.cmp and mini.pairs (2026-09-30).
+
+### 13.3a Dot-repeat — **implemented (2026-10-06)**
+- Every key that changes the buffer repeats with `.`. Inline keys are operators already. Other actions run from an operator function (`util.repeatable` / `util.repeatable_visual`): the normal-mode key returns `g@l` (the cursor stays where it is, and `l` works on empty lines and at the end of a line), the visual key returns `g@` (the selected rows). The count is captured when the key is pressed and given to the action through `util.count1()` on every run.
+- Prompts go through `util.input` / `util.select`: the first run records the answers in order (a cancel counts as an answer), `.` replays them and only asks for prompts it has no answer for. A callback of a recorded prompt runs with the same recording active, so chained prompts (link URL → text) are recorded too.
+- Not repeatable: actions that end in insert mode or create from a prompt (fence/footnote in normal mode, create table, image paste/rename, TOC) and non-changing ones (outline, copy as CSV, follow).
 
 ### 13.4 Open questions collected
 - ~~Operator keymap names (section 5)~~ — resolved: every range key is an operator, `_` = line, no doubled keys (§14.7).
