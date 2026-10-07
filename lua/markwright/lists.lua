@@ -156,6 +156,113 @@ local function all_same(nums)
   return true
 end
 
+-- Start numbers ------------------------------------------------------------------
+--
+-- A list's first number is where it starts (`5.` `6.` `7.` stays at 5), but
+-- after deleting or moving the first item the new first number is just
+-- whatever that item had. So each ordered list's start is remembered on an
+-- extmark spanning its first item's line: if that line is deleted the mark
+-- becomes invalid, and if lines are pasted above it the mark moves down with
+-- the old first item. Either way the list keeps its remembered start; when
+-- the marked line is still the first item, its number wins (the user may
+-- have typed a new one).
+
+local start_ns = api.nvim_create_namespace("markwright_list_start")
+---@type table<integer, table<integer, { start: integer, col: integer, lazy: boolean }>>
+local starts = {}
+
+local function ordered_marker(buf, list)
+  local first = list_items(list)[1]
+  local n, m = nil, nil
+  if first then
+    n, m = item_number(buf, first)
+  end
+  return n, m, first
+end
+
+--- Remembered start and lazy flag of `list` (nil when nothing is remembered).
+local function remembered(buf, list, first_row, col)
+  local sr, _, er, ec = list:range()
+  if ec == 0 and er > sr then
+    er = er - 1
+  end
+  local data = starts[buf] or {}
+  local first, other, invalid
+  for _, mk in ipairs(api.nvim_buf_get_extmarks(buf, start_ns, { sr, 0 }, { er, -1 }, { details = true })) do
+    local d = data[mk[1]]
+    if d and d.col == col then
+      if mk[4].invalid then
+        invalid = invalid or d
+      elseif mk[2] == first_row then
+        first = d
+      else
+        other = other or d
+      end
+    end
+  end
+  return first, other or invalid
+end
+
+--- Start number and laziness of an ordered `list` with numbers `nums`.
+local function list_start(buf, list, nums)
+  local _, m, item = ordered_marker(buf, list)
+  if not m then
+    return nums[1], all_same(nums)
+  end
+  local _, col = m:range()
+  local first, moved = remembered(buf, list, (item:range()), col)
+  if first then
+    return nums[1], first.lazy and all_same(nums)
+  elseif moved then
+    return moved.start, moved.lazy and all_same(nums)
+  end
+  return nums[1], all_same(nums)
+end
+
+--- Remember the start of every ordered list whose first item is in rows
+--- [lo, hi], replacing what was remembered there.
+local function remember(buf, lo, hi)
+  starts[buf] = starts[buf] or {}
+  for _, mk in ipairs(api.nvim_buf_get_extmarks(buf, start_ns, { lo, 0 }, { hi, -1 }, {})) do
+    api.nvim_buf_del_extmark(buf, start_ns, mk[1])
+    starts[buf][mk[1]] = nil
+  end
+  local p = ts.parser(buf)
+  local tree = p and p:parse()[1]
+  if not tree then
+    return
+  end
+  local function walk(node)
+    local sr, _, er = node:range()
+    if er < lo or sr > hi then
+      return
+    end
+    if node:type() == "list" then
+      local n, m, item = ordered_marker(buf, node)
+      local row = item and item:range()
+      if n and row >= lo and row <= hi then
+        local nums = {}
+        for i, it in ipairs(list_items(node)) do
+          nums[i] = (item_number(buf, it))
+        end
+        local _, col = m:range()
+        local id = api.nvim_buf_set_extmark(buf, start_ns, row, col, {
+          end_row = row,
+          end_col = #get_line(buf, row),
+          invalidate = true,
+          right_gravity = true,
+          end_right_gravity = true,
+        })
+        starts[buf][id] = { start = n, col = col, lazy = all_same(nums) }
+      end
+    end
+    for c in node:iter_children() do
+      walk(c)
+    end
+  end
+  walk(tree:root())
+end
+
 --- Find the first ordered item with a wrong number under `node`.
 local function first_wrong(buf, node)
   if node:type() == "list" then
@@ -164,11 +271,14 @@ local function first_wrong(buf, node)
     for i, it in ipairs(items) do
       nums[i] = (item_number(buf, it))
     end
-    if nums[1] and not all_same(nums) then
-      for i, it in ipairs(items) do
-        local expected = nums[1] + i - 1
-        if nums[i] and nums[i] ~= expected then
-          return it, expected
+    if nums[1] then
+      local start, lazy = list_start(buf, node, nums)
+      if not lazy then
+        for i, it in ipairs(items) do
+          local expected = start + i - 1
+          if nums[i] and nums[i] ~= expected then
+            return it, expected
+          end
         end
       end
     end
@@ -820,20 +930,149 @@ function M.expr_tab(dir)
   return util.fallback(buf, "i", lhs)
 end
 
---- TextChanged / InsertLeave: renumber the list around the cursor.
-function M.on_change()
+---@type table<integer, integer[]> rows changed since the last pass: { lo, hi }
+local dirty = {}
+local busy = {}
+
+--- Track changed rows, so lists changed away from the cursor (`:g`, `:m`,
+--- `.` elsewhere) are renumbered too, and remember the lists' starts.
+function M.attach(buf)
+  dirty[buf] = nil
+  remember(buf, 0, api.nvim_buf_line_count(buf) - 1)
+  api.nvim_buf_attach(buf, false, {
+    on_lines = function(_, b, _, first, _, last_new)
+      if busy[b] then
+        return
+      end
+      local d = dirty[b]
+      dirty[b] = d and { math.min(d[1], first), math.max(d[2], last_new) } or { first, last_new }
+    end,
+    on_reload = function(_, b)
+      -- :e! — remember the reloaded lists, but don't renumber what the
+      -- user didn't touch
+      dirty[b] = nil
+      vim.schedule(function()
+        if api.nvim_buf_is_valid(b) then
+          remember(b, 0, api.nvim_buf_line_count(b) - 1)
+        end
+      end)
+    end,
+    on_detach = function(_, b)
+      dirty[b], busy[b], starts[b] = nil, nil, nil
+    end,
+  })
+end
+
+--- Ordered lists (outermost) intersecting rows [lo, hi]: their first rows
+--- and the rows they span.
+local function lists_in(buf, lo, hi)
+  local p = ts.parser(buf)
+  local tree = p and p:parse()[1]
+  local out = {}
+  if not tree then
+    return out
+  end
+  local function walk(node)
+    local sr, _, er, ec = node:range()
+    if ec == 0 and er > sr then
+      er = er - 1
+    end
+    if er < lo or sr > hi then
+      return
+    end
+    if node:type() == "list" then
+      table.insert(out, { sr, er })
+      return -- nested lists are renumbered with their parent
+    end
+    for c in node:iter_children() do
+      walk(c)
+    end
+  end
+  walk(tree:root())
+  return out
+end
+
+--- A list whose first item was deleted may stop being a list: an ordered
+--- item can only interrupt a paragraph (or start a sub-list right under its
+--- parent's text) when it is numbered 1, so `   2. y` left under `1. a` is
+--- plain text. Where a list that started at 1 lost its first item, put the 1
+--- back on the item now in its place.
+local function revive(buf, lo, hi)
+  local data = starts[buf] or {}
+  local p
+  for _, mk in ipairs(api.nvim_buf_get_extmarks(buf, start_ns, { lo, 0 }, { hi, -1 }, { details = true })) do
+    local d = data[mk[1]]
+    local row = mk[2]
+    if d and d.start == 1 and mk[4].invalid then
+      local line = get_line(buf, row)
+      local ind, num = line:match("^([%s>]*)(%d+)[.)]%s")
+      if num and num ~= "1" and #ind == d.col then
+        p = p or ts.parse(buf, lo, hi)
+        local item = p and ts.ancestor(ts.block_node(p, row, #ind), { list_item = true })
+        if not (item and item:range() == row) then
+          pcall(vim.cmd, "undojoin")
+          api.nvim_buf_set_text(buf, row, #ind, row, #ind + #num, { "1" })
+          p = nil
+        end
+      end
+    end
+  end
+end
+
+--- TextChanged / InsertLeave: renumber the lists that changed (and the one
+--- around the cursor), then remember their starts.
+---@param o? { undo?: boolean } after undo/redo: don't edit, just remember
+function M.on_change(o)
   local buf = api.nvim_get_current_buf()
-  M.update_progress(buf, { join = true })
+  if not (o and o.undo) then
+    busy[buf] = true
+    local ok, err = pcall(M.update_progress, buf, { join = true })
+    busy[buf] = nil
+    if not ok then
+      error(err)
+    end
+  end
+  local d = dirty[buf]
+  dirty[buf] = nil
   if not opts().auto_renumber then
     return
   end
+  local last = api.nvim_buf_line_count(buf) - 1
   local row = api.nvim_win_get_cursor(0)[1] - 1
-  -- only when an ordered item is nearby (cheap check before parsing)
-  for r = math.max(0, row - 1), math.min(api.nvim_buf_line_count(buf) - 1, row + 1) do
-    if get_line(buf, r):match("^[%s>]*%d+[.)]") then
-      M.renumber(buf, row, { join = true })
-      return
+  local lo, hi = row, row
+  if d then
+    lo, hi = math.min(lo, d[1]), math.max(hi, d[2])
+  end
+  lo, hi = math.max(0, lo - 1), math.min(last, hi + 1)
+  -- cheap check before parsing: an ordered item or a remembered start nearby
+  local near = #api.nvim_buf_get_extmarks(buf, start_ns, { lo, 0 }, { hi, -1 }, { limit = 1 }) > 0
+  if not near then
+    for _, l in ipairs(api.nvim_buf_get_lines(buf, lo, hi + 1, false)) do
+      if l:match("^[%s>]*%d+[.)]") then
+        near = true
+        break
+      end
     end
+  end
+  if not near then
+    return
+  end
+  busy[buf] = true
+  local ok, err = pcall(function()
+    if not (o and o.undo) then
+      revive(buf, lo, hi)
+    end
+    for _, l in ipairs(lists_in(buf, lo, hi)) do
+      lo, hi = math.min(lo, l[1]), math.max(hi, l[2])
+      if not (o and o.undo) then
+        M.renumber(buf, l[1], { join = true })
+      end
+    end
+    remember(buf, lo, hi)
+  end)
+  busy[buf] = nil
+  if not ok then
+    error(err)
   end
 end
 

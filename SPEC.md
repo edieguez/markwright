@@ -2,7 +2,7 @@
 
 A Neovim plugin (LazyVim-friendly) for editing Markdown: inline formatting toggles, links, lists, headings, tables, code fences, footnotes, TOC, link diagnostics, image paste and formatting while typing.
 
-Status: **3.3.0 released** — updated 2026-10-06. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
+Status: **3.3.1 released** — updated 2026-10-06. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
 
 ---
 
@@ -69,6 +69,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 - [x] `v3.1.0` — `;;n` footnote and `;;p` image while typing
 - [x] `v3.2.0` — progress counters on the heading or line above a checklist
 - [x] `v3.3.0` — word count and reading time
+- [x] `v3.3.1` — list renumbering: remembered start numbers, edits away from the cursor
 
 ### Not implemented
 
@@ -410,9 +411,10 @@ GitHub style: lowercase, strip punctuation except `-` and `_`, spaces → `-`, k
 - **`<Tab>` / `<S-Tab>` in insert mode on a list item:** indent/outdent by the list's indent unit (detect from context; default 2 spaces, or content-width for ordered lists). Ordered items restart numbering at `1.` when nested.
 - Must not steal `<Tab>` when the completion menu is visible or a snippet is active — see 13.3.
 - **Checkbox key: `<CR>` in normal mode** (decided 2026-09-29, configurable as `lists.checkbox_key`): `- [ ] x` ↔ `- [x] x` (also `[X]`); on plain `- x` → `- [ ] x`; on a non-list line or in code → the previous/native `<CR>`. Visual: check all items in the range, or uncheck all if all are checked.
-- **Renumber start rule:** the first item's number is the list's start; lazy lists (all the same number) are left alone; renumbering never runs after undo/redo and joins the triggering edit's undo step.
+- **Renumber start rule** (revised 2026-10-06): each ordered list's start is remembered on an extmark spanning its first item's line (`invalidate = true`, right gravity), refreshed after every pass. If that line is still the first item, its number is the start (so typing a new first number restarts the list). If the first item was deleted (the mark is invalid) or lines were pasted above it (the mark moved down), the remembered start is used. Lists never seen before start at their first number. Lazy lists (all the same number) are left alone, except a list remembered as non-lazy (`1. a` duplicated with `yyp` becomes `1.` `2.`). Renumbering never runs after undo/redo (the starts are re-remembered) and joins the triggering edit's undo step.
+- **Sub-lists that lose their first item:** CommonMark only lets an ordered list interrupt a paragraph when it starts at 1, so deleting `   1. x` under `1. a` would turn `   2. y` into paragraph text. When a list remembered as starting at 1 lost its first item and the line now in its place isn't a list item, its number is set back to 1.
 - **Nesting:** `<Tab>` indents to the previous sibling's content column and moves the subtree; the first item of a new ordered sublist becomes `1.` (CommonMark only lets a nested list starting at 1 interrupt a paragraph).
-- **Auto-renumber:** ordered lists renumber after `<CR>`, item deletion (`TextChanged`), indent/outdent. Preserve the list's starting number and delimiter (`.` or `)`). Only the list containing the cursor, per nesting level. Debounce.
+- **Auto-renumber:** ordered lists renumber after `<CR>`, `o`/`O`, indent/outdent, normal-mode changes and Ex commands (`TextChanged`) and on InsertLeave. Changed rows are tracked with `nvim_buf_attach` `on_lines`, so every list touched since the last pass is renumbered, not only the one at the cursor (`:g`, `:m`, `:d` elsewhere). Preserve the list's starting number and delimiter (`.` or `)`).
 
 ### 9.3 Code fences (`fence.lua`)
 - Prompt with `vim.ui.input({ prompt = "Language: " })` — user types the language (empty allowed).
