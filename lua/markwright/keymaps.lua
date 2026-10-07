@@ -261,6 +261,23 @@ function M.attach(buf)
     end, delta > 0 and "Heading: add #" or "Heading: remove #")
   end
 
+  -- sections (<P>#…, # as in the i# / a# text object): J/K move the section
+  -- with its sub-sections, like <P>tJ / <P>lJ; =/- add or remove a # on the
+  -- heading and every sub-heading, like <P>= / <P>- for one line
+  local sections = require("markwright.sections")
+  nmap(P .. "#J", function()
+    sections.move(1)
+  end, "Move section down")
+  nmap(P .. "#K", function()
+    sections.move(-1)
+  end, "Move section up")
+  nmap(P .. "#=", function()
+    sections.change(1)
+  end, "Section: add # (with sub-headings)")
+  nmap(P .. "#-", function()
+    sections.change(-1)
+  end, "Section: remove # (with sub-headings)")
+
   -- heading navigation and outline
   require("markwright.nav").attach(buf)
 
@@ -308,6 +325,7 @@ function M.attach(buf)
       { P .. "t", group = "table", buffer = buf, mode = { "n", "x" } },
       { P .. "td", group = "delete", buffer = buf, mode = "n" },
       { P .. "l", group = "list", buffer = buf, mode = { "n", "x" } },
+      { P .. "#", group = "section", buffer = buf, mode = "n" },
     })
   end
 end

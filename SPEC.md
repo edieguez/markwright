@@ -2,7 +2,7 @@
 
 A Neovim plugin (LazyVim-friendly) for editing Markdown: inline formatting toggles, links, lists, headings, tables, code fences, footnotes, TOC, link diagnostics, image paste and formatting while typing.
 
-Status: **4.0.0 released** — updated 2026-10-06. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
+Status: **4.1.0 released** — updated 2026-10-06. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
 
 ---
 
@@ -76,6 +76,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 - [x] `v3.4.0` — counts on table add/delete keys; table keys in visual mode (delete, move, sort the selection)
 - [x] `v3.5.0` — a command for every buffer-changing key (heading, checkbox, table move, fromcsv; counts and ranges); consistent warnings
 - [x] `v4.0.0` — `<P>f` on a paragraph wraps it (like `<P>a`); empty line → empty block
+- [x] `v4.1.0` — section moves and promote / demote with sub-headings (`<P>#…`)
 
 ### Not implemented
 
@@ -99,7 +100,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 - [x] Checkbox progress counters `[2/5]` / `[40%]`, on parent items and on the heading or line above a list (§14.13)
 - [x] Completion dates on checked tasks, with time: `lists.done_date` (§14.14)
 - [x] Table extras: move columns/rows (`<P>tH/tL/tJ/tK`), sort (`<P>ts`), flip/transpose (`<P>tf`), copy as CSV (`<P>ty`) (§14.15)
-- [ ] Section operations: move heading sections, promote/demote with children (§14.16)
+- [x] Section operations: move heading sections, promote/demote with children — `<P>#J`/`#K`, `<P>#=`/`#-` (§14.16)
 - [ ] Inline ↔ reference link conversion (§14.17)
 - [ ] Footnote renumbering (§14.18)
 
@@ -681,10 +682,10 @@ Keys chosen 2026-10-02, matching the `h`/`j`/`k`/`l` add keys:
 - `<P>ty` (`:Markwright table yank`): copy the table as CSV (same separator prompt and quoting as `<P>tC`) to the `"` register, and to `+` when a clipboard provider exists; the table is untouched.
 - Each edit is one undo step.
 
-### 14.16 Section operations (priority 2)
-- Move the heading section under the cursor (heading + content + sub-sections) past the previous/next sibling section: `<M-k>`/`<M-j>` **[OPEN]** on a heading line (shares keys with §14.12), `:Markwright section up|down`.
-- Promote/demote a heading together with all its sub-headings: `<P>+` / `<P>_` **[OPEN]** (the single-line `<P>=`/`<P>-` stay).
-- TOC updates on save as usual.
+### 14.16 Section operations — **implemented (2026-10-06)**
+- Keys (decided 2026-10-06): a `<P>#` submenu, `#` as in the `i#`/`a#` text object. `<P>#J`/`<P>#K` move the section under the cursor (the nearest heading above, with its text and sub-sections, up to the next heading of the same or a higher level) past [count] next/previous siblings (same level, same parent); stops at the first/last sibling. `<P>#=`/`<P>#-` add/remove [count] `#` on the section's heading and every sub-heading (refused if a heading would pass level 6 or the top heading would drop below level 1); setext headings are converted.
+- Blank lines: each section's trailing blank lines stay in place (the gap after the first block goes between the swapped blocks). The last section of the file excludes a trailing block of footnote/reference definitions, which stays at the end.
+- `lists.move_keys` also move the section on a heading line. `:Markwright section up|down|add|remove [N]`. One undo step each, repeatable with `.`; headings in code blocks are ignored (`doc.headings`). TOC updates on save as usual.
 
 ### 14.17 Inline ↔ reference links (priority 2)
 - `<P>r` **[OPEN]** on a link toggles inline `[text](url)` ↔ reference `[text][label]` with `[label]: url` collected in a block at the end of the file (label from the text's slug; numeric labels optional).

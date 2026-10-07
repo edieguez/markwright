@@ -4,6 +4,12 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-10-06
+
+### Added
+
+- **Sections** (`<leader>m#…`, `#` as in the `i#` text object): `<leader>m#J` / `<leader>m#K` move the section under the cursor (heading, text and sub-sections) past its next / previous sibling, and `<leader>m#=` / `<leader>m#-` add or remove a `#` on the heading and all its sub-headings. Counts and `.` work; footnote and reference definitions at the end of the file stay there. `lists.move_keys` also move sections on a heading line. Also `:Markwright section up|down|add|remove [N]`.
+
 ## [4.0.0] - 2026-10-06
 
 ### Changed
@@ -179,7 +185,8 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v4.0.0...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v4.1.0...HEAD
+[4.1.0]: https://github.com/edieguez/markwright/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/edieguez/markwright/compare/v3.5.0...v4.0.0
 [3.5.0]: https://github.com/edieguez/markwright/compare/v3.4.0...v3.5.0
 [3.4.0]: https://github.com/edieguez/markwright/compare/v3.3.4...v3.4.0
