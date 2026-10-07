@@ -2,7 +2,7 @@
 
 A Neovim plugin (LazyVim-friendly) for editing Markdown: inline formatting toggles, links, lists, headings, tables, code fences, footnotes, TOC, link diagnostics, image paste and formatting while typing.
 
-Status: **3.4.0 released** — updated 2026-10-06. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
+Status: **3.5.0 released** — updated 2026-10-06. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
 
 ---
 
@@ -74,6 +74,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 - [x] `v3.3.3` — `N.` repeats with the new count
 - [x] `v3.3.4` — tables with empty rows found from the lines, not the tree
 - [x] `v3.4.0` — counts on table add/delete keys; table keys in visual mode (delete, move, sort the selection)
+- [x] `v3.5.0` — a command for every buffer-changing key (heading, checkbox, table move, fromcsv; counts and ranges); consistent warnings
 
 ### Not implemented
 

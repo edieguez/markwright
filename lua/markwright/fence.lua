@@ -44,7 +44,7 @@ function M.insert()
   local buf = api.nvim_get_current_buf()
   local row = api.nvim_win_get_cursor(0)[1] - 1
   if in_block(buf, row) then
-    return util.warn("already inside a code block")
+    return util.warn("code fence skipped inside code")
   end
   util.input({ prompt = "Language: " }, function(lang)
     if lang == nil then
@@ -72,7 +72,7 @@ end
 --- Prompt for a language and wrap rows srow..erow (0-based, inclusive) in a fence.
 function M.wrap(buf, srow, erow)
   if in_block(buf, srow) then
-    return util.warn("already inside a code block")
+    return util.warn("code fence skipped inside code")
   end
   local lines = api.nvim_buf_get_lines(buf, srow, erow + 1, false)
   -- shared indentation of the non-blank lines

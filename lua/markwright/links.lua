@@ -462,7 +462,7 @@ function M.expr_normal()
   end
   local p = ts.parse(buf, row - 1)
   if on_callout_marker(p, row - 1, col) then
-    return "<Cmd>lua require('markwright.util').warn('that is a callout marker, not a link')<CR>"
+    return [[<Cmd>lua require('markwright.util').warn("that's a callout marker, not a link")<CR>]]
   end
   if
     ts.code_context(p, row - 1, col)

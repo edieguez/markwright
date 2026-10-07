@@ -806,7 +806,7 @@ function M.move_row(dir, range)
     i1, i2 = i, i
   end
   if not i1 then
-    return util.warn("the header row can't move")
+    return util.warn("can't move the header row")
   end
   local t1 = math.max(3, math.min(#t.rows - (i2 - i1), i1 + dir * util.count1()))
   if t1 == i1 then
