@@ -87,7 +87,7 @@ All five share one engine, so they behave the same way:
 **Navigation and structure:**
 
 - **`gx` follows anything.** It opens URLs, opens local `.md` files (creating missing ones) and images, jumps to `#anchors` (including `file.md#anchor`), resolves reference links, and jumps between a footnote and its definition. `<C-o>` takes you back.
-- **Code fences** (`<leader>mf`): type a language and get an empty block, or wrap selected lines (`vip<leader>mf`).
+- **Code fences** (`<leader>mf`): wrap the paragraph under the cursor or the selected lines in a fence, or get an empty block on an empty line; you type the language.
 - **Footnotes** (`<leader>mn`): inserts `[^n]` with the next number, adds the definition at the end of the file and puts you there.
 - **Tables** (`<leader>mt…`):
   - create from a `rows x cols` size, or convert CSV/TSV lines (the paragraph under the cursor, or a selection), and back to CSV
@@ -261,8 +261,7 @@ And for structure:
 
 ```
 gx              follow the link, anchor or footnote under the cursor (<C-o> to come back)
-<leader>mf      code fence (asks for the language)
-vip<leader>mf   fence the paragraph
+<leader>mf      fence the paragraph (asks for the language); on an empty line, an empty block
 <leader>ma      wrap the paragraph in a callout (pick NOTE, TIP, …)
 <leader>mn      footnote: inserts [^1], jumps to its definition
 <leader>mtt     new table (asks for rows x cols); <Tab> moves between cells
@@ -311,7 +310,7 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `p`                                                | visual                           | Paste; a URL over the selection makes `[selection](url)`                                                    | —                                                 |
 | `p` / `P`                                          | normal                           | Paste; a bare URL becomes `[Page Title](url)`                                                               | —                                                 |
 | `gx`                                               | normal                           | **Follow** link, anchor, file, image or footnote                                                            | Vim's `gx`                                        |
-| `<leader>mf`                                       | normal                           | Insert a **code fence**                                                                                     | **f**ence                                         |
+| `<leader>mf`                                       | normal                           | **Code fence**: wrap the paragraph, or insert an empty block on an empty line                               | **f**ence                                         |
 | `<leader>mf`                                       | visual                           | Wrap the selected lines in a code fence                                                                     | **f**ence                                         |
 | `<leader>mn`                                       | normal                           | Insert a **footnote**                                                                                       | foot**n**ote                                      |
 | `<leader>mtt`                                      | normal                           | Create a **table**                                                                                          | **t**able, **t**able                              |
@@ -386,7 +385,7 @@ Every `<leader>m…` key that changes the buffer repeats with `.`, from the new 
 - **Counts work as in Vim:** `2<leader>mtJ` then `.` moves the row two more places, and a count on `.` replaces the original one: `<leader>mtJ` then `3.` moves it three places, and later `.` keep using 3.
 - **Visual mode** repeats over as many lines as were selected, starting at the cursor: `Vj<leader>m=` then `jj.` makes the next two lines headings as well.
 - **Answers are reused:** `.` doesn't ask again what the first run asked. A callout repeats with the type you picked, CSV → table with the same separator, a code fence around a selection with the same language, a new link on an empty line with the same URL and text. A repeat only asks what it needs and doesn't know yet, such as the checklist question of a list conversion the first run didn't need.
-- **Not repeatable:** keys that put you in insert mode or create something from a prompt (`<leader>mf` and `<leader>mn` in normal mode, `<leader>mtt`, `<leader>mp`, `<leader>mP`, `<leader>mO`), and keys that don't change the buffer (`<leader>mo`, `<leader>mty`, `gx`). After the insert-mode ones, `.` repeats the text you typed, as with Vim's own `o`.
+- **Not repeatable:** keys that put you in insert mode or create something from a prompt (`<leader>mf` on an empty line, `<leader>mn` in normal mode, `<leader>mtt`, `<leader>mp`, `<leader>mP`, `<leader>mO`), and keys that don't change the buffer (`<leader>mo`, `<leader>mty`, `gx`). After the insert-mode ones, `.` repeats the text you typed, as with Vim's own `o`.
 
 ---
 
@@ -700,23 +699,28 @@ Change the key with `follow.key`, or set it to `""` to keep your own `gx`. Set `
 
 ## Code fences
 
-`<leader>mf` asks for a language (type it; empty is fine, `<Esc>` cancels):
+`<leader>mf` asks for a language (type it; empty is fine, `<Esc>` cancels), then, like `<leader>ma` for callouts:
 
-- **On an empty line** the line becomes an empty block and you're in insert mode inside it.
-- **On a line with text** the block is inserted below it.
-- **In a list item or blockquote** the block is indented or prefixed to stay inside it:
+- **On a paragraph** it wraps the paragraph (the run of non-blank lines around the cursor) in a fence.
+- **On an empty line** the line becomes an empty block and you're in insert mode inside it. An empty line inside a container keeps the block in it: an indented line under a list item, or a bare `>` line in a blockquote.
+- **In visual mode** it wraps the selected lines.
 
 ````
-- item          <leader>mf  sh  →  - item
-                                     ```sh
-                                     |
-                                     ```
+print("hi")     <leader>mf  py  →  ```py
+                                   print("hi")
+                                   ```
+
+- item                          - item
+  |   (indented empty line)  →    ```sh
+      <leader>mf  sh               |
+                                  ```
 ````
 
-- **In visual mode** the selected lines are wrapped. The fence uses their shared indentation and grows to four backticks when the content already contains a ` ``` ` line.
+- **Wrapping** uses the lines' shared indentation and blockquote prefix (`> a` → `> ```py`), and grows to four backticks when the content already contains a ` ``` ` line.
 - **Inside a code block** it does nothing (warning).
+- **`.`** wraps the next paragraph with the same language. Inserting an empty block ends in insert mode, so there `.` repeats what you typed, as with `o`.
 
-The same is available as `:Markwright fence`, or `:'<,'>Markwright fence` for a range.
+The same is available as `:Markwright fence` (wraps the paragraph or inserts on an empty line), or `:'<,'>Markwright fence` for a range.
 
 ---
 

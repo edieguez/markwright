@@ -93,8 +93,8 @@ function M.attach(buf)
   -- Block keys (fence, callout, CSV → table) and inserts (footnote, table,
   -- TOC, image) act at once; only inline keys (formatting, links) are operators.
   map("n", P .. "f", function()
-    require("markwright.fence").insert()
-  end, "Insert code fence")
+    return require("markwright.fence").expr()
+  end, "Code fence: wrap the paragraph / insert", { expr = true })
   xmap(P .. "f", function(srow, erow)
     require("markwright.fence").wrap(vim.api.nvim_get_current_buf(), srow, erow)
   end, "Wrap in code fence")
