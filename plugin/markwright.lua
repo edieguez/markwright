@@ -138,7 +138,7 @@ local subcommands = {
     if args.range > 0 then
       require("markwright.fence").wrap(0, args.line1 - 1, args.line2 - 1)
     else
-      require("markwright.fence").insert()
+      require("markwright.fence").at_cursor()
     end
   end,
   callout = function(args)

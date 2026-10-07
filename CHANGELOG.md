@@ -4,6 +4,17 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-10-06
+
+### Changed
+
+- **`<leader>mf` on a paragraph wraps it in a fence**, like `<leader>ma` does for callouts and `<leader>mtc` for CSV, instead of inserting an empty block below the line. On an empty line it still inserts an empty block, including an indented line inside a list item or a bare `>` line in a blockquote, which keeps the block in that container. Wrapping repeats with `.` (same language), and keeps a blockquote prefix (`> a` → `> ```py`). `:Markwright fence` without a range behaves the same way.
+
+  | Before (3.x)                               | Now                                                        |
+  | ------------------------------------------ | ---------------------------------------------------------- |
+  | `<leader>mf` on text: empty block below it | wraps the paragraph; for an empty block, open a line first |
+  | `vip<leader>mf` to fence the paragraph     | `<leader>mf` (visual mode still wraps the selection)       |
+
 ## [3.5.0] - 2026-10-06
 
 ### Added
@@ -168,7 +179,8 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v3.5.0...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v4.0.0...HEAD
+[4.0.0]: https://github.com/edieguez/markwright/compare/v3.5.0...v4.0.0
 [3.5.0]: https://github.com/edieguez/markwright/compare/v3.4.0...v3.5.0
 [3.4.0]: https://github.com/edieguez/markwright/compare/v3.3.4...v3.4.0
 [3.3.4]: https://github.com/edieguez/markwright/compare/v3.3.3...v3.3.4
