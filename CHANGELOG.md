@@ -4,6 +4,12 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-10-06
+
+### Added
+
+- **Footnote renumbering**: `:Markwright footnote renumber` numbers the numbered footnotes by first reference (`[^1]` is the first one in the text), updates every reference and definition, and puts definitions that stand together (such as the block at the end of the file) in the new order. Named footnotes keep their name; unreferenced numbered definitions come last.
+
 ## [4.1.0] - 2026-10-06
 
 ### Added
@@ -185,7 +191,8 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v4.1.0...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v4.2.0...HEAD
+[4.2.0]: https://github.com/edieguez/markwright/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/edieguez/markwright/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/edieguez/markwright/compare/v3.5.0...v4.0.0
 [3.5.0]: https://github.com/edieguez/markwright/compare/v3.4.0...v3.5.0

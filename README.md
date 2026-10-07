@@ -115,7 +115,7 @@ All five share one engine, so they behave the same way:
 
 ### Not yet available
 
-Image paste on Linux and WSL, a `:help` file, inline ↔ reference link conversion, footnote renumbering and more are planned. See [Roadmap](#roadmap).
+Image paste on Linux and WSL, a `:help` file, inline ↔ reference link conversion and more are planned. See [Roadmap](#roadmap).
 
 ---
 
@@ -744,6 +744,22 @@ Text here.       <leader>mn  →   Text here.[^1]
 
 While typing, `;;n` inserts the reference and the definition the same way but leaves the cursor after the reference, so you can finish the sentence first (see [Formatting while typing](#formatting-while-typing)).
 
+### Renumbering
+
+Footnotes added out of order (`[^3]` before `[^1]`, or gaps after deleting one) can be put back in order with `:Markwright footnote renumber`:
+
+```
+b[^2] then a[^1]           b[^1] then a[^2]
+                    →
+[^1]: one                  [^1]: two
+[^2]: two                  [^2]: one
+```
+
+- **Numbered by first reference:** the first footnote in the text becomes `[^1]`, the next new one `[^2]`, and so on. Every reference and definition is updated.
+- **Definitions follow:** definitions that stand together (only blank lines between them, as at the end of a file) are put in the new order, with their continuation lines. A definition on its own elsewhere (say, under its paragraph) is relabeled where it is.
+- **Named footnotes** (`[^note]`) keep their name and place. Numbered definitions nobody references are numbered after the referenced ones.
+- References inside code are left alone. It's one undo step.
+
 Use `gx` on a reference or definition to jump between them. Link diagnostics warn about references without a definition and definitions nobody references.
 
 ---
@@ -1322,6 +1338,7 @@ For your own format, `require("markwright").stats()` returns `{ words, chars, re
 | `:Markwright callout [type\|remove]`                           | Wrap in / retype / remove a callout; with a range, wrap those lines                                     |
 | `:Markwright outline`                                          | Pick a heading from an outline and jump to it                                                           |
 | `:Markwright footnote`                                         | Insert a footnote                                                                                       |
+| `:Markwright footnote renumber`                                | Renumber the numbered footnotes by first reference and reorder their definitions                        |
 | `:Markwright image`                                            | Paste the clipboard image (macOS)                                                                       |
 | `:Markwright image rename`                                     | Rename the image file under the cursor and update its links                                             |
 | `:Markwright toc`                                              | Insert or update the table of contents                                                                  |
@@ -1551,6 +1568,7 @@ The functions:
 | `require("markwright.follow").open_target(buf, dest)`                                                                      | Follow a destination string (`#anchor`, path, URL)                                                                                             |
 | `require("markwright.fence").insert()` / `wrap(buf, srow, erow)`                                                           | Code fence at the cursor / around 0-based rows                                                                                                 |
 | `require("markwright.callouts").toggle(type?)`                                                                             | Callout at the cursor: wrap the paragraph or change the type (`type` skips the picker)                                                         |
+| `require("markwright.footnotes").renumber(buf)`                                                                            | Renumber numbered footnotes by first reference (returns whether anything changed)                                                              |
 | `require("markwright.footnotes").insert()`                                                                                 | Footnote at the cursor                                                                                                                         |
 | `require("markwright.tables").create()` / `align()` / `add_row(above)` / `delete_row()` / `add_col(left)` / `delete_col()` | Table commands at the cursor                                                                                                                   |
 | `require("markwright.tables").from_csv(buf, srow, erow)`                                                                   | Convert 0-based rows from CSV/TSV                                                                                                              |
@@ -1670,13 +1688,13 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 
 The full plan lives in [SPEC.md](SPEC.md): **§0 is a checklist** of what's implemented and what isn't, and **§14** describes every planned feature in detail.
 
-**Done:** inline formatting, formatting while typing, text objects, heading navigation, section moves and promote / demote, callouts, links and titles, smart paste, `gx`, headings, lists and checkboxes, list tools (move, sort, convert), completion dates, progress counters, word count and reading time, code fences, tables and table tools (move, sort, transpose, CSV), footnotes, TOC, link diagnostics, image paste (macOS).
+**Done:** inline formatting, formatting while typing, text objects, heading navigation, section moves and promote / demote, footnote renumbering, callouts, links and titles, smart paste, `gx`, headings, lists and checkboxes, list tools (move, sort, convert), completion dates, progress counters, word count and reading time, code fences, tables and table tools (move, sort, transpose, CSV), footnotes, TOC, link diagnostics, image paste (macOS).
 
 **Planned:**
 
 | Priority | Features                                                                                               |
 | -------- | ------------------------------------------------------------------------------------------------------ |
-| Next     | Inline ↔ reference links, footnote renumbering                                                         |
+| Next     | Inline ↔ reference links                                                                               |
 | Later    | Front matter helpers, link completion, three-state checkboxes `[-]`, rich-text paste (HTML → Markdown) |
 | Platform | Image paste on Linux/WSL, `:help markwright`                                                           |
 

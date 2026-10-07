@@ -137,6 +137,72 @@ for _, c in ipairs(cases) do
   end
 end
 
+local function renumber(before, after)
+  return function()
+    H.buf(before, { 1, 0 })
+    vim.cmd("Markwright footnote renumber")
+    H.eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), after)
+  end
+end
+
+vim.list_extend(cases, {
+  {
+    "renumber by first reference, definitions reordered",
+    fn = renumber(
+      { "b[^2] then a[^1] and b[^2] again", "", "[^1]: one", "[^2]: two" },
+      { "b[^1] then a[^2] and b[^1] again", "", "[^1]: two", "[^2]: one" }
+    ),
+  },
+  {
+    "multi-line definitions move whole, blank lines between them stay",
+    fn = renumber(
+      { "x[^3] y[^1]", "", "[^1]: one", "    more one", "", "[^3]: three" },
+      { "x[^1] y[^2]", "", "[^1]: three", "", "[^2]: one", "    more one" }
+    ),
+  },
+  {
+    "named footnotes keep their name and place",
+    fn = renumber(
+      { "a[^note] b[^5]", "", "[^note]: n", "[^5]: five" },
+      { "a[^note] b[^1]", "", "[^note]: n", "[^1]: five" }
+    ),
+  },
+  {
+    "unreferenced definitions go after the referenced ones",
+    fn = renumber({ "a[^7]", "", "[^2]: orphan", "[^7]: seven" }, { "a[^1]", "", "[^1]: seven", "[^2]: orphan" }),
+  },
+  {
+    "a definition elsewhere is relabeled in place",
+    fn = renumber(
+      { "p[^9]", "", "[^9]: by the paragraph", "", "Text", "q[^4]", "", "[^4]: later" },
+      { "p[^1]", "", "[^1]: by the paragraph", "", "Text", "q[^2]", "", "[^2]: later" }
+    ),
+  },
+  {
+    "references in code are left alone",
+    fn = renumber({ "`x[^1]` a[^2]", "", "[^2]: two" }, { "`x[^1]` a[^1]", "", "[^1]: two" }),
+  },
+  {
+    "already in order: nothing changes",
+    fn = function()
+      H.buf({ "a[^1]", "", "[^1]: one" }, { 1, 0 })
+      local tick = vim.api.nvim_buf_get_changedtick(0)
+      vim.cmd("Markwright footnote renumber")
+      H.eq(vim.api.nvim_buf_get_changedtick(0), tick)
+    end,
+  },
+  {
+    "renumbering is one undo step",
+    fn = function()
+      H.buf({ "a[^2] b[^1]", "", "[^1]: one", "[^2]: two" }, { 1, 0 })
+      vim.cmd("Markwright footnote renumber")
+      vim.cmd("undo")
+      H.eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { "a[^2] b[^1]", "", "[^1]: one", "[^2]: two" })
+      H.eq(vim.fn.getcompletion("Markwright footnote ", "cmdline"), { "renumber" })
+    end,
+  },
+})
+
 H.mock_input()
 local failed, total = H.run("fence + footnotes", cases, { before_each = A() })
 H.restore_input()

@@ -2,7 +2,7 @@
 
 A Neovim plugin (LazyVim-friendly) for editing Markdown: inline formatting toggles, links, lists, headings, tables, code fences, footnotes, TOC, link diagnostics, image paste and formatting while typing.
 
-Status: **4.1.0 released** — updated 2026-10-06. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
+Status: **4.2.0 released** — updated 2026-10-06. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
 
 ---
 
@@ -77,6 +77,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 - [x] `v3.5.0` — a command for every buffer-changing key (heading, checkbox, table move, fromcsv; counts and ranges); consistent warnings
 - [x] `v4.0.0` — `<P>f` on a paragraph wraps it (like `<P>a`); empty line → empty block
 - [x] `v4.1.0` — section moves and promote / demote with sub-headings (`<P>#…`)
+- [x] `v4.2.0` — footnote renumbering
 
 ### Not implemented
 
@@ -102,7 +103,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 - [x] Table extras: move columns/rows (`<P>tH/tL/tJ/tK`), sort (`<P>ts`), flip/transpose (`<P>tf`), copy as CSV (`<P>ty`) (§14.15)
 - [x] Section operations: move heading sections, promote/demote with children — `<P>#j`/`#k`, `<P>#=`/`#-` (§14.16)
 - [ ] Inline ↔ reference link conversion (§14.17)
-- [ ] Footnote renumbering (§14.18)
+- [x] Footnote renumbering — `:Markwright footnote renumber` (§14.18)
 
 **New features — priority 3**
 - [ ] Front matter helpers (§14.19)
@@ -691,9 +692,10 @@ Keys chosen 2026-10-02, matching the `h`/`j`/`k`/`l` add keys:
 - `<P>r` **[OPEN]** on a link toggles inline `[text](url)` ↔ reference `[text][label]` with `[label]: url` collected in a block at the end of the file (label from the text's slug; numeric labels optional).
 - `:Markwright links reference` / `:Markwright links inline` convert the whole buffer; duplicate URLs share one definition; unused definitions are removed.
 
-### 14.18 Footnote renumbering (priority 2)
-- `:Markwright footnote renumber`: renumber numeric footnotes by order of first reference and reorder their definitions; named footnotes are left alone.
-- Optional `footnotes.renumber_on_save = false`.
+### 14.18 Footnote renumbering — **implemented (2026-10-06)**
+- `:Markwright footnote renumber` (command only, no key: it's occasional cleanup; decided 2026-10-06): numeric footnotes are renumbered by order of first reference (code excluded); numeric definitions without references follow, in file order; named footnotes keep their label and place.
+- Definitions: a definition block is its line plus indented continuation lines (blank lines between allowed). Blocks that stand together (only blank lines or other definitions between them) form a run, and the numeric slots of each run are refilled in the new order (named definitions keep their slots); a lone definition elsewhere is only relabeled. Only changed rows are rewritten, in one undo step; nothing changes (and a message says so) when already in order.
+- `footnotes.renumber_on_save` was considered and left out for now (it rewrites references across the file on every save).
 
 ### 14.19 Front matter helpers (priority 3)
 - `:Markwright frontmatter`: insert a YAML block from a template (config `frontmatter.template`, placeholders `{title}` from the first heading or file name, `{date}`, `{tags}`).

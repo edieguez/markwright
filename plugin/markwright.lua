@@ -158,7 +158,10 @@ local subcommands = {
   outline = function()
     require("markwright.nav").outline()
   end,
-  footnote = function()
+  footnote = function(args)
+    if args.fargs[2] == "renumber" then
+      return require("markwright.footnotes").renumber(0)
+    end
     require("markwright.footnotes").insert()
   end,
   image = function(args)
@@ -300,6 +303,11 @@ end, {
       return vim.tbl_filter(function(n)
         return n:find(lead, 1, true) == 1
       end, { "rename" })
+    end
+    if #words == 2 and words[1] == "footnote" then
+      return vim.tbl_filter(function(n)
+        return n:find(lead, 1, true) == 1
+      end, { "renumber" })
     end
     if #words == 2 and words[1] == "check" then
       return vim.tbl_filter(function(n)
