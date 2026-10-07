@@ -787,6 +787,8 @@ It's one undo step: `u` brings the table back. Converting CSV → table → CSV 
 | `<leader>mtdc`     | Delete the current column (not the last remaining one)                     |
 | `<leader>mta`      | Align now                                                                  |
 
+Counts work as with Vim's `o` and `dd`: `3<leader>mtj` adds three rows, `2<leader>mtl` two columns, `2<leader>mtdr` deletes the cursor's row and the one below, `2<leader>mtdc` the cursor's column and the one to its right. The header, the delimiter row and the last column are never deleted.
+
 The navigation skips the delimiter row and puts the cursor at the end of the cell's text.
 
 ### Moving, sorting and transposing

@@ -627,78 +627,116 @@ end
 --- Add an empty row below the cursor (below the delimiter when on the header),
 --- or above it with `above = true` (not above the header: a table's first row
 --- is always its header).
-function M.add_row(above)
+--- Add [count] empty rows below the cursor's row, or above it with `above = true`.
+function M.add_row(above, n)
   local t, buf = current()
   if not t then
     return util.warn("not in a table")
   end
+  n = n or util.count1()
   local i, c = cursor_cell(buf, t)
   if above and i <= 2 then
     return util.warn("can't add a row above the header")
   end
   local at = above and i or math.max(i, 2) + 1
-  table.insert(t.rows, at, empty_row(ncols(t)))
+  for _ = 1, n do
+    table.insert(t.rows, at, empty_row(ncols(t)))
+  end
   write(buf, t, { at, c, 0 })
 end
 
-function M.delete_row()
+--- Body rows `i1`..`i2` (model indices, the header is 1), clamped; nil if none.
+local function body_range(t, i1, i2)
+  i1, i2 = math.max(3, i1), math.min(#t.rows, i2)
+  if i1 > i2 then
+    return nil
+  end
+  return i1, i2
+end
+
+--- Delete the cursor's row and the [count] - 1 below it, or rows `range`
+--- ({ i1, i2 }, model indices). The header and the delimiter row stay.
+function M.delete_row(range, n)
   local t, buf = current()
   if not t then
     return util.warn("not in a table")
   end
   local i, c = cursor_cell(buf, t)
-  if i <= 2 then
+  local i1, i2
+  if range then
+    i1, i2 = body_range(t, range[1], range[2])
+  elseif i > 2 then
+    i1, i2 = body_range(t, i, i + (n or util.count1()) - 1)
+  end
+  if not i1 then
     return util.warn("can't delete the header or delimiter row")
   end
-  table.remove(t.rows, i)
+  for _ = i1, i2 do
+    table.remove(t.rows, i1)
+  end
   local old_er = t.er
   local lines, pos = M.render(t)
   util.undo_break(buf)
   api.nvim_buf_set_lines(buf, t.sr, old_er + 1, false, lines)
-  local ni = math.min(i, #lines)
+  local ni = math.min(range and i1 or i, #lines)
   api.nvim_win_set_cursor(0, { t.sr + ni, pos[ni][math.min(c, #pos[ni])].s })
 end
 
---- Add an empty column right of the cursor, or left of it with `left = true`.
-function M.add_col(left)
+--- Add [count] empty columns right of the cursor, or left of it with `left = true`.
+function M.add_col(left, n)
   local t, buf = current()
   if not t then
     return util.warn("not in a table")
   end
+  n = n or util.count1()
   local i, c = cursor_cell(buf, t)
   if left then
     c = c - 1 -- insert after the previous column
   end
-  local n = ncols(t)
+  local cols = ncols(t)
   for _, r in ipairs(t.rows) do
-    while #r < n do
+    while #r < cols do
       table.insert(r, "")
     end
-    table.insert(r, c + 1, "")
+    for _ = 1, n do
+      table.insert(r, c + 1, "")
+    end
   end
-  for k = #t.aligns + 1, n do
+  for k = #t.aligns + 1, cols do
     t.aligns[k] = "none"
   end
-  table.insert(t.aligns, c + 1, "none")
+  for _ = 1, n do
+    table.insert(t.aligns, c + 1, "none")
+  end
   write(buf, t, { i, c + 1, 0 })
 end
 
-function M.delete_col()
+--- Delete the cursor's column and the [count] - 1 right of it, or columns
+--- `range` ({ c1, c2 }). At least one column stays.
+function M.delete_col(range, n)
   local t, buf = current()
   if not t then
     return util.warn("not in a table")
   end
   local i, c = cursor_cell(buf, t)
-  if ncols(t) <= 1 then
-    return util.warn("can't delete the only column")
+  local cols = ncols(t)
+  local c1, c2 = c, c + (n or util.count1()) - 1
+  if range then
+    c1, c2 = range[1], range[2]
+  end
+  c1, c2 = math.max(1, c1), math.min(cols, c2)
+  if c2 - c1 + 1 >= cols then
+    return util.warn(cols == 1 and "can't delete the only column" or "can't delete every column")
   end
   for _, r in ipairs(t.rows) do
-    if r[c] ~= nil then
-      table.remove(r, c)
+    for _ = c1, math.min(c2, #r) do
+      table.remove(r, c1)
     end
   end
-  table.remove(t.aligns, c)
-  write(buf, t, { i, math.min(c, ncols(t)), 0 })
+  for _ = c1, math.min(c2, #t.aligns) do
+    table.remove(t.aligns, c1)
+  end
+  write(buf, t, { i, math.min(c1, ncols(t)), 0 })
 end
 
 -- Table extras ------------------------------------------------------------
@@ -719,41 +757,70 @@ end
 
 --- Move the column under the cursor left (dir = -1) or right (dir = 1),
 --- [count] times. Alignment markers move with it; the cursor follows.
-function M.move_col(dir)
+--- Move the cursor's column (or columns `range`, { c1, c2 }) left (dir = -1)
+--- or right (dir = 1), [count] times; alignments move with them.
+function M.move_col(dir, range)
   local t, buf = current()
   if not t then
     return util.warn("not in a table")
   end
   local i, c, off = cursor_cell(buf, t)
   local n = square(t)
-  local target = math.max(1, math.min(n, c + dir * util.count1()))
-  if target == c then
+  local c1, c2 = c, c
+  if range then
+    c1, c2 = math.max(1, range[1]), math.min(n, range[2])
+  end
+  local by = dir * util.count1()
+  local t1 = math.max(1, math.min(n - (c2 - c1), c1 + by))
+  if t1 == c1 then
     return
   end
-  for _, r in ipairs(t.rows) do
-    table.insert(r, target, table.remove(r, c))
+  local function shift(list)
+    local block = {}
+    for _ = c1, c2 do
+      table.insert(block, table.remove(list, c1))
+    end
+    for k, v in ipairs(block) do
+      table.insert(list, t1 + k - 1, v)
+    end
   end
-  table.insert(t.aligns, target, table.remove(t.aligns, c))
-  write(buf, t, { i, target, off })
+  for _, r in ipairs(t.rows) do
+    shift(r)
+  end
+  shift(t.aligns)
+  write(buf, t, { i, c + (t1 - c1), off })
 end
 
---- Move the body row under the cursor up (dir = -1) or down (dir = 1),
---- [count] times. The header and the delimiter row stay where they are.
-function M.move_row(dir)
+--- Move the cursor's body row (or rows `range`, { i1, i2 }) up (dir = -1) or
+--- down (dir = 1), [count] times. The header and the delimiter row stay.
+function M.move_row(dir, range)
   local t, buf = current()
   if not t then
     return util.warn("not in a table")
   end
   local i, c, off = cursor_cell(buf, t)
-  if i <= 2 then
+  local i1, i2
+  if range then
+    i1, i2 = body_range(t, range[1], range[2])
+  elseif i > 2 then
+    i1, i2 = i, i
+  end
+  if not i1 then
     return util.warn("the header row can't move")
   end
-  local target = math.max(3, math.min(#t.rows, i + dir * util.count1()))
-  if target == i then
+  local t1 = math.max(3, math.min(#t.rows - (i2 - i1), i1 + dir * util.count1()))
+  if t1 == i1 then
     return
   end
-  table.insert(t.rows, target, table.remove(t.rows, i))
-  write(buf, t, { target, c, off })
+  local block = {}
+  for _ = i1, i2 do
+    table.insert(block, table.remove(t.rows, i1))
+  end
+  for k, r in ipairs(block) do
+    table.insert(t.rows, t1 + k - 1, r)
+  end
+  local ci = (i >= i1 and i <= i2) and i + (t1 - i1) or t1
+  write(buf, t, { ci, c, off })
 end
 
 --- Sort key of a cell: a number when the text is one (thousands separators,
@@ -769,15 +836,22 @@ end
 --- descending with `desc = true`). Numbers compare as numbers
 --- when the whole column is numeric (ISO dates sort correctly as text);
 --- empty cells go last. The sort is stable.
-function M.sort(desc)
+function M.sort(desc, range)
   local t, buf = current()
   if not t then
     return util.warn("not in a table")
   end
   local i, c, off = cursor_cell(buf, t)
   square(t)
+  local first, last = 3, #t.rows
+  if range then
+    first, last = body_range(t, range[1], range[2])
+    if not first then
+      return util.warn("select body rows to sort")
+    end
+  end
   local body = {}
-  for k = 3, #t.rows do
+  for k = first, last do
     local num, txt, empty = sort_key(t.rows[k][c] or "")
     table.insert(body, { row = t.rows[k], num = num, txt = txt, empty = empty, idx = k })
   end
@@ -806,7 +880,7 @@ function M.sort(desc)
   local sorted = vim.deepcopy(body)
   table.sort(sorted, less)
   for k, b in ipairs(sorted) do
-    t.rows[k + 2] = b.row
+    t.rows[first + k - 1] = b.row
   end
   write(buf, t, { i, c, off })
 end
