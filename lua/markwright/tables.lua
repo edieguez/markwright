@@ -823,6 +823,49 @@ function M.move_row(dir, range)
   write(buf, t, { ci, c, off })
 end
 
+--- Visual mode: run a row or column action on the selection. Rows `srow`..
+--- `erow` are 0-based buffer rows; columns come from the cells under `scol`
+--- (on `srow`) and `ecol` (on `erow`) for a charwise or blockwise selection.
+---@param action "delete_row"|"delete_col"|"move_row"|"move_col"|"sort"
+function M.visual(action, arg, srow, erow, scol, ecol, mtype)
+  local buf = api.nvim_get_current_buf()
+  local sr = M.find(buf, srow)
+  if not sr then
+    return util.warn("not in a table")
+  end
+  pcall(api.nvim_win_set_cursor, 0, { srow + 1, scol or 0 })
+  local rows = { srow - sr + 1, erow - sr + 1 }
+  if action == "delete_col" or action == "move_col" then
+    if mtype == "line" then
+      return util.warn("select the columns with v or <C-v>")
+    end
+    local function cell_at(row, col)
+      local line = api.nvim_buf_get_lines(buf, row, row + 1, false)[1] or ""
+      local cells = M.split_row(line)
+      for k, cell in ipairs(cells) do
+        if col < cell.re then
+          return k
+        end
+      end
+      return #cells
+    end
+    local c1, c2 = cell_at(srow, scol), cell_at(erow, ecol)
+    if c1 > c2 then
+      c1, c2 = c2, c1
+    end
+    if action == "delete_col" then
+      return M.delete_col({ c1, c2 })
+    end
+    return M.move_col(arg, { c1, c2 })
+  elseif action == "delete_row" then
+    return M.delete_row(rows)
+  elseif action == "move_row" then
+    return M.move_row(arg, rows)
+  elseif action == "sort" then
+    return M.sort(arg, rows)
+  end
+end
+
 --- Sort key of a cell: a number when the text is one (thousands separators,
 --- currency signs, `%` and Markdown emphasis ignored), else lowercase text.
 local function sort_key(text)

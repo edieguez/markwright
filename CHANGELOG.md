@@ -4,8 +4,11 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [3.4.0] - 2026-10-06
+
 ### Added
 
+- **Table keys in visual mode**: `<leader>mtdr` deletes the selected rows, `<leader>mtJ` / `<leader>mtK` move them together, `<leader>mts` / `<leader>mtS` sort just those rows; with a charwise or blockwise selection across cells, `<leader>mtdc` deletes the selected columns and `<leader>mtH` / `<leader>mtL` move them together. Counts and `.` work as in normal mode. The header and the delimiter row are never moved, sorted or deleted.
 - **Counts on table row and column keys**, as with Vim's `o` and `dd`: `3<leader>mtj` / `3<leader>mtk` add three rows, `2<leader>mth` / `2<leader>mtl` two columns, `2<leader>mtdr` deletes the cursor's row and the one below, `2<leader>mtdc` the cursor's column and the one to its right. The header, the delimiter row and the last column are never deleted. They repeat with `.` like the move keys.
 
 ## [3.3.4] - 2026-10-06
@@ -155,7 +158,8 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v3.3.4...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v3.4.0...HEAD
+[3.4.0]: https://github.com/edieguez/markwright/compare/v3.3.4...v3.4.0
 [3.3.4]: https://github.com/edieguez/markwright/compare/v3.3.3...v3.3.4
 [3.3.3]: https://github.com/edieguez/markwright/compare/v3.3.2...v3.3.3
 [3.3.2]: https://github.com/edieguez/markwright/compare/v3.3.1...v3.3.2

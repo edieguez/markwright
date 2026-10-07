@@ -197,7 +197,7 @@ end
 -- reuses them (like vim-surround), and asks only for what it doesn't have.
 
 ---@class markwright.Repeat
----@field fn fun(r: markwright.Repeat, srow: integer, erow: integer)
+---@field fn fun(r: markwright.Repeat, srow: integer, erow: integer, mtype: string, scol: integer, ecol: integer)
 ---@field count integer
 ---@field visual boolean
 ---@field replay boolean false on the first run, true when repeated with `.`
@@ -239,7 +239,7 @@ function M._repeat_op(mtype)
     r.count = vim.v.count1
   end
   r.n = 0
-  with_active(r, r.fn, r, s[1] - 1, e[1] - 1, mtype)
+  with_active(r, r.fn, r, s[1] - 1, e[1] - 1, mtype, s[2], e[2])
   r.replay = true
 end
 

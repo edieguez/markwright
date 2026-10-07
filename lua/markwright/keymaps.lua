@@ -150,6 +150,27 @@ function M.attach(buf)
   nmap(P .. "tdc", function()
     tables.delete_col()
   end, "Delete column")
+  -- visual: the selected rows / columns ([count] moves them further)
+  for lhs, a in pairs({
+    tdr = { "delete_row", nil, "Delete selected rows" },
+    tdc = { "delete_col", nil, "Delete selected columns" },
+    tJ = { "move_row", 1, "Move selected rows down" },
+    tK = { "move_row", -1, "Move selected rows up" },
+    tH = { "move_col", -1, "Move selected columns left" },
+    tL = { "move_col", 1, "Move selected columns right" },
+    ts = { "sort", false, "Sort selected rows (ascending)" },
+    tS = { "sort", true, "Sort selected rows (descending)" },
+  }) do
+    map(
+      "x",
+      P .. lhs,
+      util.repeatable_visual(function(_, srow, erow, mtype, scol, ecol)
+        tables.visual(a[1], a[2], srow, erow, scol, ecol, mtype)
+      end),
+      a[3],
+      { expr = true }
+    )
+  end
   nmap(P .. "ta", function()
     tables.align()
   end, "Align table")
