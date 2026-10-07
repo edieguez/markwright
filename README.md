@@ -1623,6 +1623,7 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 
 - **Image paste is macOS only** for now. On Linux and WSL, `<leader>mp` shows a warning; backends for `wl-paste`, `xclip` and PowerShell are planned.
 - **Link diagnostics refresh on open and save**, not while typing. `:Markwright check` re-runs them on demand.
+- **Retyping the first item of a numbered list with `cc`** keeps the list's old start number: `cc` replaces the whole line, which looks like deleting the item. To restart the list from another number, change just the number (`r5`, `ciw`).
 - **One behavior is provisional** and may change in a future version: when a selection only partly covers a formatted span, the whole span is removed.
 - **`<leader>m…` keys don't wait for the next key while you record a macro** (with which-key). which-key steps aside during macros, so Neovim's `timeoutlen` applies: LazyVim sets it to 300 ms, and a slower `m` after `<Space>` runs the plain `<Space>` (cursor right) instead. Type the keys quickly while recording (replaying with `@` is unaffected), or turn the timeout off while recording:
 

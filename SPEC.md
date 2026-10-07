@@ -90,6 +90,9 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 - [ ] Image extras: resize/compress/convert, unused-image report (§14.6)
 - [x] Decide operator keymap names (§14.7) — `<P>{i,b,s,c,h}` are operators; uppercase variants removed (2026-09-30)
 - [ ] Decide partial-overlap selection behavior (§14.7)
+- [ ] Visual-mode `.` with a count: `N.` after a visual key should replace the count, as it does in normal mode (§13.3a); visual keys keep the count they were pressed with
+- [ ] `cc` / `S` on a list's first item: the start-number mark is invalidated, so the remembered start wins over the newly typed number (§9.2); changing only the number (`r5`, `ciw`) works
+- Not planned: per-key settings for the `<P>` keys (only `nav.outline` has one). Remapping individual keys is done by disabling the defaults and mapping the Lua entry points (README, Custom keymaps); a setting per key would duplicate that (decided 2026-10-06)
 
 **New features — priority 2**
 - [x] List tools: move items with children, sort, convert lines ↔ bullets / numbers / checkboxes — `<P>l…` (§14.12)
