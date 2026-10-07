@@ -170,6 +170,16 @@ local subcommands = {
   toc = function()
     require("markwright.toc").insert()
   end,
+  section = function(args)
+    local sections = require("markwright.sections")
+    local how = ({ up = { "move", -1 }, down = { "move", 1 }, add = { "change", 1 }, remove = { "change", -1 } })[args.fargs[2] or ""]
+    if not how then
+      return vim.notify("markwright: :Markwright section {up|down|add|remove} [count]", vim.log.levels.ERROR)
+    end
+    with_count(args.fargs[3], function()
+      sections[how[1]](how[2])
+    end)
+  end,
   heading = function(args)
     local delta = ({ add = 1, remove = -1 })[args.fargs[2] or ""]
     if not delta then
@@ -267,6 +277,11 @@ end, {
       return vim.tbl_filter(function(n)
         return n:find(lead, 1, true) == 1
       end, { "down", "left", "right", "up" })
+    end
+    if #words == 2 and words[1] == "section" then
+      return vim.tbl_filter(function(n)
+        return n:find(lead, 1, true) == 1
+      end, { "add", "down", "remove", "up" })
     end
     if #words == 2 and words[1] == "heading" then
       return vim.tbl_filter(function(n)

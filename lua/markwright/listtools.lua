@@ -562,10 +562,20 @@ end
 function M.expr_move(dir, key)
   local buf = api.nvim_get_current_buf()
   local row = api.nvim_win_get_cursor(0)[1] - 1
-  if not item_node(buf, row) then
-    return util.fallback(buf, "n", key)
+  if item_node(buf, row) then
+    return util.repeat_keys(function()
+      M.move(dir)
+    end)
   end
-  return ("<Cmd>lua require('markwright.listtools').move(%d)<CR>"):format(dir)
+  -- on a heading line: move its section
+  for _, h in ipairs(require("markwright.doc").headings(buf)) do
+    if h.row == row then
+      return util.repeat_keys(function()
+        require("markwright.sections").move(dir)
+      end)
+    end
+  end
+  return util.fallback(buf, "n", key)
 end
 
 return M

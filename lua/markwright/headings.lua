@@ -73,8 +73,11 @@ local function change_line(buf, row, delta)
 end
 
 --- Add (delta > 0) or remove (delta < 0) `#` on rows srow..erow (0-based).
-function M.change(buf, srow, erow, delta)
-  util.undo_break(buf)
+---@param o? { no_break?: boolean, quiet?: boolean }
+function M.change(buf, srow, erow, delta, o)
+  if not (o and o.no_break) then
+    util.undo_break(buf)
+  end
   local changed = false
   local r = srow
   while r <= erow do
@@ -93,7 +96,7 @@ function M.change(buf, srow, erow, delta)
     end
     r = r + 1
   end
-  if not changed then
+  if not changed and not (o and o.quiet) then
     util.notify(delta > 0 and "already at level 6" or "not a heading")
   end
   return changed
