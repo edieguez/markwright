@@ -2,7 +2,7 @@
 
 A Neovim plugin (LazyVim-friendly) for editing Markdown: inline formatting toggles, links, lists, headings, tables, code fences, footnotes, TOC, link diagnostics, image paste and formatting while typing.
 
-Status: **4.2.0 released** — updated 2026-10-06. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
+Status: **4.3.0 released** — updated 2026-10-06. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
 
 ---
 
@@ -78,6 +78,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 - [x] `v4.0.0` — `<P>f` on a paragraph wraps it (like `<P>a`); empty line → empty block
 - [x] `v4.1.0` — section moves and promote / demote with sub-headings (`<P>#…`)
 - [x] `v4.2.0` — footnote renumbering
+- [x] `v4.3.0` — inline ↔ reference links
 
 ### Not implemented
 
@@ -102,7 +103,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 - [x] Completion dates on checked tasks, with time: `lists.done_date` (§14.14)
 - [x] Table extras: move columns/rows (`<P>tH/tL/tJ/tK`), sort (`<P>ts`), flip/transpose (`<P>tf`), copy as CSV (`<P>ty`) (§14.15)
 - [x] Section operations: move heading sections, promote/demote with children — `<P>#j`/`#k`, `<P>#=`/`#-` (§14.16)
-- [ ] Inline ↔ reference link conversion (§14.17)
+- [x] Inline ↔ reference link conversion — `<P>r`, `:Markwright links reference|inline` (§14.17)
 - [x] Footnote renumbering — `:Markwright footnote renumber` (§14.18)
 
 **New features — priority 3**
@@ -688,9 +689,10 @@ Keys chosen 2026-10-02, matching the `h`/`j`/`k`/`l` add keys:
 - Blank lines: each section's trailing blank lines stay in place (the gap after the first block goes between the swapped blocks). The last section of the file excludes a trailing block of footnote/reference definitions, which stays at the end.
 - `lists.move_keys` also move the section on a heading line. `:Markwright section up|down|add|remove [N]`. One undo step each, repeatable with `.`; headings in code blocks are ignored (`doc.headings`). TOC updates on save as usual.
 
-### 14.17 Inline ↔ reference links (priority 2)
-- `<P>r` **[OPEN]** on a link toggles inline `[text](url)` ↔ reference `[text][label]` with `[label]: url` collected in a block at the end of the file (label from the text's slug; numeric labels optional).
-- `:Markwright links reference` / `:Markwright links inline` convert the whole buffer; duplicate URLs share one definition; unused definitions are removed.
+### 14.17 Inline ↔ reference links — **implemented (2026-10-06)**
+- `<P>r` (**r**eference) on a link toggles inline `[text](url "title")` ↔ reference `[text][label]`; images too. Visual `<P>r` and `:[range]Markwright links reference|inline` (no range = whole buffer) convert every link in the rows: visual picks the direction (inline links present → reference, else → inline). Repeatable with `.`, one undo step each.
+- Labels (decided 2026-10-06): the slug of the link text (`slug.slug`; `link`/`image` when empty); a URL (+ title) that already has a definition reuses its label; a taken label gets `-2`, `-3`… Definitions go at the end of the file (decided 2026-10-06): right after the last reference definition when only definitions (reference or footnote) follow it, otherwise appended after a blank line.
+- Reference → inline uses the definition's destination and title as written; a definition no reference uses afterwards is removed (only those of converted labels), and trailing blank lines left at the end of the file go with it. Collapsed/shortcut links count only when their label is defined; callout markers are never links; links in code are skipped (tree-sitter).
 
 ### 14.18 Footnote renumbering — **implemented (2026-10-06)**
 - `:Markwright footnote renumber` (command only, no key: it's occasional cleanup; decided 2026-10-06): numeric footnotes are renumbered by order of first reference (code excluded); numeric definitions without references follow, in file order; named footnotes keep their label and place.

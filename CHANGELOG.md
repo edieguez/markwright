@@ -4,6 +4,12 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [4.3.0] - 2026-10-06
+
+### Added
+
+- **Inline ↔ reference links**: `<leader>mr` (**r**eference) on a link switches `[text](url)` and `[text][label]`, with `[label]: url` at the end of the file. Labels come from the link text (`[Neovim docs][neovim-docs]`); a URL that already has a definition reuses its label; titles move along; back to inline, unused definitions are removed. Images too. Visual `<leader>mr` converts every link in the selection, and `:[range]Markwright links reference|inline` the whole file or a range.
+
 ## [4.2.0] - 2026-10-06
 
 ### Added
@@ -191,7 +197,8 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v4.2.0...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v4.3.0...HEAD
+[4.3.0]: https://github.com/edieguez/markwright/compare/v4.2.0...v4.3.0
 [4.2.0]: https://github.com/edieguez/markwright/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/edieguez/markwright/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/edieguez/markwright/compare/v3.5.0...v4.0.0

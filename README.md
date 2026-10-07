@@ -115,7 +115,7 @@ All five share one engine, so they behave the same way:
 
 ### Not yet available
 
-Image paste on Linux and WSL, a `:help` file, inline ↔ reference link conversion and more are planned. See [Roadmap](#roadmap).
+Image paste on Linux and WSL, a `:help` file and more are planned. See [Roadmap](#roadmap).
 
 ---
 
@@ -302,6 +302,7 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `;;` then `i` `b` `s` `c` `h` `k` `n` `p`          | insert                           | **Formatting while typing**: open a pair or jump out of it; footnote, image                                 | Same letters as `<leader>m…`                              |
 | `<leader>mk`                                       | normal                           | **Link**: create, convert a bare URL, or remove (`<leader>mkiw` on text)                                    | lin**k** (`l` is the list menu)                           |
 | `<leader>mk`                                       | visual                           | **Link** the selection, or remove the link it's in                                                          | lin**k** (`l` is the list menu)                           |
+| `<leader>mr`                                       | normal, visual                   | **Link**: inline `[text](url)` ↔ reference `[text][label]` (visual: every link in the selection)            | **r**eference                                             |
 | `]]` / `[[` · `][` / `[]` · `[u`                   | normal, visual, operator-pending | Next / previous heading · same-level heading · parent heading                                               | Vim's `]]` / `[[`; **u**p                                 |
 | `<leader>mo`                                       | normal                           | **Outline**: pick a heading to jump to                                                                      | **o**utline                                               |
 | `<leader>ma`                                       | normal                           | **Callout**: wrap the paragraph, or change the type of the one under the cursor                             | GitHub **a**lert (callout)                                |
@@ -366,7 +367,7 @@ If which-key is installed (it is in LazyVim), the prefix is registered as a **ma
 
 The keys follow a few rules, so most of them can be guessed:
 
-- **One letter, from the action's name.** Under `<leader>m`: **i**talic, **b**old, **s**trike, **c**ode, **h**ighlight, lin**k**, **f**ence, foot**n**ote, c**a**llout (GitHub calls them **a**lerts), **o**utline, **p**aste image.
+- **One letter, from the action's name.** Under `<leader>m`: **i**talic, **b**old, **s**trike, **c**ode, **h**ighlight, lin**k**, **r**eference link, **f**ence, foot**n**ote, c**a**llout (GitHub calls them **a**lerts), **o**utline, **p**aste image.
 - **Uppercase is the companion of the lowercase key:** its reverse (`A` removes a callout, `tC` turns a table back into CSV, `S` sorts Z→A), a stronger version (`O` writes the outline into the file as a TOC; `lB` `lN` `lC` also convert the sub-lists), or the same object acted on differently (`P` renames a pasted image; `tH` `tJ` `tK` `tL` move instead of add).
 - **Submenus group related tools:** `<leader>mt…` for **t**ables, `<leader>ml…` for **l**ists, `<leader>m#…` for sections (`#`, as in the `i#` text object). Inside a submenu a letter has its own meaning: `<leader>mtc` is **C**SV, not code.
 - **Vim's own keys keep their meaning:** `h` `j` `k` `l` are left, down, up, right; `J` / `K` move down / up in tables and lists, where `j` / `k` add rows (the section menu adds nothing, so there `j` / `k` move); `y` yanks; `d` deletes (`<leader>mtdr`, `<leader>mtdc`); `_` is the current line.
@@ -623,6 +624,23 @@ a [text *em*](http://x.io) b                           → a text *em* b
 ### Targets
 
 Like the formatting keys, the link key takes any motion or text object (`<leader>mkiw`, `<leader>mk$`, `<leader>mk_` for the line) and works on visual selections, linewise ones included. In a linewise selection, list markers and other prefixes are skipped: `- item text` → `- [item text](url)`. Spaces at the edges of a selection stay outside the brackets.
+
+### Inline ↔ reference links
+
+`<leader>mr` on a link switches it between inline and reference style:
+
+```
+See [Neovim docs](https://neovim.io) now.      <leader>mr     See [Neovim docs][neovim-docs] now.
+                                                   ⇄
+                                                              [neovim-docs]: https://neovim.io
+```
+
+- **Labels come from the link text**, as a slug (`Neovim docs` → `neovim-docs`). A URL that already has a definition reuses its label, and a label that's taken by another URL gets a suffix (`docs-2`). Titles move with the URL (`[x]: http://u "Title"`).
+- **Definitions go at the end of the file**, after the existing reference definitions when the file ends with them, otherwise in a new block after a blank line. Footnote definitions aren't reordered.
+- **Back to inline**, the definition is removed once no reference uses it any more.
+- Images work the same way (`![alt](src)` ⇄ `![alt][label]`). Collapsed (`[docs][]`) and shortcut (`[docs]`) references are converted too, but only when their label has a definition: a plain `[word]` isn't a link.
+- **Visual mode** converts every link in the selected lines: inline links become references; if there are none, references become inline. `:Markwright links reference` / `inline` do the same for the whole file, or a `:range`.
+- Each conversion is one undo step and repeats with `.`.
 
 ### Bare URLs and page titles
 
@@ -1332,6 +1350,7 @@ For your own format, `require("markwright").stats()` returns `{ words, chars, re
 | `:Markwright strike`                                           | Toggle strikethrough                                                                                    |
 | `:Markwright code`                                             | Toggle inline code                                                                                      |
 | `:Markwright highlight`                                        | Toggle highlight                                                                                        |
+| `:[range]Markwright links reference\|inline`                   | Convert every link in the file (or the range) to reference / inline style                               |
 | `:Markwright link`                                             | Like `<leader>mk`, but links the word under the cursor instead of waiting for a motion                  |
 | `:Markwright follow`                                           | Same as `gx`                                                                                            |
 | `:Markwright fence`                                            | Insert a code fence; with a range (`:'<,'>Markwright fence`) wrap those lines                           |
@@ -1547,16 +1566,17 @@ end,
 
 Link entry points (all `expr = true` except where noted):
 
-| Function                                                      | Use                                                                                                            |
-| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `require("markwright.links").expr_smart()`                    | The default normal-mode link key: acts at once on a link, bare URL or whitespace, otherwise waits for a motion |
-| `require("markwright.links").expr_operator()`                 | Link operator that always waits for a motion                                                                   |
-| `require("markwright.links").expr_normal()`                   | Link at the cursor (`:Markwright link`)                                                                        |
-| `require("markwright.links").expr_visual()`                   | Visual-mode link key                                                                                           |
-| `require("markwright.links").expr_paste(after)`               | Normal `p` (`after = true`) or `P` (`false`)                                                                   |
-| `require("markwright.links").expr_paste_visual()`             | Visual `p`                                                                                                     |
-| `require("markwright.links").is_url(s)` / `url_at(line, col)` | Plain helpers (not mappings)                                                                                   |
-| `require("markwright.title").fetch(url, cb)`                  | Async title fetch; `cb(title)` runs on the main loop (`title` is `nil` on failure)                             |
+| Function                                                                      | Use                                                                                                                                       |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `require("markwright.refs").toggle()` / `convert_range(buf, srow, erow, to?)` | Inline ↔ reference for the link at the cursor / the links in 0-based rows (`to` = `"reference"` or `"inline"`; nil picks by what's there) |
+| `require("markwright.links").expr_smart()`                                    | The default normal-mode link key: acts at once on a link, bare URL or whitespace, otherwise waits for a motion                            |
+| `require("markwright.links").expr_operator()`                                 | Link operator that always waits for a motion                                                                                              |
+| `require("markwright.links").expr_normal()`                                   | Link at the cursor (`:Markwright link`)                                                                                                   |
+| `require("markwright.links").expr_visual()`                                   | Visual-mode link key                                                                                                                      |
+| `require("markwright.links").expr_paste(after)`                               | Normal `p` (`after = true`) or `P` (`false`)                                                                                              |
+| `require("markwright.links").expr_paste_visual()`                             | Visual `p`                                                                                                                                |
+| `require("markwright.links").is_url(s)` / `url_at(line, col)`                 | Plain helpers (not mappings)                                                                                                              |
+| `require("markwright.title").fetch(url, cb)`                                  | Async title fetch; `cb(title)` runs on the main loop (`title` is `nil` on failure)                                                        |
 
 Other features are plain functions, suitable for normal (non-`expr`) mappings. To make one repeatable with `.`, as the default keys are, wrap it: `vim.keymap.set("n", lhs, require("markwright.util").repeatable(function() require("markwright.tables").add_row() end), { buffer = ev.buf, expr = true })` (`repeatable_visual(function(_, srow, erow) … end)` for visual mode, over the selected rows).
 
@@ -1688,13 +1708,12 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 
 The full plan lives in [SPEC.md](SPEC.md): **§0 is a checklist** of what's implemented and what isn't, and **§14** describes every planned feature in detail.
 
-**Done:** inline formatting, formatting while typing, text objects, heading navigation, section moves and promote / demote, footnote renumbering, callouts, links and titles, smart paste, `gx`, headings, lists and checkboxes, list tools (move, sort, convert), completion dates, progress counters, word count and reading time, code fences, tables and table tools (move, sort, transpose, CSV), footnotes, TOC, link diagnostics, image paste (macOS).
+**Done:** inline formatting, formatting while typing, text objects, heading navigation, section moves and promote / demote, footnote renumbering, inline ↔ reference links, callouts, links and titles, smart paste, `gx`, headings, lists and checkboxes, list tools (move, sort, convert), completion dates, progress counters, word count and reading time, code fences, tables and table tools (move, sort, transpose, CSV), footnotes, TOC, link diagnostics, image paste (macOS).
 
 **Planned:**
 
 | Priority | Features                                                                                               |
 | -------- | ------------------------------------------------------------------------------------------------------ |
-| Next     | Inline ↔ reference links                                                                               |
 | Later    | Front matter helpers, link completion, three-state checkboxes `[-]`, rich-text paste (HTML → Markdown) |
 | Platform | Image paste on Linux/WSL, `:help markwright`                                                           |
 
@@ -1754,6 +1773,7 @@ In `tests/links_spec.lua` the clipboard, `vim.ui.input` and the title fetcher ar
 | Spec                   | Covers                                                                                                      |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `format_spec.lua`      | inline formatting                                                                                           |
+| `refs_spec.lua`        | inline ↔ reference links: labels, reuse, definitions, images, visual, commands                              |
 | `links_spec.lua`       | link key, titles, smart paste                                                                               |
 | `follow_spec.lua`      | `gx`, slugs                                                                                                 |
 | `blocks_spec.lua`      | code fences, footnotes                                                                                      |
@@ -1797,6 +1817,7 @@ markwright/
 │   ├── keymaps.lua           buffer-local mappings + which-key group
 │   ├── format.lua            formatting toggle engine
 │   ├── links.lua             link key, bare URLs, unlink, smart paste
+│   ├── refs.lua              inline ↔ reference links
 │   ├── title.lua             async page-title fetching (curl)
 │   ├── follow.lua            gx: files, anchors, URLs, images, footnotes
 │   ├── fence.lua             code fences

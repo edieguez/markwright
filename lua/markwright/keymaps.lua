@@ -81,6 +81,14 @@ function M.attach(buf)
     map("x", "p", links.expr_paste_visual, "Paste (URL over selection → link)", { expr = true })
   end
 
+  -- <P>r: inline [text](url) ↔ reference [text][label] (label from the text,
+  -- definitions at the end of the file); visual: every link in the selection
+  local refs = require("markwright.refs")
+  nmap(P .. "r", refs.toggle, "Link: inline ↔ reference")
+  xmap(P .. "r", function(srow, erow)
+    refs.convert_range(vim.api.nvim_get_current_buf(), srow, erow)
+  end, "Links: inline ↔ reference")
+
   -- follow
   local fkey = config.options.follow.key
   if fkey and fkey ~= "" then

@@ -183,6 +183,18 @@ local subcommands = {
       sections[how[1]](how[2])
     end)
   end,
+  links = function(args)
+    local to = args.fargs[2]
+    if to ~= "reference" and to ~= "inline" then
+      return vim.notify("markwright: :[range]Markwright links {reference|inline}", vim.log.levels.ERROR)
+    end
+    local buf = vim.api.nvim_get_current_buf()
+    local srow, erow = 0, vim.api.nvim_buf_line_count(buf) - 1
+    if args.range > 0 then
+      srow, erow = args.line1 - 1, args.line2 - 1
+    end
+    require("markwright.refs").convert_range(buf, srow, erow, to)
+  end,
   heading = function(args)
     local delta = ({ add = 1, remove = -1 })[args.fargs[2] or ""]
     if not delta then
@@ -303,6 +315,11 @@ end, {
       return vim.tbl_filter(function(n)
         return n:find(lead, 1, true) == 1
       end, { "rename" })
+    end
+    if #words == 2 and words[1] == "links" then
+      return vim.tbl_filter(function(n)
+        return n:find(lead, 1, true) == 1
+      end, { "inline", "reference" })
     end
     if #words == 2 and words[1] == "footnote" then
       return vim.tbl_filter(function(n)
