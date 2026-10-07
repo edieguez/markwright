@@ -383,7 +383,7 @@ Every `<leader>m…` key that changes the buffer repeats with `.`, from the new 
 <leader>mk  f[.        remove this link, then the next one
 ```
 
-- **Counts repeat too:** `2<leader>mtJ` then `.` moves the row two more places.
+- **Counts work as in Vim:** `2<leader>mtJ` then `.` moves the row two more places, and a count on `.` replaces the original one: `<leader>mtJ` then `3.` moves it three places, and later `.` keep using 3.
 - **Visual mode** repeats over as many lines as were selected, starting at the cursor: `Vj<leader>m=` then `jj.` makes the next two lines headings as well.
 - **Answers are reused:** `.` doesn't ask again what the first run asked. A callout repeats with the type you picked, CSV → table with the same separator, a code fence around a selection with the same language, a new link on an empty line with the same URL and text. A repeat only asks what it needs and doesn't know yet, such as the checklist question of a list conversion the first run didn't need.
 - **Not repeatable:** keys that put you in insert mode or create something from a prompt (`<leader>mf` and `<leader>mn` in normal mode, `<leader>mtt`, `<leader>mp`, `<leader>mP`, `<leader>mO`), and keys that don't change the buffer (`<leader>mo`, `<leader>mty`, `gx`). After the insert-mode ones, `.` repeats the text you typed, as with Vim's own `o`.
