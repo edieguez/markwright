@@ -929,13 +929,13 @@ In insert mode, `<CR>` on a list item starts the next item:
 Ordered lists are renumbered automatically in these cases:
 
 - after `<CR>`, `o`/`O`, `<Tab>`/`<S-Tab>`
-- after normal-mode edits such as `dd`, `p` or `x`
+- after normal-mode edits such as `dd`, `p` or `x`, and Ex commands such as `:m`, `:g` or `:d`, wherever the list is (not only around the cursor)
 - when leaving insert mode
 
 Other details:
 
 - **The renumbering joins the same undo step** as the edit that caused it, so `u` undoes both.
-- **The first item's number is where the list starts.** `5.` `6.` `7.` stays a list starting at 5. Deleting item `1.` therefore leaves `2.` `3.`: renumber from 1 by changing the first number.
+- **A list keeps its start number.** `5.` `6.` `7.` stays a list starting at 5. Deleting or moving the first item doesn't change it: `1.` `2.` `3.` minus its first item is `1.` `2.`, and an item pasted above the first one becomes the new `1.`. To start from another number, type it on the first item.
 - **Nested lists are renumbered too.** When a number gets wider (`9.` → `10.`), the item's continuation lines shift to stay aligned.
 - **Lazily numbered lists** (all the same number) are left alone.
 - **Changes from undo and redo** never trigger renumbering, so undo always works.
