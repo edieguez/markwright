@@ -234,6 +234,9 @@ function M._repeat_op(mtype)
   if not r.visual then
     -- `g@l` leaves the cursor where the key was pressed
     pcall(api.nvim_win_set_cursor, 0, { s[1], s[2] })
+    -- the count of `g@l`: the key's count on the first run; like Vim's own
+    -- commands, `3.` repeats with 3 (and later `.` keep it)
+    r.count = vim.v.count1
   end
   r.n = 0
   with_active(r, r.fn, r, s[1] - 1, e[1] - 1, mtype)
