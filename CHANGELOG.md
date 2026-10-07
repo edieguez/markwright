@@ -4,6 +4,12 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [3.3.3] - 2026-10-06
+
+### Fixed
+
+- A count on `.` replaces the count of the repeated action, as with Vim's own commands: `<leader>mtJ` then `3.` moves the row three places, and later `.` keep using 3. It used to reuse the original count.
+
 ## [3.3.2] - 2026-10-06
 
 ### Fixed
@@ -139,7 +145,8 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v3.3.2...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v3.3.3...HEAD
+[3.3.3]: https://github.com/edieguez/markwright/compare/v3.3.2...v3.3.3
 [3.3.2]: https://github.com/edieguez/markwright/compare/v3.3.1...v3.3.2
 [3.3.1]: https://github.com/edieguez/markwright/compare/v3.3.0...v3.3.1
 [3.3.0]: https://github.com/edieguez/markwright/compare/v3.2.0...v3.3.0
