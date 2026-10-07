@@ -2,7 +2,7 @@
 
 A Neovim plugin (LazyVim-friendly) for editing Markdown: inline formatting toggles, links, lists, headings, tables, code fences, footnotes, TOC, link diagnostics, image paste and formatting while typing.
 
-Status: **3.3.3 released** — updated 2026-10-06. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
+Status: **3.3.4 released** — updated 2026-10-06. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
 
 ---
 
@@ -72,6 +72,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 - [x] `v3.3.1` — list renumbering: remembered start numbers, edits away from the cursor
 - [x] `v3.3.2` — dot-repeat for every buffer-changing key, with reused prompt answers
 - [x] `v3.3.3` — `N.` repeats with the new count
+- [x] `v3.3.4` — tables with empty rows found from the lines, not the tree
 
 ### Not implemented
 
@@ -432,6 +433,7 @@ GitHub style: lowercase, strip punctuation except `-` and `_`, spaces → `-`, k
 - **[OPEN]** Optional completion in the prompt from installed Treesitter parser names.
 
 ### 9.4 Tables (`tables.lua`)
+- **Finding a table** (revised 2026-10-06): from the lines, not the `pipe_table` node. tree-sitter-markdown reads a row of empty cells (`|   |`) after a body row as a delimiter row (GFM needs at least one `-`), which splits the table or makes it an ERROR. A table is the run of non-blank lines around the cursor: up through any lines that don't start another block, the header is the line above the first valid delimiter row (`:?-+:?` cells) with the same cell count, and the body goes on, through lines without a pipe, until a blank line or another block (heading, fence, quote, list item, HTML). Treesitter only rules out code blocks.
 - **Create** (`<P>tt`): prompt `rows x cols` (e.g. `3x4`), insert header row, delimiter row and empty body rows, cursor in first header cell.
 - **CSV → table** (`<P>tc`: the paragraph under the cursor in normal mode, the selection in visual mode; `:'<,'>Markwright table csv`): the lines; asks `Separator:` prefilled with the detected one (candidates `\t` `,` `;` `|` `:`; a candidate that splits every line into the same number > 1 of fields wins, most fields first; else the one splitting the first line most; else `,`). Any typed separator works, including multi-character ones; `\t`/`tab` = tab; cancel does nothing. Honor quoted fields; trim fields; first line becomes the header; escape `|` in cells. (Changed 2026-09-30: detection used to consider only `\t , ;` on the first line, so other separators produced a single column.)
 - **Table → CSV** (`<P>tC`, changed 2026-10-03 from `<P>tx` to pair with `<P>tc`; `:Markwright table tocsv`; implemented 2026-09-30): replaces the table under the cursor with CSV lines — the opposite of `<P>tc`. Asks `Separator:` prefilled with `tables.csv_separator` (default `,`); `\t`/`tab` mean a tab, empty input means the default, cancel does nothing. Delimiter row dropped; short rows padded; fields quoted when they contain the separator, a `"` or edge spaces (quotes doubled); `\|` unescaped; indentation kept (tables in list items). One undo step; CSV → table → CSV round-trips.

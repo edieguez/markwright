@@ -1720,7 +1720,7 @@ The runner fires `TextChanged` after each key chunk that changed the buffer in n
 - **Async titles.** A titled link is inserted at once with the domain as a placeholder, tracked by an extmark. When `curl` returns, the placeholder is replaced only if it is still intact, joined to the same undo step with `:undojoin`.
 - **Bare URLs** aren't in the `markdown_inline` grammar (no GFM autolink extension), so they're found with a line scan that trims sentence punctuation and balances parentheses.
 - **Footnotes and reference definitions** use a line scan too. The grammar has no footnote support, and a `[ref]: url` line right after a footnote definition gets swallowed into a paragraph. Code blocks and code spans are excluded from the scan.
-- **Tables** are located with the `pipe_table` node, then split into cells by hand (unescaped `|`, as GFM does) and re-rendered from a model. Rendering records where each cell starts, which is how the cursor stays in its cell.
+- **Tables** are located from the lines (a run of non-blank lines whose header is followed by a valid delimiter row), with Treesitter only ruling out code blocks: the grammar reads a row of empty cells after a body row as a new delimiter row and splits the table. They're then split into cells by hand (unescaped `|`, as GFM does) and re-rendered from a model. Rendering records where each cell starts, which is how the cursor stays in its cell.
 
 ---
 
