@@ -4,6 +4,12 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [4.4.0] - 2026-10-07
+
+### Added
+
+- **Front matter**: `<leader>mF` (or `:Markwright frontmatter`) inserts a YAML block at the top of the file from `frontmatter.template` (`{title}` from the first heading or the file name, `{date}`, `{filename}`; a function works too), or jumps to the front matter that's already there. With `frontmatter.update_on_save = true`, saving refreshes an existing `updated:` / `lastmod:` field.
+
 ## [4.3.0] - 2026-10-06
 
 ### Added
@@ -197,7 +203,8 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v4.3.0...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v4.4.0...HEAD
+[4.4.0]: https://github.com/edieguez/markwright/compare/v4.3.0...v4.4.0
 [4.3.0]: https://github.com/edieguez/markwright/compare/v4.2.0...v4.3.0
 [4.2.0]: https://github.com/edieguez/markwright/compare/v4.1.0...v4.2.0
 [4.1.0]: https://github.com/edieguez/markwright/compare/v4.0.0...v4.1.0

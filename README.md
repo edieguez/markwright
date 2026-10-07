@@ -38,6 +38,7 @@ Built for LazyVim, and it works with any Neovim setup from 0.10 on (tested on 0.
 - [Heading navigation](#heading-navigation)
 - [Callouts](#callouts)
 - [Pasting images](#pasting-images)
+- [Front matter](#front-matter)
 - [Word count and reading time](#word-count-and-reading-time)
 - [Commands](#commands)
 - [Configuration](#configuration)
@@ -96,6 +97,7 @@ All five share one engine, so they behave the same way:
   - `<Tab>`/`<S-Tab>` move between cells
   - columns realign when you leave insert mode, accounting for accents, CJK text and alignment markers
 - **Table of contents** (`<leader>mO`): a nested list of heading links between `<!-- toc -->` markers, updated on every save.
+- **Front matter** (`<leader>mF`): a YAML block from a template, with the title taken from the first heading; optionally, an `updated:` date refreshed on save.
 - **Link diagnostics:** on save, broken file links, missing anchors, undefined references and orphan footnotes show up as warnings. `:Markwright check urls` checks external links too, on demand.
 - **Lists:**
   - `<CR>` and `o`/`O` continue a list (bullets, numbers, checkboxes); `<CR>` on an empty item ends it.
@@ -329,6 +331,7 @@ Keymaps are **buffer-local** and only exist in Markdown buffers (see `filetypes`
 | `<leader>mta`                                      | normal                           | Align the table now                                                                                         | **a**lign                                                 |
 | `<Tab>` / `<S-Tab>`                                | insert                           | Next / previous table cell; nest / un-nest a list item (native `<Tab>` elsewhere)                           | —                                                         |
 | `<leader>mO`                                       | normal                           | Insert or update the **table of contents**                                                                  | Uppercase `o`: the outline, written into the file         |
+| `<leader>mF`                                       | normal                           | **Front matter**: insert it from the template, or jump to it                                                | **F**ront matter, at the top of the file                  |
 | `<CR>`                                             | normal                           | **Toggle checkbox** on a list item (native `<CR>` elsewhere)                                                | —                                                         |
 | `<CR>`                                             | visual                           | Check all list items in the selection (or uncheck if all are checked)                                       | —                                                         |
 | `<CR>`                                             | insert                           | **Continue the list** (native `<CR>` elsewhere)                                                             | —                                                         |
@@ -368,7 +371,7 @@ If which-key is installed (it is in LazyVim), the prefix is registered as a **ma
 The keys follow a few rules, so most of them can be guessed:
 
 - **One letter, from the action's name.** Under `<leader>m`: **i**talic, **b**old, **s**trike, **c**ode, **h**ighlight, lin**k**, **r**eference link, **f**ence, foot**n**ote, c**a**llout (GitHub calls them **a**lerts), **o**utline, **p**aste image.
-- **Uppercase is the companion of the lowercase key:** its reverse (`A` removes a callout, `tC` turns a table back into CSV, `S` sorts Z→A), a stronger version (`O` writes the outline into the file as a TOC; `lB` `lN` `lC` also convert the sub-lists), or the same object acted on differently (`P` renames a pasted image; `tH` `tJ` `tK` `tL` move instead of add).
+- **Uppercase is the companion of the lowercase key:** its reverse (`A` removes a callout, `tC` turns a table back into CSV, `S` sorts Z→A), a stronger version (`O` writes the outline into the file as a TOC; `lB` `lN` `lC` also convert the sub-lists), or the same object acted on differently (`P` renames a pasted image; `tH` `tJ` `tK` `tL` move instead of add). The one exception is `F` for **F**ront matter, which has no lowercase companion.
 - **Submenus group related tools:** `<leader>mt…` for **t**ables, `<leader>ml…` for **l**ists, `<leader>m#…` for sections (`#`, as in the `i#` text object). Inside a submenu a letter has its own meaning: `<leader>mtc` is **C**SV, not code.
 - **Vim's own keys keep their meaning:** `h` `j` `k` `l` are left, down, up, right; `J` / `K` move down / up in tables and lists, where `j` / `k` add rows (the section menu adds nothing, so there `j` / `k` move); `y` yanks; `d` deletes (`<leader>mtdr`, `<leader>mtdc`); `_` is the current line.
 - **A letter keeps its meaning across normal mode, insert mode and text objects:** `c` is inline code in `<leader>mc`, `;;c` and `ic`; `f` is a code fence in `<leader>mf` and `if`; `k` is a link in `<leader>mk`, `;;k` and `ik`; `n` is a footnote in `<leader>mn` and `;;n`; `p` pastes an image in `<leader>mp` and `;;p`.
@@ -1308,6 +1311,38 @@ With `images.smart_paste = true`, pressing `p` (with `clipboard=unnamedplus`, as
 
 ---
 
+## Front matter
+
+`<leader>mF` (or `:Markwright frontmatter`) adds a YAML front matter block at the top of the file:
+
+```
+# My Notes          <leader>mF     ---
+                        →          title: My Notes
+                                   date: 2026-10-07
+                                   tags: []
+                                   ---
+
+                                   # My Notes
+```
+
+- **The title** comes from the first heading, or from the file name (`meeting-notes.md` → `Meeting notes`), quoted when YAML needs it. The cursor ends on the title line, ready to edit.
+- **On a file that has front matter** (YAML `---` or TOML `+++`), the key jumps to it instead (`<C-o>` comes back).
+- **The template** is configurable: a list of lines with `{title}`, `{date}` and `{filename}`, or a function that returns the lines:
+
+  ```lua
+  opts = {
+    frontmatter = {
+      template = { "---", "layout: post", "title: {title}", "date: {date}", "draft: true", "---" },
+      date_format = "%Y-%m-%d %H:%M",
+    },
+  }
+  ```
+
+- **Last-modified dates:** with `frontmatter.update_on_save = true`, saving refreshes an existing `updated:`, `lastmod:`, `last_modified:` or `modified:` field (`frontmatter.update_fields`) with today's date. A field that isn't there is never added.
+- The rest of markwright ignores front matter: it isn't a heading, it doesn't show up in the TOC or the outline, and it isn't counted by `:Markwright stats`.
+
+---
+
 ## Word count and reading time
 
 `:Markwright stats` shows how long the document is:
@@ -1360,6 +1395,7 @@ For your own format, `require("markwright").stats()` returns `{ words, chars, re
 | `:Markwright footnote renumber`                                | Renumber the numbered footnotes by first reference and reorder their definitions                        |
 | `:Markwright image`                                            | Paste the clipboard image (macOS)                                                                       |
 | `:Markwright image rename`                                     | Rename the image file under the cursor and update its links                                             |
+| `:Markwright frontmatter`                                      | Insert front matter from the template, or jump to it                                                    |
 | `:Markwright toc`                                              | Insert or update the table of contents                                                                  |
 | `:Markwright section up\|down\|add\|remove [N]`                | Move the section, or add / remove a `#` on its heading and sub-headings                                 |
 | `:[range]Markwright heading add\|remove [N]`                   | Add or remove N `#` on the line (or every line in the range)                                            |
@@ -1484,6 +1520,12 @@ require("markwright").setup({
     on_save = true,
     severity = vim.diagnostic.severity.WARN,
   },
+  frontmatter = {
+    template = { "---", "title: {title}", "date: {date}", "tags: []", "---" }, -- or function(buf) -> lines
+    date_format = "%Y-%m-%d",       -- os.date format for {date} and update_on_save
+    update_on_save = false,         -- refresh an existing updated:/lastmod: field on save
+    update_fields = { "updated", "lastmod", "last_modified", "modified" },
+  },
   stats = {
     wpm = 200,                      -- reading speed for the reading time
   },
@@ -1596,6 +1638,7 @@ The functions:
 | `require("markwright.tables").to_csv()` / `to_csv_lines(model, sep)`                                                       | Table under the cursor → CSV (prompts) / CSV lines for a model from `read(buf, srow, erow)`                                                    |
 | `require("markwright.tables").move_row(dir)` / `move_col(dir)` / `sort(desc)` / `transpose()` / `yank_csv()`               | Table tools at the cursor (`dir` = `1` / `-1`, count from `vim.v.count1`)                                                                      |
 | `require("markwright.tables").expr_tab(dir)`                                                                               | `expr` mapping for insert-mode cell navigation (`1` / `-1`)                                                                                    |
+| `require("markwright.frontmatter").insert()` / `find(buf)`                                                                 | Insert front matter or jump to it / its 0-based first and last rows                                                                            |
 | `require("markwright.toc").insert()` / `update(buf)`                                                                       | Insert or refresh the TOC                                                                                                                      |
 | `require("markwright.diagnostics").check(buf)` / `collect(buf)`                                                            | Publish / just compute link diagnostics                                                                                                        |
 | `require("markwright").stats(buf?)` / `require("markwright.stats").statusline()` / `count(buf, range)`                     | Word count and reading time: current buffer or visual selection / statusline text / any range (see [Word count](#word-count-and-reading-time)) |
@@ -1708,14 +1751,14 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 
 The full plan lives in [SPEC.md](SPEC.md): **§0 is a checklist** of what's implemented and what isn't, and **§14** describes every planned feature in detail.
 
-**Done:** inline formatting, formatting while typing, text objects, heading navigation, section moves and promote / demote, footnote renumbering, inline ↔ reference links, callouts, links and titles, smart paste, `gx`, headings, lists and checkboxes, list tools (move, sort, convert), completion dates, progress counters, word count and reading time, code fences, tables and table tools (move, sort, transpose, CSV), footnotes, TOC, link diagnostics, image paste (macOS).
+**Done:** inline formatting, formatting while typing, text objects, heading navigation, section moves and promote / demote, footnote renumbering, inline ↔ reference links, front matter, callouts, links and titles, smart paste, `gx`, headings, lists and checkboxes, list tools (move, sort, convert), completion dates, progress counters, word count and reading time, code fences, tables and table tools (move, sort, transpose, CSV), footnotes, TOC, link diagnostics, image paste (macOS).
 
 **Planned:**
 
-| Priority | Features                                                                                               |
-| -------- | ------------------------------------------------------------------------------------------------------ |
-| Later    | Front matter helpers, link completion, three-state checkboxes `[-]`, rich-text paste (HTML → Markdown) |
-| Platform | Image paste on Linux/WSL, `:help markwright`                                                           |
+| Priority | Features                                                                         |
+| -------- | -------------------------------------------------------------------------------- |
+| Later    | Link completion, three-state checkboxes `[-]`, rich-text paste (HTML → Markdown) |
+| Platform | Image paste on Linux/WSL, `:help markwright`                                     |
 
 Out of scope: wiki-style `[[links]]` and rendering or preview. Use `render-markdown.nvim` or `markview.nvim` for rendering.
 
@@ -1784,6 +1827,7 @@ In `tests/links_spec.lua` the clipboard, `vim.ui.input` and the title fetcher ar
 | `nav_spec.lua`         | heading motions, counts, siblings, parents, operators, outline                                              |
 | `callouts_spec.lua`    | callouts: wrap, pick, change type, convert, remove, commands                                                |
 | `sections_spec.lua`    | moving sections, promote / demote with sub-headings, definitions kept at the end                            |
+| `frontmatter_spec.lua` | front matter: template, title, quoting, jump, update on save                                                |
 | `stats_spec.lua`       | word count, markup and code exclusion, ranges, selection, statusline                                        |
 | `urlcheck_spec.lua`    | external URL checker (mocked requests, plus real curl against a local server)                               |
 | `repeat_spec.lua`      | dot-repeat of every buffer-changing key, counts, visual mode, reused prompt answers                         |
@@ -1834,6 +1878,7 @@ markwright/
 │   ├── callouts.lua          GitHub callouts > [!NOTE]
 │   ├── urlcheck.lua          :Markwright check urls
 │   ├── toc.lua               table of contents
+│   ├── frontmatter.lua       front matter template and updated: field
 │   ├── diagnostics.lua       broken-link diagnostics
 │   ├── doc.lua               headings, definitions, footnotes, code rows
 │   ├── slug.lua              GitHub-style anchors

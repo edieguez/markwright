@@ -2,7 +2,7 @@
 
 A Neovim plugin (LazyVim-friendly) for editing Markdown: inline formatting toggles, links, lists, headings, tables, code fences, footnotes, TOC, link diagnostics, image paste and formatting while typing.
 
-Status: **4.3.0 released** — updated 2026-10-06. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
+Status: **4.4.0 released** — updated 2026-10-07. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
 
 ---
 
@@ -79,6 +79,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 - [x] `v4.1.0` — section moves and promote / demote with sub-headings (`<P>#…`)
 - [x] `v4.2.0` — footnote renumbering
 - [x] `v4.3.0` — inline ↔ reference links
+- [x] `v4.4.0` — front matter
 
 ### Not implemented
 
@@ -107,7 +108,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 - [x] Footnote renumbering — `:Markwright footnote renumber` (§14.18)
 
 **New features — priority 3**
-- [ ] Front matter helpers (§14.19)
+- [x] Front matter helpers — `<P>F`, `frontmatter.update_on_save` (§14.19)
 - [x] Word count / reading time: `:Markwright stats`, statusline component (§14.20)
 - [ ] Link completion for paths and `#anchors` (§14.21)
 - [ ] Optional: 3-state checkboxes `[-]` (§14.22)
@@ -699,10 +700,10 @@ Keys chosen 2026-10-02, matching the `h`/`j`/`k`/`l` add keys:
 - Definitions: a definition block is its line plus indented continuation lines (blank lines between allowed). Blocks that stand together (only blank lines or other definitions between them) form a run, and the numeric slots of each run are refilled in the new order (named definitions keep their slots); a lone definition elsewhere is only relabeled. Only changed rows are rewritten, in one undo step; nothing changes (and a message says so) when already in order.
 - `footnotes.renumber_on_save` was considered and left out for now (it rewrites references across the file on every save).
 
-### 14.19 Front matter helpers (priority 3)
-- `:Markwright frontmatter`: insert a YAML block from a template (config `frontmatter.template`, placeholders `{title}` from the first heading or file name, `{date}`, `{tags}`).
-- `frontmatter.update_on_save = false`: when enabled, refresh an existing `updated:`/`lastmod:` field on save (never adds one).
-- Front matter is ignored by TOC, slugs, diagnostics and word count.
+### 14.19 Front matter helpers — **implemented (2026-10-07)**
+- `<P>F` (decided 2026-10-07: **F**ront matter; the one uppercase key without a lowercase companion) / `:Markwright frontmatter`: insert a block at the top from `frontmatter.template` (list of lines or `function(buf) -> lines`; placeholders `{title}` = first heading, else the file name with `-`/`_` as spaces and a capital, quoted when YAML needs it; `{date}` = `os.date(frontmatter.date_format)`; `{filename}`). A blank line separates it from the content; the cursor ends on the `title:` line. On a file with front matter (YAML `---`…`---`/`...`, or TOML `+++`…`+++`, from line 1), the key jumps into it (jumplist entry) instead.
+- `frontmatter.update_on_save = false` by default (decided 2026-10-07): when enabled, BufWritePre refreshes the first existing field among `frontmatter.update_fields` (`updated`, `lastmod`, `last_modified`, `modified`), keeping its quotes; never adds one; joins the save's undo step.
+- Front matter is already ignored by headings, TOC, slugs, diagnostics and word count (tree-sitter `minus_metadata`/`plus_metadata`).
 
 ### 14.20 Word count / reading time — **implemented (2026-10-06)**
 - `require("markwright").stats(buf?)` → `{ words, chars, reading_minutes }` (plus `selection = true` when the visual selection is active, which is used then). `require("markwright.stats").count(buf, range)` for any line range or character range; `statusline()` → `1,234 words · 7 min` / `52 words selected` / `""` outside markwright buffers.

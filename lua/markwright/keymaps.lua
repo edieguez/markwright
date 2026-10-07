@@ -322,6 +322,11 @@ function M.attach(buf)
     require("markwright.callouts").unwrap()
   end, "Callout: remove")
 
+  -- front matter: insert from the template, or jump to it
+  map("n", P .. "F", function()
+    require("markwright.frontmatter").insert()
+  end, "Front matter: insert / go to")
+
   -- table of contents: the outline (<P>o) written into the file
   map("n", P .. "O", function()
     require("markwright.toc").insert()

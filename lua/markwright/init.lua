@@ -27,6 +27,7 @@ local function attach_autocmds(buf)
     group = group,
     buffer = buf,
     callback = function()
+      require("markwright.frontmatter").on_save(buf)
       require("markwright.toc").on_save(buf)
       require("markwright.lists").update_progress(buf, { join = true })
     end,

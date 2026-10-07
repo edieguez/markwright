@@ -112,6 +112,14 @@ M.defaults = {
     on_save = true,
     severity = vim.diagnostic.severity.WARN,
   },
+  frontmatter = {
+    -- lines inserted by <leader>mF; {title} (first heading, else the file
+    -- name), {date} (date_format), {filename}. Or function(buf) -> lines.
+    template = { "---", "title: {title}", "date: {date}", "tags: []", "---" },
+    date_format = "%Y-%m-%d", -- os.date format for {date} and update_on_save
+    update_on_save = false, -- refresh an existing updated:/lastmod: field on save
+    update_fields = { "updated", "lastmod", "last_modified", "modified" },
+  },
   stats = {
     wpm = 200, -- reading speed for the reading time (words per minute)
   },
@@ -149,6 +157,10 @@ local function validate(opts)
   if dd ~= false and dd ~= nil and (type(dd) ~= "string" or dd == "") then
     error("markwright: lists.done_date must be a non-empty os.date format or false")
   end
+  local tpl = opts.frontmatter and opts.frontmatter.template
+  if type(tpl) ~= "table" and type(tpl) ~= "function" then
+    error("markwright: frontmatter.template must be a list of lines or a function")
+  end
   local wpm = opts.stats and opts.stats.wpm
   if type(wpm) ~= "number" or wpm <= 0 then
     error("markwright: stats.wpm must be a positive number")
@@ -163,6 +175,12 @@ function M.setup(user)
   -- lists are replaced, not merged
   if user and user.filetypes then
     opts.filetypes = user.filetypes
+  end
+  if user and user.frontmatter and user.frontmatter.template then
+    opts.frontmatter.template = user.frontmatter.template
+  end
+  if user and user.frontmatter and user.frontmatter.update_fields then
+    opts.frontmatter.update_fields = user.frontmatter.update_fields
   end
   validate(opts)
   M.options = opts

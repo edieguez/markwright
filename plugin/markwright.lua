@@ -170,6 +170,9 @@ local subcommands = {
     end
     require("markwright.images").paste()
   end,
+  frontmatter = function()
+    require("markwright.frontmatter").insert()
+  end,
   toc = function()
     require("markwright.toc").insert()
   end,
