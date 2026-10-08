@@ -1677,6 +1677,7 @@ Warnings for `curl` and the clipboard only affect links: without `curl` the link
 
 **The keymaps don't exist.**
 
+- If they worked before and stopped after closing and reopening the file, update markwright: versions before 4.4.1 didn't set a reopened buffer up again.
 - Make sure the buffer's filetype is `markdown` (`:set ft?`). Keymaps are buffer-local.
 - Check `:Lazy` to see whether the plugin loaded (with a local checkout, check that `dir` points at the folder containing `lua/` and `plugin/`).
 - Check for conflicts with `:verbose nmap <leader>mb`.
@@ -1829,6 +1830,7 @@ In `tests/links_spec.lua` the clipboard, `vim.ui.input` and the title fetcher ar
 | `callouts_spec.lua`    | callouts: wrap, pick, change type, convert, remove, commands                                                |
 | `sections_spec.lua`    | moving sections, promote / demote with sub-headings, definitions kept at the end                            |
 | `frontmatter_spec.lua` | front matter: template, title, quoting, jump, update on save                                                |
+| `lifecycle_spec.lua`   | the plugin after `:bdelete` / `:bunload` and reopening, `:e!`, filetype set again                           |
 | `stats_spec.lua`       | word count, markup and code exclusion, ranges, selection, statusline                                        |
 | `urlcheck_spec.lua`    | external URL checker (mocked requests, plus real curl against a local server)                               |
 | `repeat_spec.lua`      | dot-repeat of every buffer-changing key, counts, visual mode, reused prompt answers                         |

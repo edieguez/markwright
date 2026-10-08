@@ -62,9 +62,13 @@ local function attach_autocmds(buf)
 end
 
 function M.attach(buf)
-  if M._attached[buf] then
+  -- A buffer variable, not just a Lua table: `:bdelete` / `:bunload` (e.g.
+  -- LazyVim's <leader>bd) drop the buffer's keymaps and b: variables but keep
+  -- its number, so reopening the file must attach again.
+  if M._attached[buf] and vim.b[buf].markwright_attached then
     return
   end
+  vim.b[buf].markwright_attached = true
   M._attached[buf] = true
   require("markwright.keymaps").attach(buf)
   attach_autocmds(buf)
@@ -86,6 +90,15 @@ function M.setup(opts)
     pattern = config.options.filetypes,
     callback = function(ev)
       M.attach(ev.buf)
+    end,
+  })
+  vim.api.nvim_create_autocmd("BufUnload", {
+    group = group,
+    callback = function(ev)
+      M._attached[ev.buf] = nil
+      if package.loaded["markwright.stats"] then
+        package.loaded["markwright.stats"]._clear(ev.buf)
+      end
     end,
   })
   -- lazy-loaded on ft=markdown: the FileType event for the first buffer already fired

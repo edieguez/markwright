@@ -4,6 +4,12 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [4.4.1] - 2026-10-08
+
+### Fixed
+
+- **The plugin stopped working in a file after it was closed and reopened** (`:bdelete`, `:bunload`, LazyVim's `<leader>bd`), until Neovim was restarted. Closing a buffer this way drops its keymaps but keeps its number, and markwright thought the reopened buffer was still set up. It now sets the buffer up again.
+
 ## [4.4.0] - 2026-10-07
 
 ### Added
@@ -203,7 +209,8 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v4.4.0...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v4.4.1...HEAD
+[4.4.1]: https://github.com/edieguez/markwright/compare/v4.4.0...v4.4.1
 [4.4.0]: https://github.com/edieguez/markwright/compare/v4.3.0...v4.4.0
 [4.3.0]: https://github.com/edieguez/markwright/compare/v4.2.0...v4.3.0
 [4.2.0]: https://github.com/edieguez/markwright/compare/v4.1.0...v4.2.0
