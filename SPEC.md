@@ -116,6 +116,9 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 **Later (a future major version)**
 - [ ] Rich-text paste (HTML → Markdown) (§14.10) — set aside 2026-09-30 as too large; planned for a later major version
 
+**Last (added 2026-10-07)**
+- [ ] Interactive tutorial, like `vimtutor`: `:Markwright tutor` (§14.24) — done after every other feature, so it teaches the final keys
+
 ---
 
 ## 1. Goals and non-goals
@@ -728,3 +731,11 @@ Keys chosen 2026-10-02, matching the `h`/`j`/`k`/`l` add keys:
 - Classification: 2xx/3xx/416 ok; 401/403/429 "restricted" (INFO: needs a login or blocks automated checks); other statuses and curl errors (6 host not found, 7 refused, 28 timed out, 35/51/58/60 TLS/certificate, 47 redirects) "broken" (`url_check.severity`, WARN).
 - Output: diagnostics in their own namespace `markwright_urls` on every occurrence (kept until the next run; unaffected by the on-save link diagnostics), the quickfix list titled "markwright: external links" (opened without stealing focus when something is wrong, `url_check.open_quickfix`), and a summary notification.
 - Tests mock the request function; one test runs real curl against a local `python3 -m http.server` (skipped when curl or python3 is missing).
+
+
+### 14.24 Interactive tutorial (last on the roadmap)
+- A `vimtutor`-style lesson file that walks through markwright's features with hands-on exercises: each lesson explains a key in a sentence or two, then gives text to change with it and shows what the result should look like.
+- `:Markwright tutor` opens a **copy** of the lesson file in a new Markdown buffer (the original is never modified), so the markwright keys work in it and the user can practice freely; `:Markwright tutor` again starts over.
+- Not Neovim's built-in `:Tutor`: its buffers have `filetype=tutor`, so markwright's buffer-local Markdown keys wouldn't be there. The lessons are plain Markdown, readable on GitHub as well.
+- Lessons follow the README's order and the key mnemonics: formatting and operators, formatting while typing, links (inline ↔ reference), text objects, headings and sections, lists and checkboxes, list tools, tables, code fences, callouts, footnotes, TOC and front matter, `.` repeat, commands. Each lesson ends with a one-line summary of its keys.
+- Written last, once the keys have settled, and checked by a spec that runs every exercise's keys against its "expected" text, so the tutorial can't drift from the plugin.

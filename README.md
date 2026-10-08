@@ -1755,10 +1755,11 @@ The full plan lives in [SPEC.md](SPEC.md): **§0 is a checklist** of what's impl
 
 **Planned:**
 
-| Priority | Features                                                                         |
-| -------- | -------------------------------------------------------------------------------- |
-| Later    | Link completion, three-state checkboxes `[-]`, rich-text paste (HTML → Markdown) |
-| Platform | Image paste on Linux/WSL, `:help markwright`                                     |
+| Priority | Features                                                                                  |
+| -------- | ----------------------------------------------------------------------------------------- |
+| Later    | Link completion, three-state checkboxes `[-]`, rich-text paste (HTML → Markdown)          |
+| Platform | Image paste on Linux/WSL, `:help markwright`                                              |
+| Last     | An interactive tutorial, like `vimtutor`, that walks through every feature with exercises |
 
 Out of scope: wiki-style `[[links]]` and rendering or preview. Use `render-markdown.nvim` or `markview.nvim` for rendering.
 
