@@ -1848,7 +1848,7 @@ The runner fires `TextChanged` after each key chunk that changed the buffer in n
 - **One undo step.** An explicit undo break starts each action, because API edits would otherwise merge with the previous change.
 - **Async titles.** A titled link is inserted at once with the domain as a placeholder, tracked by an extmark. When `curl` returns, the placeholder is replaced only if it is still intact, joined to the same undo step with `:undojoin`.
 - **Bare URLs** aren't in the `markdown_inline` grammar (no GFM autolink extension), so they're found with a line scan that trims sentence punctuation and balances parentheses.
-- **Footnote texts that are a single word or link** (`[^1]: [docs](url)`) are read by the grammar as reference definitions, so markwright parses their text with a separate `markdown_inline` parser and maps its nodes back to the buffer.
+- **Footnote texts that are a single word or link** (`[^1]: [docs](url)`) are read by the grammar as reference definitions. A Treesitter injection (`queries/markdown/injections.scm`) parses their text as inline Markdown, so highlighting, conceal and renderers treat the link as one; markwright's own lookups also parse it directly when the injection isn't active.
 - **Footnotes and reference definitions** use a line scan too. The grammar has no footnote support, and a `[ref]: url` line right after a footnote definition gets swallowed into a paragraph. Code blocks and code spans are excluded from the scan.
 - **Tables** are located from the lines (a run of non-blank lines whose header is followed by a valid delimiter row), with Treesitter only ruling out code blocks: the grammar reads a row of empty cells after a body row as a new delimiter row and splits the table. They're then split into cells by hand (unescaped `|`, as GFM does) and re-rendered from a model. Rendering records where each cell starts, which is how the cursor stays in its cell.
 
@@ -1859,6 +1859,8 @@ The runner fires `TextChanged` after each key chunk that changed the buffer in n
 ```shell
 markwright/
 ├── plugin/markwright.lua     :Markwright command
+├── queries/markdown/
+│   └── injections.scm        footnote texts parsed as inline Markdown
 ├── lua/markwright/
 │   ├── init.lua              setup(), attaches to markdown buffers
 │   ├── config.lua            defaults, merge, validation

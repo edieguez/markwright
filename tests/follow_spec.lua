@@ -316,6 +316,19 @@ vim.list_extend(cases, {
     end,
   },
   {
+    "the footnote text is an inline tree (conceal, renderers)",
+    fn = function()
+      H.buf(vim.deepcopy(FN), { 1, 0 })
+      local p = vim.treesitter.get_parser(0, "markdown")
+      p:parse(true)
+      local rows = {}
+      for _, t in ipairs(p:children()["markdown_inline"]:trees()) do
+        rows[(t:root():range())] = true
+      end
+      eq(rows[2] and rows[3], true)
+    end,
+  },
+  {
     "diagnostics see links there",
     fn = function()
       H.buf({ "a[^1]", "", "[^1]: [x](missing.md)", "[^2]: two" }, { 1, 0 }, dir .. "/fn.md")

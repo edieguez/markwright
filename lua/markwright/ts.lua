@@ -133,6 +133,10 @@ function M.footnote_text_root(p, row)
   if not M.ancestor(M.block_node(p, row, #prefix), { link_reference_definition = true }) then
     return nil
   end
+  local inl = p:children()["markdown_inline"]
+  if inl and inl:named_node_for_range({ row, #prefix, row, #prefix }, { ignore_injections = true }) then
+    return nil -- injected by queries/markdown/injections.scm: already an inline tree
+  end
   local ok, sp = pcall(vim.treesitter.get_string_parser, line:sub(#prefix + 1), "markdown_inline")
   local tree = ok and sp and sp:parse()[1]
   return tree and wrap(tree:root(), row, #prefix) or nil
