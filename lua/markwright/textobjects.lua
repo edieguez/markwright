@@ -172,7 +172,7 @@ function M.url(buf, row, col)
   local label = child(node, t == "full_reference_link" and "link_label" or "link_text")
   if label then
     local doc = require("markwright.doc")
-    local key = vim.treesitter.get_node_text(label, buf):gsub("^%[", ""):gsub("%]$", "")
+    local key = ts.node_text(label, buf):gsub("^%[", ""):gsub("%]$", "")
     local def = doc.definitions(buf)[doc.normalize_label(key)]
     if def then
       return { sr = def.row, sc = def.col, er = def.row, ec = def.col + #def.dest }

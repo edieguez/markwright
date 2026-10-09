@@ -4,6 +4,12 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [4.4.2] - 2026-10-09
+
+### Fixed
+
+- **Links in footnotes whose whole text is the link** (`[^1]: [docs](https://x.io)`) weren't links: `gx` opened `docs` instead of the URL, and the link key, `<leader>mr`, the `ik`/`iu`/`ak` text objects, link diagnostics and `:Markwright check urls` didn't see them. The Markdown parser has no footnotes and reads such a line as a reference definition (label `^1`, destination `[docs](…)`); markwright now parses the footnote's text itself. Footnotes with more text around the link (`[^1]: see [docs](…)`) already worked.
+
 ## [4.4.1] - 2026-10-08
 
 ### Fixed
@@ -209,7 +215,8 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v4.4.1...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v4.4.2...HEAD
+[4.4.2]: https://github.com/edieguez/markwright/compare/v4.4.1...v4.4.2
 [4.4.1]: https://github.com/edieguez/markwright/compare/v4.4.0...v4.4.1
 [4.4.0]: https://github.com/edieguez/markwright/compare/v4.3.0...v4.4.0
 [4.3.0]: https://github.com/edieguez/markwright/compare/v4.2.0...v4.3.0

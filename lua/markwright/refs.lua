@@ -90,10 +90,6 @@ function M.collect(buf, srow, erow, defs)
     return out
   end
   p:parse({ srow, erow + 1 })
-  local inl = p:children()["markdown_inline"]
-  if not inl then
-    return out
-  end
   local function walk(node)
     local t = node:type()
     if KINDS[t] then
@@ -132,8 +128,8 @@ function M.collect(buf, srow, erow, defs)
       walk(c)
     end
   end
-  for _, tree in ipairs(inl:trees()) do
-    walk(tree:root())
+  for _, root in ipairs(ts.inline_roots(p, srow, erow)) do
+    walk(root)
   end
   table.sort(out, function(a, b)
     return a.sr < b.sr or (a.sr == b.sr and a.sc < b.sc)

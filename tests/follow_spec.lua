@@ -285,4 +285,50 @@ local cases = {
   },
 }
 
+-- footnote definitions whose text is just a link: the grammar reads
+-- `[^1]: [docs](url)` as a reference definition, so its text is parsed apart
+local FN = { "Text[^1] and[^2].", "", "[^1]: [docs](http://x.io)", "[^2]: two" }
+vim.list_extend(cases, {
+  {
+    "gx on a link that is a footnote's whole text",
+    fn = function()
+      H.buf(vim.deepcopy(FN), { 3, 8 })
+      follow.follow()
+      eq(opened, { "http://x.io" })
+    end,
+  },
+  {
+    "gx on the label still jumps to the reference",
+    fn = function()
+      H.buf(vim.deepcopy(FN), { 3, 1 })
+      follow.follow()
+      eq(api.nvim_win_get_cursor(0), { 1, 4 })
+    end,
+  },
+  {
+    "link key and text objects there",
+    fn = function()
+      H.buf(vim.deepcopy(FN), { 3, 8 })
+      H.feed("cikNEW<Esc>")
+      eq(api.nvim_buf_get_lines(0, 2, 3, false)[1], "[^1]: [NEW](http://x.io)")
+      H.feed({ "0fN", " mk" })
+      eq(api.nvim_buf_get_lines(0, 2, 3, false)[1], "[^1]: NEW")
+    end,
+  },
+  {
+    "diagnostics see links there",
+    fn = function()
+      H.buf({ "a[^1]", "", "[^1]: [x](missing.md)", "[^2]: two" }, { 1, 0 }, dir .. "/fn.md")
+      local d = require("markwright.diagnostics").collect(0)
+      local found = false
+      for _, x in ipairs(d) do
+        if x.lnum == 2 and x.message:find("missing.md", 1, true) then
+          found = true
+        end
+      end
+      eq(found, true)
+    end,
+  },
+})
+
 return H.run("follow", cases, { before_each = before_each })

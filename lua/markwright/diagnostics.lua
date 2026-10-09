@@ -102,21 +102,20 @@ function M.collect(buf)
     end
   end
 
-  local inl = p:children()["markdown_inline"]
-  if inl then
-    for _, tree in ipairs(inl:trees()) do
+  do
+    for _, root in ipairs(ts.inline_roots(p)) do
       local function walk(n)
         local t = n:type()
         if t == "inline_link" or t == "image" then
           local d = label_of(n, "link_destination")
           if d then
             local r, c, _, ec = d:range()
-            check_dest(vim.treesitter.get_node_text(d, buf), r, c, ec)
+            check_dest(ts.node_text(d, buf), r, c, ec)
           end
         elseif t == "full_reference_link" or t == "collapsed_reference_link" then
           local l = label_of(n, t == "full_reference_link" and "link_label" or "link_text")
           if l then
-            local text = vim.treesitter.get_node_text(l, buf):gsub("^%[", ""):gsub("%]$", "")
+            local text = ts.node_text(l, buf):gsub("^%[", ""):gsub("%]$", "")
             if not text:match("^%^") and not defs[doc.normalize_label(text)] then
               local r, c, _, ec = n:range()
               add(r, c, ec, "undefined reference [" .. text .. "]")
@@ -127,7 +126,7 @@ function M.collect(buf)
           walk(ch)
         end
       end
-      walk(tree:root())
+      walk(root)
     end
   end
 

@@ -147,7 +147,7 @@ end
 local function child_text(buf, node, t)
   for c in node:iter_children() do
     if c:type() == t then
-      return vim.treesitter.get_node_text(c, buf)
+      return ts.node_text(c, buf)
     end
   end
 end
@@ -174,9 +174,9 @@ function M.target_at(buf, row, col)
       if t == "inline_link" or t == "image" then
         return child_text(buf, node, "link_destination") or ""
       elseif t == "uri_autolink" then
-        return (vim.treesitter.get_node_text(node, buf):gsub("^<(.*)>$", "%1"))
+        return (ts.node_text(node, buf):gsub("^<(.*)>$", "%1"))
       elseif t == "email_autolink" then
-        return "mailto:" .. vim.treesitter.get_node_text(node, buf):gsub("^<(.*)>$", "%1")
+        return "mailto:" .. ts.node_text(node, buf):gsub("^<(.*)>$", "%1")
       else
         local label = t == "full_reference_link" and child_text(buf, node, "link_label")
           or child_text(buf, node, "link_text")

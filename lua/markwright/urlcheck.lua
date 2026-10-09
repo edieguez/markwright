@@ -60,27 +60,26 @@ function M.collect(buf)
     return refs
   end
   p:parse(true)
-  local inl = p:children()["markdown_inline"]
-  if inl then
-    for _, tree in ipairs(inl:trees()) do
+  do
+    for _, root in ipairs(ts.inline_roots(p)) do
       local function walk(n)
         local t = n:type()
         if t == "inline_link" or t == "image" then
           for c in n:iter_children() do
             if c:type() == "link_destination" then
               local r, sc, _, ec = c:range()
-              add(vim.treesitter.get_node_text(c, buf), r, sc, ec)
+              add(ts.node_text(c, buf), r, sc, ec)
             end
           end
         elseif t == "uri_autolink" then
           local r, sc, _, ec = n:range()
-          add(vim.treesitter.get_node_text(n, buf), r, sc + 1, ec - 1)
+          add(ts.node_text(n, buf), r, sc + 1, ec - 1)
         end
         for c in n:iter_children() do
           walk(c)
         end
       end
-      walk(tree:root())
+      walk(root)
     end
   end
 

@@ -2,7 +2,7 @@
 
 A Neovim plugin (LazyVim-friendly) for editing Markdown: inline formatting toggles, links, lists, headings, tables, code fences, footnotes, TOC, link diagnostics, image paste and formatting while typing.
 
-Status: **4.4.1 released** — updated 2026-10-08. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
+Status: **4.4.2 released** — updated 2026-10-09. Sections 1–13 describe what is built (decisions agreed 2026-09-29/30); section 14 specifies planned features. The **status tracker** below is the single place to see what is done. Items marked **[OPEN]** still need a decision.
 
 ---
 
@@ -81,6 +81,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 - [x] `v4.3.0` — inline ↔ reference links
 - [x] `v4.4.0` — front matter
 - [x] `v4.4.1` — re-attach after `:bdelete` / `:bunload` (the attach guard is a `b:` variable, which unloading clears)
+- [x] `v4.4.2` — links in single-token footnote texts: tree-sitter reads `[^1]: [x](u)` as a link reference definition, so `ts.inline_node` / `ts.inline_roots` parse the text after `[^n]:` with a `markdown_inline` string parser and wrap its nodes (buffer ranges); `ts.node_text` reads wrapped nodes
 
 ### Not implemented
 
