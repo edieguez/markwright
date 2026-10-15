@@ -25,8 +25,16 @@ local function works()
   eq(api.nvim_buf_get_lines(0, -2, -1, false)[1], "**x**")
 end
 
+-- markwright's own autocmds only: Neovim adds some of its own to a buffer
+-- (0.12's vim.diagnostic adds a BufWipeout one when diagnostics are shown)
 local function autocmd_count(buf)
-  return #api.nvim_get_autocmds({ buffer = buf })
+  local n = 0
+  for _, a in ipairs(api.nvim_get_autocmds({ buffer = buf })) do
+    if (a.group_name or ""):match("^markwright") then
+      n = n + 1
+    end
+  end
+  return n
 end
 
 local cases = {

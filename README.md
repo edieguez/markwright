@@ -4,7 +4,7 @@
 
 Markdown editing for Neovim that feels native: one key adds a format, the same key removes it. It works on the word under the cursor, on a visual selection or with any motion. It also understands the Markdown structure through Treesitter instead of guessing with regular expressions.
 
-Built for LazyVim, and it works with any Neovim setup from 0.10 on (tested on 0.10.0, 0.10.4 and 0.11).
+Built for LazyVim, and it works with any Neovim setup from 0.10 on (tested on 0.10.0, 0.11 and 0.12).
 
 > **Status:** Inline formatting (also while typing), links, `gx`, text objects, heading navigation, callouts, lists and list tools, checkboxes with completion dates and progress counters, headings, code fences, footnotes, tables, TOC, link diagnostics and image paste (macOS) are implemented. A headless test suite covers them and runs in CI on Neovim 0.10.0, stable and nightly, on Linux and macOS. Image paste is macOS only for now. [Issues](https://github.com/edieguez/markwright/issues) are welcome; see [Roadmap](#roadmap) for what's planned.
 
@@ -123,13 +123,13 @@ Image paste on Linux and WSL, a `:help` file and more are planned. See [Roadmap]
 
 ## Requirements
 
-| Requirement | Why |
-|---|---|
-| Neovim **≥ 0.10** (tested on 0.10.0, 0.10.4 and 0.11) | Modern Treesitter API, `vim.system`, `vim.ui.open` |
-| Treesitter parsers **`markdown`** and **`markdown_inline`** | Structure detection. Bundled with Neovim 0.10+ and also installed by LazyVim's markdown extra |
-| `curl` *(optional)* | Fetching page titles for links. Preinstalled on macOS; without it, links use the domain name as text |
-| A clipboard provider *(optional)* | Creating links from a copied URL. Built in on macOS (`pbcopy`/`pbpaste`) |
-| macOS *(for image paste)* | Image paste uses `osascript` (built in) or `pngpaste` if installed. Other platforms: planned |
+| Requirement                                                 | Why                                                                                                  |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Neovim **≥ 0.10** (tested on 0.10.0, 0.11 and 0.12)         | Modern Treesitter API, `vim.system`, `vim.ui.open`                                                   |
+| Treesitter parsers **`markdown`** and **`markdown_inline`** | Structure detection. Bundled with Neovim 0.10+ and also installed by LazyVim's markdown extra        |
+| `curl` *(optional)*                                         | Fetching page titles for links. Preinstalled on macOS; without it, links use the domain name as text |
+| A clipboard provider *(optional)*                           | Creating links from a copied URL. Built in on macOS (`pbcopy`/`pbpaste`)                             |
+| macOS *(for image paste)*                                   | Image paste uses `osascript` (built in) or `pngpaste` if installed. Other platforms: planned         |
 
 Run `:checkhealth markwright` to verify everything.
 
