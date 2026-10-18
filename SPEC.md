@@ -44,7 +44,7 @@ Status: **4.4.3 released** — updated 2026-10-09. Sections 1–13 describe what
 - [x] **TOC** — markers, nested entries, refresh on save (§9.6)
 - [x] **Link diagnostics** — files, anchors, references, footnotes; on open/save; `:Markwright check` (§10)
 - [x] **Image paste, macOS** — screenshots, Finder files, paths, URLs; `assets/`; alt text (§13.1)
-- [x] **Tests** — 839 headless cases feeding real keys; pass on Neovim 0.10.0, 0.11, 0.12 and nightly 0.13 (§11)
+- [x] **Tests** — 849 headless cases feeding real keys; pass on Neovim 0.10.0, 0.11, 0.12 and nightly 0.13 (§11)
 - [x] **Verified on macOS + LazyVim** (2026-09-30): clipboard links, live titles, `gx`, image paste (screenshot / Finder / browser), `<CR>` with blink.cmp + mini.pairs, `<Tab>` in snippets/lists/tables, `;;` hint with noice, no duplicate diagnostics
 
 ### Release 1.0.0
@@ -113,7 +113,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 **New features — priority 3**
 - [x] Front matter helpers — `<P>F`, `frontmatter.update_on_save` (§14.19)
 - [x] Word count / reading time: `:Markwright stats`, statusline component (§14.20)
-- [x] Local usage counts: `:Markwright usage`, on by default, never sent anywhere (§14.25)
+- [x] Local usage counts: `:Markwright usage` report per feature and area, on by default, never sent anywhere (§14.25)
 - [ ] Link completion for paths and `#anchors` (§14.21)
 - [ ] Optional: 3-state checkboxes `[-]` (§14.22)
 
@@ -748,11 +748,12 @@ Keys chosen 2026-10-02, matching the `h`/`j`/`k`/`l` add keys:
 - Lessons follow the README's order and the key mnemonics: formatting and operators, formatting while typing, links (inline ↔ reference), text objects, headings and sections, lists and checkboxes, list tools, tables, code fences, callouts, footnotes, TOC and front matter, `.` repeat, commands. Each lesson ends with a one-line summary of its keys.
 - Written last, once the keys have settled, and checked by a spec that runs every exercise's keys against its "expected" text, so the tutorial can't drift from the plugin.
 
-### 14.25 Local usage counts — **implemented (2026-10-17)**
+### 14.25 Local usage counts — **implemented (2026-10-17, report redone 2026-10-18)**
 - Purpose: triage. Show which features are used and which never are, to decide what to polish, document better or drop.
-- On by default (`usage.enabled = true`): the counts are local and only describe the current user. Nothing is sent anywhere; the file is `stdpath("data")/markwright/usage.json` (`usage.file` overrides it). Tests point it at a temporary file.
-- Stored per feature id: `count`, `desc`, `last` (date, `%Y-%m-%d`), plus `since` for the file. No file names, buffer text or times of day.
-- Ids: keys are `<modes> <lhs>` with the prefix written `<P>` (`n <P>tj`, `x <P>lb`, `ox ik`, `nxo ]]`); insert-mode keys are `i <T><key>` (`<T>` = trigger); commands are `:Markwright <sub>`, plus the action when the second word is one (`table row`, `section up`, `callout remove`; not counts, callout types or `desc`).
-- Hook: `usage.wrap(mode, lhs, desc, rhs, opts, o)` wraps each mapping's rhs at attach time (keymaps.lua, nav.lua, textobjects.lua); with counting off it returns the rhs unchanged. String rhs become `expr` functions returning the same keys. `contextual` keys (`<CR>`, `<Tab>`, `o`, `p`, move keys…) count only when the rhs neither returned the key itself nor called `util.fallback`. `;;` keys count in `insert.menu`; commands in the `:Markwright` dispatcher (`usage` itself isn't counted). `.` repeats aren't counted.
+- On by default (`usage.enabled = true`): the counts are local and only describe the current user. Nothing is sent anywhere; the file is `stdpath("data")/markwright/usage.json` (`usage.file` overrides it). Tests point it at a temporary file. The first count in a session with no file yet notifies once that counting is on, where, and how to turn it off.
+- **Features, not keys** (`usage.lua`): `FEATURES[id] = { name, area, doc, cmd }`, areas in `AREAS` (Formatting, Links, Lists, Tables, Headings, Navigation, Text objects, Blocks, Images, Document, Automatic). Keys after the prefix map through `KEY_FEATURES` (`tj`/`tk` → `table.add_row`); other keys pass `feature` to `usage.wrap` (nav motions, text objects, `gx`, the checkbox key); `;;` keys use `INSERT_KEYS` / `format.<fmt>`; commands use `command_feature(fargs)` (`table row 2` → `table.add_row`, `table move left` → `table.move_col`, `usage` → nil). A spec checks that every mapped key has a feature, every feature is reachable by a key or command, and every `doc` heading exists in the README.
+- **Automatic** features (`list.continue`, `list.indent`, `quote.continue`, `table.next_cell`, `link.smart_paste`) come from keys that keep their usual meaning elsewhere: `contextual` keys count only when the rhs neither returned the key itself nor called `util.fallback`; a `feature` function picks between two features from the keys the rhs returned (`next_cell` → cell, else indent).
+- **Stored per feature:** `count`, `via` (`key`, `visual`, `insert`, `command`), `days` (`%Y-%m-%d` → count, the last 90 days; older days are dropped on write), `last`; plus `version = 2`, `since`. 4.5.0 files (per-key ids) are migrated on read: each id goes to its feature (by the key ids recorded at mapping time, the prefix-key table, the `;;` letters or the command), with its count as `via`; ids that match nothing are kept under `legacy` and not shown.
 - Writing: counts accumulate in memory; 10 s after the first new one, and on `VimLeavePre`, the file is read, the counts added, and the result written to a temporary file and renamed, so several Neovim instances can share it. A broken file starts over.
-- `:Markwright usage` writes the pending counts and opens a `markwright://usage` Markdown buffer in a new tab: "Used" (count desc, then id) and "Never used" (keys mapped in this setup and every `:Markwright` command, from the dispatcher's tables). `:Markwright usage reset` renames the file to `usage.json.bak`. `:checkhealth markwright` shows whether counting is on and where.
+- **Report** (`usage_ui.lua`): floating window, filetype `markwright-usage` (not Markdown, so markwright doesn't attach and moving in it isn't counted). Header: since, last-30-days uses and features, all time, automatic total, the file. Areas ordered by use (unused areas last, in `AREAS` order, without numbers); rows: name, bar (eighth blocks, against the busiest feature; automatic ones against each other), last 30 days, total, last used (today / yesterday / N days ago / date), how (`;; 25 · key 9`). Each area's unused features fold into a `never used:` line. Keys: `s` sort (last 30 days, all time, name), `a` areas ↔ flat list (unused listed per area under "Never used"), `u` unused as rows, `<CR>` README section (`sview`, read-only), `r` refresh, `q`/`<Esc>` close; the keys are shown in the window's footer.
+- `:Markwright usage reset` renames the file to `usage.json.bak`. `:checkhealth markwright` shows whether counting is on and where. `.` repeats aren't counted.

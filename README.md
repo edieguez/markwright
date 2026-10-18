@@ -115,7 +115,7 @@ All five share one engine, so they behave the same way:
 - **Sections:** `<leader>m#j`/`<leader>m#k` move a section (heading, text and sub-sections) past its sibling; `<leader>m#=`/`<leader>m#-` add or remove a `#` on the heading and all its sub-headings.
 - **Image paste** (`<leader>mp`, macOS): saves a screenshot, copied image or Finder file into `assets/` next to the file and inserts `![alt](assets/name.png)`. `<leader>mP` on an image renames its file on disk and updates the links.
 - **Word count and reading time:** `:Markwright stats`, or a statusline component that shows the words in the document or the selection.
-- **Usage counts:** `:Markwright usage` lists the keys and commands by how often they're used, and the ones never used. The counts stay on the local machine.
+- **Usage counts:** `:Markwright usage` shows which features are used, by area, over the last 30 days and all time, and which are never used. The counts stay on the local machine.
 
 ### Not yet available
 
@@ -1380,39 +1380,47 @@ For your own format, `require("markwright").stats()` returns `{ words, chars, re
 
 ## Usage counts
 
-markwright counts how often each of its keys and commands is used, to show which features get used and which never do. The counts never leave the machine: they're stored in a file under `stdpath("data")` (`~/.local/share/nvim/markwright/usage.json` on Linux and macOS), and nothing is sent anywhere.
+markwright counts how often each of its features is used, to show which ones earn their place and which are never touched. The counts never leave the machine: they're stored in a file under `stdpath("data")` (`~/.local/share/nvim/markwright/usage.json` on Linux and macOS), and nothing is sent anywhere. The first time something is counted, a message says so.
 
-`:Markwright usage` opens the report in a new tab, as Markdown:
+`:Markwright usage` opens the report in a floating window:
 
-```markdown
-# markwright usage
+```
+ Since 2026-10-18 · last 30 days: 151 uses of 8 features · all time: 151 · automatic: 200
+ Stored only on this machine: ~/.local/share/nvim/markwright/usage.json
 
-Counted since 2026-10-17: 214 uses of 23 features. Stored in `~/.local/share/nvim/markwright/usage.json`.
+                                         30 days   total  last used   how
 
-## Used
+ Lists                                        41      41
+   Toggle checkbox           ██████████       41      41  today       key
+   never used: Convert list type, Move item, Sort list
 
-| Uses | Key / command          | Feature                              | Last used  |
-| ---: | ---------------------- | ------------------------------------ | ---------- |
-|   58 | i <CR>                 | Continue list                        | 2026-10-17 |
-|   31 | n <leader>mk           | Link: create / convert URL / remove  | 2026-10-17 |
-|   12 | i ;;b                  | Insert mode: bold                    | 2026-10-16 |
-|    2 | :Markwright table sort |                                      | 2026-10-12 |
+ Formatting                                   34      34
+   Bold                      ████████▎        34      34  today       ;; 25 · key 9
+   never used: Highlight, Inline code, Italic, Strikethrough
 
-## Never used
+ Tables                                       25      25
+   Add row                   █████▏           21      21  yesterday   key 18 · cmd 3
+   Align table               █                 4       4  5 days ago  key
+   never used: Add column, CSV → table, Copy as CSV, Create table, Delete column, Delete row,
+               Move column, Move row, Sort table, Table → CSV, Transpose table
 
-| Key / command  | Feature                 |
-| -------------- | ----------------------- |
-| n <leader>m#j  | Move section down       |
-| ox iz          | Text object: inner cell |
+ Images
+   never used: Paste image, Rename image file
+
+ Automatic                                   200     200              markwright acting on <CR>, <Tab>, o, O, p
+   Continue list             ██████████      140     140  today
+   Next table cell           ████▎            60      60  today
+   never used: Continue quote, Indent list item, Paste URL as link
 ```
 
-- **What's stored:** for each key or command, its count, its description and the date it was last used. No file names, no text from the buffers.
-- **What counts:** each press of a markwright key, listed with its modes (`n` normal, `x` visual, `o` operator-pending, `i` insert), including heading motions and text objects; each `;;` key in insert mode; each `:Markwright` subcommand with its action (`table row`) but not its arguments. Repeats with `.` aren't counted.
-- **Keys with another meaning:** `<CR>`, `<Tab>`, `<S-Tab>`, `o`, `O`, `p`, `P` and `lists.move_keys` count only when markwright acted (continued a list, moved to the next cell…), not when they did what they do outside Markdown.
-- **Never used** lists the keys mapped in the current setup and every `:Markwright` command.
-- Keys are stored with the prefix written as `<P>`, so the counts survive a change of `keymaps.prefix`.
-- Several Neovim instances can share the file: each adds its counts to it a few seconds after a use and when Neovim exits.
-- `:Markwright usage reset` starts over (the old file is kept as `usage.json.bak`). `usage = { enabled = false }` turns counting off, and `usage.file` stores the counts somewhere else. `require("markwright.usage").data()` returns them as a Lua table.
+- **Features, not keys:** `<leader>mtj`, `<leader>mtk` and `:Markwright table row` are all **Add row**. The **how** column shows how a feature was reached: a key, a visual-mode key, `;;` in insert mode, or a command.
+- **Grouped by area,** the busiest area first, and within an area the most used feature first. Each area's unused features are folded into one **never used** line.
+- **Last 30 days and all time:** the bars and the order follow the last 30 days, so a feature that was used a lot once and then dropped sinks. Daily counts are kept for 90 days; totals are kept forever.
+- **Automatic** is counted apart: continuing a list on `<CR>`/`o`/`O`, moving to the next table cell or nesting a list item on `<Tab>`, continuing a quote, pasting a URL as a link with `p`. These happen while typing rather than being chosen, and would otherwise crowd the top. `<CR>`, `<Tab>`, `o`, `p` and the like count only when markwright acted, not when they did what they do outside Markdown.
+- **Keys in the window:** `s` sorts by the last 30 days, all time or name; `a` switches between areas and one flat list; `u` shows unused features as rows; `<CR>` opens the README at that feature's section; `r` refreshes; `q` closes.
+- **Not counted:** repeats with `.`, and anything done inside the report window.
+- **Stored:** per feature, the total, the daily counts, the count per way it was reached, and the date of the last use. No file names, no text from the buffers. Several Neovim instances can share the file: each adds its counts a few seconds after a use and when Neovim exits.
+- `:Markwright usage reset` starts over (the old file is kept as `usage.json.bak`). `usage = { enabled = false }` turns counting off, and `usage.file` stores the counts somewhere else. `require("markwright.usage").rows()` returns the report's data as a Lua table.
 
 ---
 
@@ -1455,7 +1463,7 @@ Counted since 2026-10-17: 214 uses of 23 features. Stored in `~/.local/share/nvi
 | `:[range]Markwright table move up\|down\|left\|right [N]`      | Move the row (or the rows in the range) or the column N places                                          |
 | `:Markwright list up` / `down` `[N]` / `sort [desc\|done]`     | Move the list item N places / sort the list (see [List tools](#list-tools))                             |
 | `:[range]Markwright list bullet` / `number` / `checkbox [all]` | Convert to bullets / numbers / checkboxes; `all` includes the sub-lists                                 |
-| `:Markwright usage [reset]`                                    | Show how often each key and command is used (see [Usage counts](#usage-counts)) / start over            |
+| `:Markwright usage [reset]`                                    | Show how often each feature is used (see [Usage counts](#usage-counts)) / start over                    |
 | `:Markwright health`                                           | Run `:checkhealth markwright`                                                                           |
 
 Subcommands tab-complete, including the `table` and `list` actions. Every key that changes the buffer has a command, for setups that turn the default keys off.
@@ -1687,7 +1695,7 @@ The functions:
 | `require("markwright.toc").insert()` / `update(buf)`                                                                       | Insert or refresh the TOC                                                                                                                      |
 | `require("markwright.diagnostics").check(buf)` / `collect(buf)`                                                            | Publish / just compute link diagnostics                                                                                                        |
 | `require("markwright").stats(buf?)` / `require("markwright.stats").statusline()` / `count(buf, range)`                     | Word count and reading time: current buffer or visual selection / statusline text / any range (see [Word count](#word-count-and-reading-time)) |
-| `require("markwright.usage").data()` / `flush()`                                                                           | Usage counts as `{ since, features = { [id] = { count, desc, last } } }` / write the pending counts now                                        |
+| `require("markwright.usage").rows()` / `flush()`                                                                           | One row per feature (`{ id, name, area, recent, total, last, via }`) and the raw counts / write the pending counts now                         |
 | `require("markwright.slug").slug(text)`                                                                                    | GitHub-style anchor for heading text                                                                                                           |
 | `require("markwright.textobjects").expr(name, inner)`                                                                      | `expr` mapping (modes `o`, `x`) for a text object; `name` is `link`, `url`, `code`, `fence`, `section`, `cell`, `item` or `emphasis`           |
 | `require("markwright.nav").heading(dir)` / `sibling(dir)` / `parent()` / `outline()`                                       | Heading motions (`dir` = `1` / `-1`, count from `vim.v.count1`) and the outline picker                                                         |

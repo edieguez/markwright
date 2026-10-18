@@ -18,13 +18,26 @@ function M.attach(buf)
   local P = km.prefix
   local util = require("markwright.util")
   local usage = require("markwright.usage")
-  -- `contextual`: the key keeps its usual meaning outside markwright's
-  -- contexts; it counts as a use (usage.lua) only when markwright acted
-  local function map(mode, lhs, rhs, desc, opts, contextual)
+  -- `u`: how the key counts as a use of a feature (usage.wrap): the feature
+  -- (default: from the key after the prefix), and `contextual` for keys
+  -- that keep their usual meaning outside markwright's contexts
+  local function map(mode, lhs, rhs, desc, opts, u)
     opts = vim.tbl_extend("force", { buffer = buf, desc = "markwright: " .. desc, silent = true }, opts or {})
-    rhs, opts = usage.wrap(mode, lhs, desc, rhs, opts, { contextual = contextual })
+    rhs, opts = usage.wrap(mode, lhs, rhs, opts, u)
     vim.keymap.set(mode, lhs, rhs, opts)
   end
+  -- keys serving two features: which one, from the keys the rhs returned
+  local function by_result(pattern, yes, no)
+    return {
+      contextual = true,
+      features = { yes, no },
+      feature = function(out)
+        return type(out) == "string" and out:find(pattern, 1, true) and yes or no
+      end,
+    }
+  end
+  local paste = by_result("markwright.images", "image.paste", "link.smart_paste")
+  local continue = by_result("markwright.callouts", "quote.continue", "list.continue")
   -- actions that change the buffer are repeatable with `.` (see util.lua)
   local function nmap(lhs, fn, desc)
     map(
@@ -76,13 +89,13 @@ function M.attach(buf)
   if lopts.smart_paste_normal then
     map("n", "p", function()
       return links.expr_paste(true)
-    end, "Paste (URL → titled link)", { expr = true }, true)
+    end, "Paste (URL → titled link)", { expr = true }, paste)
     map("n", "P", function()
       return links.expr_paste(false)
-    end, "Paste before (URL → titled link)", { expr = true }, true)
+    end, "Paste before (URL → titled link)", { expr = true }, paste)
   end
   if lopts.smart_paste_visual then
-    map("x", "p", links.expr_paste_visual, "Paste (URL over selection → link)", { expr = true }, true)
+    map("x", "p", links.expr_paste_visual, "Paste (URL over selection → link)", { expr = true }, paste)
   end
 
   -- <P>r: inline [text](url) ↔ reference [text][label] (label from the text,
@@ -98,7 +111,7 @@ function M.attach(buf)
   if fkey and fkey ~= "" then
     map("n", fkey, function()
       require("markwright.follow").follow()
-    end, "Follow link / anchor / footnote")
+    end, "Follow link / anchor / footnote", nil, { feature = "link.follow" })
   end
 
   -- code fences & footnotes
@@ -193,23 +206,37 @@ function M.attach(buf)
     util.save_fallback(buf, "i", t[1])
     map("i", t[1], function()
       return lists.expr_tab(t[2])
-    end, t[3], { expr = true }, true)
+    end, t[3], { expr = true }, by_result("next_cell", "table.next_cell", "list.indent"))
   end
   util.save_fallback(buf, "i", "<CR>")
-  map("i", "<CR>", lists.expr_enter, "Continue list", { expr = true }, true)
+  map("i", "<CR>", lists.expr_enter, "Continue list", { expr = true }, continue)
   map("n", "o", function()
     return lists.expr_open(true)
-  end, "Open line (continues lists)", { expr = true }, true)
+  end, "Open line (continues lists)", { expr = true }, continue)
   map("n", "O", function()
     return lists.expr_open(false)
-  end, "Open line above (continues lists)", { expr = true }, true)
+  end, "Open line above (continues lists)", { expr = true }, continue)
   local ck = config.options.lists.checkbox_key
   if ck and ck ~= "" then
     util.save_fallback(buf, "n", ck)
-    map("n", ck, lists.expr_checkbox, "Toggle checkbox", { expr = true }, true)
-    xmap(ck, function(srow, erow)
-      lists.toggle_range(srow, erow)
-    end, "Toggle checkboxes")
+    map(
+      "n",
+      ck,
+      lists.expr_checkbox,
+      "Toggle checkbox",
+      { expr = true },
+      { contextual = true, feature = "list.checkbox" }
+    )
+    map(
+      "x",
+      ck,
+      util.repeatable_visual(function(_, srow, erow)
+        lists.toggle_range(srow, erow)
+      end),
+      "Toggle checkboxes",
+      { expr = true },
+      { feature = "list.checkbox" }
+    )
   end
 
   -- list tools (<P>l…)
@@ -252,9 +279,22 @@ function M.attach(buf)
     for dir, key in pairs({ [1] = mk.down, [-1] = mk.up }) do
       if key and key ~= "" then
         util.save_fallback(buf, "n", key)
-        map("n", key, function()
-          return lt.expr_move(dir, key)
-        end, dir == 1 and "Move item down" or "Move item up", { expr = true }, true)
+        map(
+          "n",
+          key,
+          function()
+            return lt.expr_move(dir, key)
+          end,
+          dir == 1 and "Move item down" or "Move item up",
+          { expr = true },
+          {
+            contextual = true,
+            -- on a heading line the key moves the section
+            feature = function()
+              return vim.api.nvim_get_current_line():match("^#+%s") and "section.move" or "list.move"
+            end,
+          }
+        )
       end
     end
   end

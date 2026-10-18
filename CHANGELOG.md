@@ -4,6 +4,17 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [4.6.0] - 2026-10-18
+
+### Changed
+
+- **`:Markwright usage` reports features, not keys**, in a floating window. `<leader>mtj`, `<leader>mtk` and `:Markwright table row` count as one feature, **Add row**, with a column showing how it was reached (key, visual, `;;`, command). Features are grouped by area, busiest first, with uses in the last 30 days (bars and order) next to all time and the last use; each area's unused features fold into one line. Automatic behaviors (continuing a list, the next table cell, URL paste) are counted apart so they don't crowd the top. In the window: `s` sorts, `a` switches to one flat list, `u` lists unused features as rows, `<CR>` opens the README at the feature's section, `q` closes. Counts from 4.5.0 carry over to their features.
+- The first count tells, once, that counting is on and how to turn it off.
+
+### Fixed
+
+- Moving around in the usage report counted as uses of the heading motions.
+
 ## [4.5.0] - 2026-10-17
 
 ### Added
@@ -227,7 +238,8 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v4.5.0...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v4.6.0...HEAD
+[4.6.0]: https://github.com/edieguez/markwright/compare/v4.5.0...v4.6.0
 [4.5.0]: https://github.com/edieguez/markwright/compare/v4.4.3...v4.5.0
 [4.4.3]: https://github.com/edieguez/markwright/compare/v4.4.2...v4.4.3
 [4.4.2]: https://github.com/edieguez/markwright/compare/v4.4.1...v4.4.2

@@ -195,25 +195,25 @@ function M.attach(buf)
   if not o or o.enabled == false then
     return
   end
-  local function map(lhs, rhs, desc, modes)
+  local function map(lhs, rhs, desc, feature, modes)
     if lhs and lhs ~= "" then
       modes = modes or { "n", "x", "o" }
       local opts = { buffer = buf, silent = true, desc = "markwright: " .. desc }
-      rhs, opts = require("markwright.usage").wrap(modes, lhs, desc, rhs, opts)
+      rhs, opts = require("markwright.usage").wrap(modes, lhs, rhs, opts, { feature = feature })
       vim.keymap.set(modes, lhs, rhs, opts)
     end
   end
   -- counts are read inside the functions (vim.v.count1), so pass nothing here
-  map(o.next, motion("heading(1)"), "Next heading")
-  map(o.prev, motion("heading(-1)"), "Previous heading")
-  map(o.next_sibling, motion("sibling(1)"), "Next heading, same level")
-  map(o.prev_sibling, motion("sibling(-1)"), "Previous heading, same level")
-  map(o.parent, motion("parent()"), "Parent heading")
+  map(o.next, motion("heading(1)"), "Next heading", "nav.heading")
+  map(o.prev, motion("heading(-1)"), "Previous heading", "nav.heading")
+  map(o.next_sibling, motion("sibling(1)"), "Next heading, same level", "nav.sibling")
+  map(o.prev_sibling, motion("sibling(-1)"), "Previous heading, same level", "nav.sibling")
+  map(o.parent, motion("parent()"), "Parent heading", "nav.parent")
   local outline = o.outline
   if outline == nil then
     outline = config.options.keymaps.enabled and (config.options.keymaps.prefix .. "o") or nil
   end
-  map(outline, M.outline, "Outline (jump to a heading)", { "n" })
+  map(outline, M.outline, "Outline (jump to a heading)", "nav.outline", { "n" })
 end
 
 return M

@@ -728,9 +728,9 @@ function M.attach(buf)
         local desc = (inner and "Inner " or "Around ") .. name
         local opts = { buffer = buf, silent = true, expr = true, desc = "markwright: " .. desc:lower() }
         local rhs
-        rhs, opts = usage.wrap({ "o", "x" }, lhs, "Text object: " .. desc:lower(), function()
+        rhs, opts = usage.wrap({ "o", "x" }, lhs, function()
           return M.expr(name, inner)
-        end, opts)
+        end, opts, { feature = "textobject." .. name })
         vim.keymap.set({ "o", "x" }, lhs, rhs, opts)
       end
       set("i" .. k, true)

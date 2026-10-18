@@ -230,6 +230,15 @@ local function key_fallback(key)
   api.nvim_feedkeys(seq, "ni", false)
 end
 
+--- Feature (usage.lua) of a KEYS entry.
+function M.feature(entry)
+  local usage = require("markwright.usage")
+  if entry.action then
+    return usage.INSERT_KEYS[entry.action]
+  end
+  return usage.INSERT_KEYS[entry.fmt] or ("format." .. entry.fmt)
+end
+
 --- Wait (no timeout) for the command key and run it.
 ---@param restore string text to put back if the key isn't a command
 ---@param ctx? "span" inside inline code: only jumping out of it is offered
@@ -252,7 +261,7 @@ function M.menu(restore, ctx)
   end
   if entry then
     reset(buf)
-    require("markwright.usage").record("i <T>" .. entry.key, "Insert mode: " .. entry.label)
+    require("markwright.usage").record(M.feature(entry), "insert")
     if entry.action == "footnote" then
       require("markwright.footnotes").insert_inline()
     elseif entry.action == "image" then
@@ -354,7 +363,7 @@ function M.attach(buf)
   })
   local usage = require("markwright.usage")
   for _, k in ipairs(M.KEYS) do
-    usage.register("i <T>" .. k.key, "Insert mode: " .. k.label)
+    usage.register(M.feature(k))
   end
   local opts = { buffer = buf, expr = true, silent = true, desc = "markwright: insert-mode formatting" }
   if M.is_key_trigger(t) then
