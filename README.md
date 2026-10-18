@@ -40,6 +40,7 @@ Built for LazyVim, and it works with any Neovim setup from 0.10 on (tested on 0.
 - [Pasting images](#pasting-images)
 - [Front matter](#front-matter)
 - [Word count and reading time](#word-count-and-reading-time)
+- [Usage counts](#usage-counts)
 - [Commands](#commands)
 - [Configuration](#configuration)
 - [Custom keymaps and Lua API](#custom-keymaps-and-lua-api)
@@ -114,6 +115,7 @@ All five share one engine, so they behave the same way:
 - **Sections:** `<leader>m#j`/`<leader>m#k` move a section (heading, text and sub-sections) past its sibling; `<leader>m#=`/`<leader>m#-` add or remove a `#` on the heading and all its sub-headings.
 - **Image paste** (`<leader>mp`, macOS): saves a screenshot, copied image or Finder file into `assets/` next to the file and inserts `![alt](assets/name.png)`. `<leader>mP` on an image renames its file on disk and updates the links.
 - **Word count and reading time:** `:Markwright stats`, or a statusline component that shows the words in the document or the selection.
+- **Usage counts:** `:Markwright usage` lists the keys and commands by how often they're used, and the ones never used. The counts stay on the local machine.
 
 ### Not yet available
 
@@ -1376,6 +1378,44 @@ For your own format, `require("markwright").stats()` returns `{ words, chars, re
 
 ---
 
+## Usage counts
+
+markwright counts how often each of its keys and commands is used, to show which features get used and which never do. The counts never leave the machine: they're stored in a file under `stdpath("data")` (`~/.local/share/nvim/markwright/usage.json` on Linux and macOS), and nothing is sent anywhere.
+
+`:Markwright usage` opens the report in a new tab, as Markdown:
+
+```markdown
+# markwright usage
+
+Counted since 2026-10-17: 214 uses of 23 features. Stored in `~/.local/share/nvim/markwright/usage.json`.
+
+## Used
+
+| Uses | Key / command          | Feature                              | Last used  |
+| ---: | ---------------------- | ------------------------------------ | ---------- |
+|   58 | i <CR>                 | Continue list                        | 2026-10-17 |
+|   31 | n <leader>mk           | Link: create / convert URL / remove  | 2026-10-17 |
+|   12 | i ;;b                  | Insert mode: bold                    | 2026-10-16 |
+|    2 | :Markwright table sort |                                      | 2026-10-12 |
+
+## Never used
+
+| Key / command  | Feature                 |
+| -------------- | ----------------------- |
+| n <leader>m#j  | Move section down       |
+| ox iz          | Text object: inner cell |
+```
+
+- **What's stored:** for each key or command, its count, its description and the date it was last used. No file names, no text from the buffers.
+- **What counts:** each press of a markwright key, listed with its modes (`n` normal, `x` visual, `o` operator-pending, `i` insert), including heading motions and text objects; each `;;` key in insert mode; each `:Markwright` subcommand with its action (`table row`) but not its arguments. Repeats with `.` aren't counted.
+- **Keys with another meaning:** `<CR>`, `<Tab>`, `<S-Tab>`, `o`, `O`, `p`, `P` and `lists.move_keys` count only when markwright acted (continued a list, moved to the next cell…), not when they did what they do outside Markdown.
+- **Never used** lists the keys mapped in the current setup and every `:Markwright` command.
+- Keys are stored with the prefix written as `<P>`, so the counts survive a change of `keymaps.prefix`.
+- Several Neovim instances can share the file: each adds its counts to it a few seconds after a use and when Neovim exits.
+- `:Markwright usage reset` starts over (the old file is kept as `usage.json.bak`). `usage = { enabled = false }` turns counting off, and `usage.file` stores the counts somewhere else. `require("markwright.usage").data()` returns them as a Lua table.
+
+---
+
 ## Commands
 
 | Command                                                        | Description                                                                                             |
@@ -1415,6 +1455,7 @@ For your own format, `require("markwright").stats()` returns `{ words, chars, re
 | `:[range]Markwright table move up\|down\|left\|right [N]`      | Move the row (or the rows in the range) or the column N places                                          |
 | `:Markwright list up` / `down` `[N]` / `sort [desc\|done]`     | Move the list item N places / sort the list (see [List tools](#list-tools))                             |
 | `:[range]Markwright list bullet` / `number` / `checkbox [all]` | Convert to bullets / numbers / checkboxes; `all` includes the sub-lists                                 |
+| `:Markwright usage [reset]`                                    | Show how often each key and command is used (see [Usage counts](#usage-counts)) / start over            |
 | `:Markwright health`                                           | Run `:checkhealth markwright`                                                                           |
 
 Subcommands tab-complete, including the `table` and `list` actions. Every key that changes the buffer has a command, for setups that turn the default keys off.
@@ -1529,6 +1570,10 @@ require("markwright").setup({
   stats = {
     wpm = 200,                      -- reading speed for the reading time
   },
+  usage = {
+    enabled = true,                 -- count key and command uses in a local file (:Markwright usage)
+    file = nil,                     -- nil: stdpath("data")/markwright/usage.json
+  },
 
   lists = {
     continue_on_enter = true,       -- <CR> / o / O continue lists
@@ -1642,6 +1687,7 @@ The functions:
 | `require("markwright.toc").insert()` / `update(buf)`                                                                       | Insert or refresh the TOC                                                                                                                      |
 | `require("markwright.diagnostics").check(buf)` / `collect(buf)`                                                            | Publish / just compute link diagnostics                                                                                                        |
 | `require("markwright").stats(buf?)` / `require("markwright.stats").statusline()` / `count(buf, range)`                     | Word count and reading time: current buffer or visual selection / statusline text / any range (see [Word count](#word-count-and-reading-time)) |
+| `require("markwright.usage").data()` / `flush()`                                                                           | Usage counts as `{ since, features = { [id] = { count, desc, last } } }` / write the pending counts now                                        |
 | `require("markwright.slug").slug(text)`                                                                                    | GitHub-style anchor for heading text                                                                                                           |
 | `require("markwright.textobjects").expr(name, inner)`                                                                      | `expr` mapping (modes `o`, `x`) for a text object; `name` is `link`, `url`, `code`, `fence`, `section`, `cell`, `item` or `emphasis`           |
 | `require("markwright.nav").heading(dir)` / `sibling(dir)` / `parent()` / `outline()`                                       | Heading motions (`dir` = `1` / `-1`, count from `vim.v.count1`) and the outline picker                                                         |
@@ -1668,6 +1714,7 @@ It checks:
 - a clipboard provider
 - `vim.ui.open`
 - on macOS: `pngpaste` or `osascript` for image paste
+- whether usage counts are on, and where they're stored
 
 Warnings for `curl` and the clipboard only affect links: without `curl` the link text is the domain name, and without a clipboard the link key always prompts (on macOS the plugin still tries `pbpaste`).
 

@@ -44,7 +44,7 @@ Status: **4.4.3 released** — updated 2026-10-09. Sections 1–13 describe what
 - [x] **TOC** — markers, nested entries, refresh on save (§9.6)
 - [x] **Link diagnostics** — files, anchors, references, footnotes; on open/save; `:Markwright check` (§10)
 - [x] **Image paste, macOS** — screenshots, Finder files, paths, URLs; `assets/`; alt text (§13.1)
-- [x] **Tests** — 825 headless cases feeding real keys; pass on Neovim 0.10.0, 0.11, 0.12 and nightly 0.13 (§11)
+- [x] **Tests** — 839 headless cases feeding real keys; pass on Neovim 0.10.0, 0.11, 0.12 and nightly 0.13 (§11)
 - [x] **Verified on macOS + LazyVim** (2026-09-30): clipboard links, live titles, `gx`, image paste (screenshot / Finder / browser), `<CR>` with blink.cmp + mini.pairs, `<Tab>` in snippets/lists/tables, `;;` hint with noice, no duplicate diagnostics
 
 ### Release 1.0.0
@@ -113,6 +113,7 @@ Tagged on the commits that introduced them; details in `CHANGELOG.md`. A major v
 **New features — priority 3**
 - [x] Front matter helpers — `<P>F`, `frontmatter.update_on_save` (§14.19)
 - [x] Word count / reading time: `:Markwright stats`, statusline component (§14.20)
+- [x] Local usage counts: `:Markwright usage`, on by default, never sent anywhere (§14.25)
 - [ ] Link completion for paths and `#anchors` (§14.21)
 - [ ] Optional: 3-state checkboxes `[-]` (§14.22)
 
@@ -255,6 +256,10 @@ require("markwright").setup({
     enabled = true,
     on_save = true,
     severity = vim.diagnostic.severity.WARN,
+  },
+  usage = {
+    enabled = true, -- local usage counts (§14.25)
+    file = nil, -- nil: stdpath("data")/markwright/usage.json
   },
 })
 ```
@@ -742,3 +747,12 @@ Keys chosen 2026-10-02, matching the `h`/`j`/`k`/`l` add keys:
 - Not Neovim's built-in `:Tutor`: its buffers have `filetype=tutor`, so markwright's buffer-local Markdown keys wouldn't be there. The lessons are plain Markdown, readable on GitHub as well.
 - Lessons follow the README's order and the key mnemonics: formatting and operators, formatting while typing, links (inline ↔ reference), text objects, headings and sections, lists and checkboxes, list tools, tables, code fences, callouts, footnotes, TOC and front matter, `.` repeat, commands. Each lesson ends with a one-line summary of its keys.
 - Written last, once the keys have settled, and checked by a spec that runs every exercise's keys against its "expected" text, so the tutorial can't drift from the plugin.
+
+### 14.25 Local usage counts — **implemented (2026-10-17)**
+- Purpose: triage. Show which features are used and which never are, to decide what to polish, document better or drop.
+- On by default (`usage.enabled = true`): the counts are local and only describe the current user. Nothing is sent anywhere; the file is `stdpath("data")/markwright/usage.json` (`usage.file` overrides it). Tests point it at a temporary file.
+- Stored per feature id: `count`, `desc`, `last` (date, `%Y-%m-%d`), plus `since` for the file. No file names, buffer text or times of day.
+- Ids: keys are `<modes> <lhs>` with the prefix written `<P>` (`n <P>tj`, `x <P>lb`, `ox ik`, `nxo ]]`); insert-mode keys are `i <T><key>` (`<T>` = trigger); commands are `:Markwright <sub>`, plus the action when the second word is one (`table row`, `section up`, `callout remove`; not counts, callout types or `desc`).
+- Hook: `usage.wrap(mode, lhs, desc, rhs, opts, o)` wraps each mapping's rhs at attach time (keymaps.lua, nav.lua, textobjects.lua); with counting off it returns the rhs unchanged. String rhs become `expr` functions returning the same keys. `contextual` keys (`<CR>`, `<Tab>`, `o`, `p`, move keys…) count only when the rhs neither returned the key itself nor called `util.fallback`. `;;` keys count in `insert.menu`; commands in the `:Markwright` dispatcher (`usage` itself isn't counted). `.` repeats aren't counted.
+- Writing: counts accumulate in memory; 10 s after the first new one, and on `VimLeavePre`, the file is read, the counts added, and the result written to a temporary file and renamed, so several Neovim instances can share it. A broken file starts over.
+- `:Markwright usage` writes the pending counts and opens a `markwright://usage` Markdown buffer in a new tab: "Used" (count desc, then id) and "Never used" (keys mapped in this setup and every `:Markwright` command, from the dispatcher's tables). `:Markwright usage reset` renames the file to `usage.json.bak`. `:checkhealth markwright` shows whether counting is on and where.

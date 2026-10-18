@@ -723,13 +723,19 @@ function M.attach(buf)
     local key = o[name]
     if key and key ~= "" then
       local k = lhs_key(key)
-      vim.keymap.set({ "o", "x" }, "i" .. k, function()
-        return M.expr(name, true)
-      end, { buffer = buf, silent = true, expr = true, desc = "markwright: inner " .. name })
+      local usage = require("markwright.usage")
+      local function set(lhs, inner)
+        local desc = (inner and "Inner " or "Around ") .. name
+        local opts = { buffer = buf, silent = true, expr = true, desc = "markwright: " .. desc:lower() }
+        local rhs
+        rhs, opts = usage.wrap({ "o", "x" }, lhs, "Text object: " .. desc:lower(), function()
+          return M.expr(name, inner)
+        end, opts)
+        vim.keymap.set({ "o", "x" }, lhs, rhs, opts)
+      end
+      set("i" .. k, true)
       if obj.around then
-        vim.keymap.set({ "o", "x" }, "a" .. k, function()
-          return M.expr(name, false)
-        end, { buffer = buf, silent = true, expr = true, desc = "markwright: around " .. name })
+        set("a" .. k, false)
       end
     end
   end

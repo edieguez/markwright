@@ -123,6 +123,12 @@ M.defaults = {
   stats = {
     wpm = 200, -- reading speed for the reading time (words per minute)
   },
+  usage = {
+    -- count how often each key and command is used, in a file on this
+    -- machine (never sent anywhere); :Markwright usage shows the counts
+    enabled = true,
+    file = nil, -- nil: stdpath("data")/markwright/usage.json
+  },
 }
 
 ---@type markwright.Config
@@ -164,6 +170,13 @@ local function validate(opts)
   local wpm = opts.stats and opts.stats.wpm
   if type(wpm) ~= "number" or wpm <= 0 then
     error("markwright: stats.wpm must be a positive number")
+  end
+  local u = opts.usage or {}
+  if type(u.enabled) ~= "boolean" then
+    error("markwright: usage.enabled must be true or false")
+  end
+  if u.file ~= nil and type(u.file) ~= "string" then
+    error("markwright: usage.file must be a path")
   end
   if type(opts.filetypes) ~= "table" then
     error("markwright: filetypes must be a list")

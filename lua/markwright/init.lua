@@ -127,6 +127,7 @@ function M.setup(opts)
   config.setup(opts)
   refresh_injections()
   local group = vim.api.nvim_create_augroup("markwright", { clear = true })
+  require("markwright.usage").setup(group)
   vim.api.nvim_create_autocmd("FileType", {
     group = group,
     pattern = config.options.filetypes,

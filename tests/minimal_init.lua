@@ -5,4 +5,6 @@ vim.opt.rtp:prepend(root)
 vim.opt.swapfile = false
 vim.g.mapleader = " "
 vim.cmd("runtime plugin/markwright.lua")
+-- usage counts (on by default) go to a temporary file, never the real one
+require("markwright.usage")._default_file = vim.fn.tempname() .. "-usage.json"
 require("markwright").setup({})

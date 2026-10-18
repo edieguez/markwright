@@ -48,6 +48,13 @@ function M.check()
   else
     h.info("image paste is only supported on macOS for now")
   end
+
+  local usage = require("markwright.usage")
+  if usage.enabled() then
+    h.ok("usage counts: on, stored locally in " .. vim.fn.fnamemodify(usage.path(), ":~") .. " (:Markwright usage)")
+  else
+    h.info("usage counts: off")
+  end
 end
 
 return M

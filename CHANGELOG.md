@@ -4,6 +4,12 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [4.5.0] - 2026-10-17
+
+### Added
+
+- **Usage counts**: markwright counts how often each key, `;;` insert key and `:Markwright` command is used, and `:Markwright usage` lists them by use, with the features never used, to show what's worth learning or improving. The counts stay on the local machine (`stdpath("data")/markwright/usage.json`) and hold only the key or command, a count and the date it was last used. On by default; `usage = { enabled = false }` turns it off, and `:Markwright usage reset` starts over.
+
 ## [4.4.3] - 2026-10-09
 
 ### Fixed
@@ -221,7 +227,8 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v4.4.3...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v4.5.0...HEAD
+[4.5.0]: https://github.com/edieguez/markwright/compare/v4.4.3...v4.5.0
 [4.4.3]: https://github.com/edieguez/markwright/compare/v4.4.2...v4.4.3
 [4.4.2]: https://github.com/edieguez/markwright/compare/v4.4.1...v4.4.2
 [4.4.1]: https://github.com/edieguez/markwright/compare/v4.4.0...v4.4.1

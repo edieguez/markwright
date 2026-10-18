@@ -252,6 +252,7 @@ function M.menu(restore, ctx)
   end
   if entry then
     reset(buf)
+    require("markwright.usage").record("i <T>" .. entry.key, "Insert mode: " .. entry.label)
     if entry.action == "footnote" then
       require("markwright.footnotes").insert_inline()
     elseif entry.action == "image" then
@@ -351,6 +352,10 @@ function M.attach(buf)
       pcall(api.nvim_del_augroup_by_id, group)
     end,
   })
+  local usage = require("markwright.usage")
+  for _, k in ipairs(M.KEYS) do
+    usage.register("i <T>" .. k.key, "Insert mode: " .. k.label)
+  end
   local opts = { buffer = buf, expr = true, silent = true, desc = "markwright: insert-mode formatting" }
   if M.is_key_trigger(t) then
     vim.keymap.set("i", t, M.expr_key, opts)

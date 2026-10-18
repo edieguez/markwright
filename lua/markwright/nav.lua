@@ -197,12 +197,10 @@ function M.attach(buf)
   end
   local function map(lhs, rhs, desc, modes)
     if lhs and lhs ~= "" then
-      vim.keymap.set(
-        modes or { "n", "x", "o" },
-        lhs,
-        rhs,
-        { buffer = buf, silent = true, desc = "markwright: " .. desc }
-      )
+      modes = modes or { "n", "x", "o" }
+      local opts = { buffer = buf, silent = true, desc = "markwright: " .. desc }
+      rhs, opts = require("markwright.usage").wrap(modes, lhs, desc, rhs, opts)
+      vim.keymap.set(modes, lhs, rhs, opts)
     end
   end
   -- counts are read inside the functions (vim.v.count1), so pass nothing here

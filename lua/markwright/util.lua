@@ -123,6 +123,7 @@ end
 
 --- Keys to return from an `expr` mapping to run the previous behavior.
 function M.fallback(buf, mode, lhs)
+  M._fell_back = true -- markwright didn't act (usage.lua doesn't count it)
   local key = fkey(buf, mode, lhs)
   local m = M._fallback[key]
   if not m then

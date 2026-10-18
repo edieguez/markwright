@@ -257,6 +257,54 @@ for _, fmt in ipairs({ "italic", "bold", "strike", "code", "highlight" }) do
   end
 end
 
+-- second words that name a different action (counted separately by usage.lua)
+local actions = {
+  table = vim.tbl_keys(table_sub),
+  list = vim.tbl_keys(list_sub),
+  section = { "add", "down", "remove", "up" },
+  heading = { "add", "remove" },
+  links = { "inline", "reference" },
+  footnote = { "renumber" },
+  image = { "rename" },
+  check = { "urls" },
+  callout = { "remove" },
+}
+
+-- these do nothing without a second word
+local needs_action = { table = true, list = true, section = true, heading = true, links = true }
+
+--- Every :Markwright command, for the "Never used" part of :Markwright usage.
+local function command_ids()
+  local ids = {}
+  for name in pairs(subcommands) do
+    if name ~= "usage" then
+      if not needs_action[name] then
+        table.insert(ids, ":Markwright " .. name)
+      end
+      for _, a in ipairs(actions[name] or {}) do
+        table.insert(ids, ":Markwright " .. name .. " " .. a)
+      end
+    end
+  end
+  return ids
+end
+
+subcommands.usage = function(args)
+  local usage = require("markwright.usage")
+  if args.fargs[2] == "reset" then
+    return usage.reset()
+  end
+  usage.show(command_ids())
+end
+
+local function command_id(fargs)
+  local id = ":Markwright " .. fargs[1]
+  if fargs[2] and vim.tbl_contains(actions[fargs[1]] or {}, fargs[2]) then
+    id = id .. " " .. fargs[2]
+  end
+  return id
+end
+
 local function sorted_keys(t, lead)
   local names = vim.tbl_filter(function(name)
     return name:find(lead, 1, true) == 1
@@ -270,6 +318,9 @@ vim.api.nvim_create_user_command("Markwright", function(args)
   if not fn then
     vim.notify("markwright: unknown subcommand '" .. (args.fargs[1] or "") .. "'", vim.log.levels.ERROR)
     return
+  end
+  if args.fargs[1] ~= "usage" then
+    require("markwright.usage").record(command_id(args.fargs))
   end
   fn(args)
 end, {
@@ -328,6 +379,11 @@ end, {
       return vim.tbl_filter(function(n)
         return n:find(lead, 1, true) == 1
       end, { "renumber" })
+    end
+    if #words == 2 and words[1] == "usage" then
+      return vim.tbl_filter(function(n)
+        return n:find(lead, 1, true) == 1
+      end, { "reset" })
     end
     if #words == 2 and words[1] == "check" then
       return vim.tbl_filter(function(n)

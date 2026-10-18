@@ -17,8 +17,12 @@ function M.attach(buf)
   end
   local P = km.prefix
   local util = require("markwright.util")
-  local function map(mode, lhs, rhs, desc, opts)
+  local usage = require("markwright.usage")
+  -- `contextual`: the key keeps its usual meaning outside markwright's
+  -- contexts; it counts as a use (usage.lua) only when markwright acted
+  local function map(mode, lhs, rhs, desc, opts, contextual)
     opts = vim.tbl_extend("force", { buffer = buf, desc = "markwright: " .. desc, silent = true }, opts or {})
+    rhs, opts = usage.wrap(mode, lhs, desc, rhs, opts, { contextual = contextual })
     vim.keymap.set(mode, lhs, rhs, opts)
   end
   -- actions that change the buffer are repeatable with `.` (see util.lua)
@@ -72,13 +76,13 @@ function M.attach(buf)
   if lopts.smart_paste_normal then
     map("n", "p", function()
       return links.expr_paste(true)
-    end, "Paste (URL → titled link)", { expr = true })
+    end, "Paste (URL → titled link)", { expr = true }, true)
     map("n", "P", function()
       return links.expr_paste(false)
-    end, "Paste before (URL → titled link)", { expr = true })
+    end, "Paste before (URL → titled link)", { expr = true }, true)
   end
   if lopts.smart_paste_visual then
-    map("x", "p", links.expr_paste_visual, "Paste (URL over selection → link)", { expr = true })
+    map("x", "p", links.expr_paste_visual, "Paste (URL over selection → link)", { expr = true }, true)
   end
 
   -- <P>r: inline [text](url) ↔ reference [text][label] (label from the text,
@@ -189,20 +193,20 @@ function M.attach(buf)
     util.save_fallback(buf, "i", t[1])
     map("i", t[1], function()
       return lists.expr_tab(t[2])
-    end, t[3], { expr = true })
+    end, t[3], { expr = true }, true)
   end
   util.save_fallback(buf, "i", "<CR>")
-  map("i", "<CR>", lists.expr_enter, "Continue list", { expr = true })
+  map("i", "<CR>", lists.expr_enter, "Continue list", { expr = true }, true)
   map("n", "o", function()
     return lists.expr_open(true)
-  end, "Open line (continues lists)", { expr = true })
+  end, "Open line (continues lists)", { expr = true }, true)
   map("n", "O", function()
     return lists.expr_open(false)
-  end, "Open line above (continues lists)", { expr = true })
+  end, "Open line above (continues lists)", { expr = true }, true)
   local ck = config.options.lists.checkbox_key
   if ck and ck ~= "" then
     util.save_fallback(buf, "n", ck)
-    map("n", ck, lists.expr_checkbox, "Toggle checkbox", { expr = true })
+    map("n", ck, lists.expr_checkbox, "Toggle checkbox", { expr = true }, true)
     xmap(ck, function(srow, erow)
       lists.toggle_range(srow, erow)
     end, "Toggle checkboxes")
@@ -250,7 +254,7 @@ function M.attach(buf)
         util.save_fallback(buf, "n", key)
         map("n", key, function()
           return lt.expr_move(dir, key)
-        end, dir == 1 and "Move item down" or "Move item up", { expr = true })
+        end, dir == 1 and "Move item down" or "Move item up", { expr = true }, true)
       end
     end
   end
