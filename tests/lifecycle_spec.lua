@@ -80,6 +80,53 @@ local cases = {
       works()
     end,
   },
+  {
+    "keys fall back to the mapping before markwright's after :bunload",
+    fn = function()
+      -- the <CR> completion owns, set before markwright attached
+      vim.keymap.set("i", "<CR>", function()
+        return "Z"
+      end, { expr = true })
+      vim.cmd("silent! bwipeout! " .. vim.fn.fnameescape(file))
+      local buf = open()
+      vim.cmd("enew!")
+      vim.cmd("bunload! " .. buf)
+      open() -- attaches again while markwright's own <CR> is still mapped
+      local blink = package.loaded["blink.cmp"]
+      package.loaded["blink.cmp"] = {
+        is_visible = function()
+          return true
+        end,
+      }
+      api.nvim_buf_set_lines(0, 0, -1, false, { "- a", "    - b" })
+      api.nvim_win_set_cursor(0, { 2, 0 })
+      local ok, err = pcall(H.feed, "A<CR><Esc>")
+      package.loaded["blink.cmp"] = blink
+      vim.keymap.del("i", "<CR>")
+      eq(ok, true, err)
+      eq(api.nvim_buf_get_lines(0, 0, -1, false), { "- a", "    - bZ" })
+    end,
+  },
+  {
+    "a previous mapping that calls back into markwright ends with the plain key",
+    fn = function()
+      local util = require("markwright.util")
+      local buf = open()
+      local key = buf .. ":i:<Tab>"
+      local saved = util._fallback[key]
+      -- e.g. a completion plugin whose own fallback is markwright's <Tab>
+      util._fallback[key] = {
+        expr = 1,
+        callback = function()
+          return util.fallback(buf, "i", "<Tab>")
+        end,
+      }
+      local ok, out = pcall(util.fallback, buf, "i", "<Tab>")
+      util._fallback[key] = saved
+      eq(ok, true)
+      eq(out, "<Tab>")
+    end,
+  },
 }
 
 local failed, total = H.run("buffer lifecycle", cases)

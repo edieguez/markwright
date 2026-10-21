@@ -110,7 +110,16 @@ end
 
 --- Remember the mapping that exists before ours (call before mapping).
 function M.save_fallback(buf, mode, lhs)
-  local m = vim.fn.maparg(lhs, mode, false, true)
+  local m
+  vim.api.nvim_buf_call(buf, function()
+    m = vim.fn.maparg(lhs, mode, false, true)
+  end)
+  if m and m.desc and vim.startswith(m.desc, "markwright: ") then
+    -- ours, still there from an earlier attach (:bunload keeps a buffer's
+    -- keymaps): keep the mapping saved back then, or markwright would fall
+    -- back to itself
+    return
+  end
   M._fallback[fkey(buf, mode, lhs)] = (m and not vim.tbl_isempty(m)) and m or nil
 end
 
@@ -121,17 +130,26 @@ function M._run_fallback(key)
   end
 end
 
+local running = {} ---@type table<string, true> fallbacks being run now
+
 --- Keys to return from an `expr` mapping to run the previous behavior.
 function M.fallback(buf, mode, lhs)
   M._fell_back = true -- markwright didn't act (usage.lua doesn't count it)
   local key = fkey(buf, mode, lhs)
   local m = M._fallback[key]
-  if not m then
+  if not m or running[key] then
+    -- nothing before ours, or the previous mapping came back to us: plain key
     return lhs
   end
   if m.callback then
     if m.expr == 1 then
-      return m.callback() or ""
+      running[key] = true
+      local ok, out = pcall(m.callback)
+      running[key] = nil
+      if not ok then
+        error(out, 0)
+      end
+      return out or ""
     end
     return ("<Cmd>lua require('markwright.util')._run_fallback(%q)<CR>"):format(key)
   end

@@ -4,6 +4,12 @@ All notable changes to markwright are documented here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [4.6.1] - 2026-10-20
+
+### Fixed
+
+- **Stack overflow on `<CR>` (or `<Tab>`, `<S-Tab>`, the checkbox and move keys) while a completion menu was open**, in a buffer that had been unloaded and reopened (`:bunload`, a reload). Setting the buffer up again saved markwright's own mapping as "the mapping before markwright", so handing the key to the completion plugin called markwright again, endlessly. markwright now keeps the mapping it saved the first time, and a previous mapping that calls back into markwright ends with the plain key instead of looping.
+
 ## [4.6.0] - 2026-10-18
 
 ### Changed
@@ -238,7 +244,8 @@ First release. Requires Neovim 0.10 or later (tested on 0.10.0 and 0.11).
 - Image paste is macOS only.
 - When a selection only partly covers a formatted span, the whole span is removed; this may change.
 
-[Unreleased]: https://github.com/edieguez/markwright/compare/v4.6.0...HEAD
+[Unreleased]: https://github.com/edieguez/markwright/compare/v4.6.1...HEAD
+[4.6.1]: https://github.com/edieguez/markwright/compare/v4.6.0...v4.6.1
 [4.6.0]: https://github.com/edieguez/markwright/compare/v4.5.0...v4.6.0
 [4.5.0]: https://github.com/edieguez/markwright/compare/v4.4.3...v4.5.0
 [4.4.3]: https://github.com/edieguez/markwright/compare/v4.4.2...v4.4.3
