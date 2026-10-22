@@ -5,9 +5,7 @@ local util = require("markwright.util")
 
 local M = {}
 
-local function get_line(buf, row)
-  return api.nvim_buf_get_lines(buf, row, row + 1, false)[1] or ""
-end
+local get_line = util.get_line
 
 --- Empty, or only a blockquote prefix (`>`, `> >`)?
 local function is_empty(line)
@@ -36,7 +34,7 @@ end
 function M.fence_for(lines)
   local longest = 0
   for _, l in ipairs(lines) do
-    local run = l:match("^%s*(`+)")
+    local run = l:match("^[%s>]*(`+)")
     if run then
       longest = math.max(longest, #run)
     end
@@ -44,8 +42,12 @@ function M.fence_for(lines)
   return string.rep("`", math.max(3, longest + 1))
 end
 
---- The paragraph around `row` (0-based): the run of non-blank lines.
-local function paragraph(buf, row)
+--- The paragraph around `row` (0-based): the run of non-blank lines (a bare
+--- `>` counts as blank). Returns srow, erow, or nil on a blank line.
+function M.paragraph(buf, row)
+  if is_empty(get_line(buf, row)) then
+    return nil
+  end
   local sr, er = row, row
   local last = api.nvim_buf_line_count(buf) - 1
   while sr > 0 and not is_empty(get_line(buf, sr - 1)) do
@@ -73,7 +75,7 @@ function M.wrap_paragraph(buf, row)
   if in_block(buf, row) then
     return util.warn("code fence skipped inside code")
   end
-  M.wrap(buf, paragraph(buf, row))
+  M.wrap(buf, M.paragraph(buf, row))
 end
 
 --- `expr` rhs for <P>f: wrapping repeats with `.` (same language); inserting
@@ -158,13 +160,6 @@ function M.wrap(buf, srow, erow)
       api.nvim_win_set_cursor(0, { s + 1, #prefix })
     end
   end)
-end
-
-function M.wrap_visual()
-  local buf = api.nvim_get_current_buf()
-  local s = api.nvim_buf_get_mark(buf, "<")[1] - 1
-  local e = api.nvim_buf_get_mark(buf, ">")[1] - 1
-  M.wrap(buf, s, e)
 end
 
 return M

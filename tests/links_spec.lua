@@ -91,6 +91,8 @@ local cases = {
     "title parse: <title> with entities",
     fn = function()
       eq(title.parse("<html><head><TITLE lang=en>\n  Tom &amp; Jerry &#8212; &#x41;  </TITLE>"), "Tom & Jerry — A")
+      -- past the last code point: kept as written, no error
+      eq(title.parse("<title>a &#99999999999; &#x110000; b</title>"), "a &#99999999999; &#x110000; b")
     end,
   },
   {

@@ -101,6 +101,18 @@ local cases = {
     end,
   },
   {
+    "updated: a YAML comment on the line is kept",
+    fn = function()
+      config.options.frontmatter.update_on_save = true
+      local path = vim.fn.tempname() .. ".md"
+      local buf = H.buf({ "---", "updated: 2020-01-01  # set by hook", "---", "x" }, { 4, 0 }, path)
+      vim.bo[buf].buftype = ""
+      vim.cmd("silent write")
+      eq(vim.fn.readfile(path)[2], "updated: " .. TODAY .. "  # set by hook")
+      vim.fn.delete(path)
+    end,
+  },
+  {
     "nothing is added, and it's off by default",
     fn = function()
       local path = vim.fn.tempname() .. ".md"

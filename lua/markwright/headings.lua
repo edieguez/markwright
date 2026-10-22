@@ -5,9 +5,7 @@ local util = require("markwright.util")
 
 local M = {}
 
-local function get_line(buf, row)
-  return api.nvim_buf_get_lines(buf, row, row + 1, false)[1] or ""
-end
+local get_line = util.get_line
 
 --- Convert a setext heading containing `row` to ATX. Returns the row of the
 --- resulting heading (or nil if `row` isn't in a setext heading).
@@ -78,10 +76,12 @@ function M.change(buf, srow, erow, delta, o)
   if not (o and o.no_break) then
     util.undo_break(buf)
   end
-  local changed = false
+  local changed, in_code = false, false
   local r = srow
   while r <= erow do
-    if ts.code_context(ts.parse(buf, r), r, 0) ~= "block" then
+    if ts.code_context(ts.parse(buf, r), r, 0) == "block" then
+      in_code = true
+    else
       local before = api.nvim_buf_line_count(buf)
       local atx = setext_to_atx(buf, r)
       if atx then
@@ -97,7 +97,11 @@ function M.change(buf, srow, erow, delta, o)
     r = r + 1
   end
   if not changed and not (o and o.quiet) then
-    util.notify(delta > 0 and "already at level 6" or "not a heading")
+    if in_code then
+      util.warn("headings skipped inside code")
+    else
+      util.notify(delta > 0 and "already at level 6" or "not a heading")
+    end
   end
   return changed
 end
@@ -111,13 +115,6 @@ function M.change_cursor(delta)
   local line = get_line(buf, row)
   local text_col = #(line:match("^%s*#+%s+") or "")
   api.nvim_win_set_cursor(0, { row + 1, math.min(text_col, math.max(0, #line - 1)) })
-end
-
-function M.change_visual(delta)
-  local buf = api.nvim_get_current_buf()
-  local s = api.nvim_buf_get_mark(buf, "<")[1] - 1
-  local e = api.nvim_buf_get_mark(buf, ">")[1] - 1
-  M.change(buf, s, e, delta * math.max(util.count1(), 1))
 end
 
 return M

@@ -9,6 +9,11 @@ function M.warn(msg)
   M.notify(msg, vim.log.levels.WARN)
 end
 
+--- Line `row` (0-based) of `buf`, or "" past the end.
+function M.get_line(buf, row)
+  return api.nvim_buf_get_lines(buf, row, row + 1, false)[1] or ""
+end
+
 --- Byte length of the block prefix that formatting must never touch:
 --- indentation, blockquote markers, list markers, task checkboxes, heading hashes.
 ---@param line string

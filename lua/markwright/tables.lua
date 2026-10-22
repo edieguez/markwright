@@ -7,10 +7,6 @@ local util = require("markwright.util")
 
 local M = {}
 
-local function trim(s)
-  return (s:gsub("^%s+", ""):gsub("%s+$", ""))
-end
-
 local function width(s)
   return vim.fn.strdisplaywidth(s)
 end
@@ -49,7 +45,6 @@ function M.split_row(line)
     #segs > 1
     and line:sub(last[1] + 1, last[2]):match("^%s*$")
     and line:sub(last[1], last[1]) == "|"
-    and line:sub(last[1] - 1, last[1] - 1) ~= "\\"
   then
     table.remove(segs)
   end
@@ -57,7 +52,7 @@ function M.split_row(line)
   for _, sg in ipairs(segs) do
     local raw = line:sub(sg[1] + 1, sg[2])
     local lead = #raw:match("^%s*")
-    table.insert(cells, { text = trim(raw), rs = sg[1], re = sg[2], s = sg[1] + lead })
+    table.insert(cells, { text = vim.trim(raw), rs = sg[1], re = sg[2], s = sg[1] + lead })
   end
   return cells
 end
@@ -439,7 +434,7 @@ function M.csv_fields(line, sep)
   end
   table.insert(out, field)
   for k, f in ipairs(out) do
-    out[k] = trim(f):gsub("|", "\\|")
+    out[k] = vim.trim(f):gsub("|", "\\|")
   end
   return out
 end
@@ -536,21 +531,10 @@ end
 --- <P>tc in normal mode: convert the paragraph (non-blank lines) around the cursor.
 function M.from_csv_paragraph()
   local buf = api.nvim_get_current_buf()
-  local row = api.nvim_win_get_cursor(0)[1] - 1
-  local function blank(r)
-    return (api.nvim_buf_get_lines(buf, r, r + 1, false)[1] or ""):match("^%s*$") ~= nil
+  local sr, er = require("markwright.fence").paragraph(buf, api.nvim_win_get_cursor(0)[1] - 1)
+  if sr then
+    M.from_csv_prompt(buf, sr, er)
   end
-  if blank(row) then
-    return
-  end
-  local sr, er, last = row, row, api.nvim_buf_line_count(buf) - 1
-  while sr > 0 and not blank(sr - 1) do
-    sr = sr - 1
-  end
-  while er < last and not blank(er + 1) do
-    er = er + 1
-  end
-  M.from_csv_prompt(buf, sr, er)
 end
 
 function M.from_csv_visual()
@@ -624,9 +608,6 @@ function M.to_csv()
   end)
 end
 
---- Add an empty row below the cursor (below the delimiter when on the header),
---- or above it with `above = true` (not above the header: a table's first row
---- is always its header).
 --- Add [count] empty rows below the cursor's row, or above it with `above = true`.
 function M.add_row(above, n)
   local t, buf = current()
@@ -755,8 +736,6 @@ local function square(t)
   return n
 end
 
---- Move the column under the cursor left (dir = -1) or right (dir = 1),
---- [count] times. Alignment markers move with it; the cursor follows.
 --- Move the cursor's column (or columns `range`, { c1, c2 }) left (dir = -1)
 --- or right (dir = 1), [count] times; alignments move with them.
 function M.move_col(dir, range)
@@ -870,7 +849,9 @@ end
 --- currency signs, `%` and Markdown emphasis ignored), else lowercase text.
 local function sort_key(text)
   local plain = vim.trim((text:gsub("[*_`~=]", "")))
-  local num = plain:gsub("^[%$€£¥]", ""):gsub("%%$", ""):gsub("(%d),(%d%d%d)", "%1%2")
+  -- € £ ¥ are several bytes each: strip them as strings, not a character set
+  local num = plain:gsub("^%$", ""):gsub("^€", ""):gsub("^£", ""):gsub("^¥", "")
+  num = num:gsub("%%$", ""):gsub("(%d),(%d%d%d)", "%1%2")
   num = num:gsub("(%d),(%d%d%d)", "%1%2")
   return tonumber(num), vim.fn.tolower(plain), plain == ""
 end

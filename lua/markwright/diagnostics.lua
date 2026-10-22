@@ -4,16 +4,11 @@ local config = require("markwright.config")
 local ts = require("markwright.ts")
 local doc = require("markwright.doc")
 local links = require("markwright.links")
+local url_decode = require("markwright.follow").url_decode
 
 local M = {}
 
 M.ns = api.nvim_create_namespace("markwright")
-
-local function url_decode(s)
-  return (s:gsub("%%(%x%x)", function(h)
-    return string.char(tonumber(h, 16))
-  end))
-end
 
 local function slug_set(headings)
   local set = {}

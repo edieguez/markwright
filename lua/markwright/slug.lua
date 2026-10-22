@@ -15,15 +15,40 @@ function M.strip_links(text)
   return s
 end
 
---- Inline markdown → plain text, as a renderer would show it.
-function M.plain(text)
-  local s = M.strip_links(text)
+--- Inline markup outside code spans → plain text.
+local function plain_text(s)
   s = s:gsub("</?%a[^>]*>", "") -- html tags
-  s = s:gsub("[*`~]", ""):gsub("==", "")
+  s = s:gsub("[*~]", ""):gsub("==", "")
   -- underscores used for emphasis sit at word boundaries; intraword ones stay
   s = s:gsub("^_+", ""):gsub("_+$", ""):gsub("(%s)_+", "%1"):gsub("_+(%s)", "%1")
   s = s:gsub("\\(%p)", "%1")
   return s
+end
+
+--- Inline markdown → plain text, as a renderer would show it. Code spans
+--- keep their content as written.
+function M.plain(text)
+  local s = M.strip_links(text)
+  local out, pos = {}, 1
+  while true do
+    local a, b = s:find("`+", pos)
+    local c, d = b, nil
+    while c do -- the closing run has the same length
+      c, d = s:find("`+", c + 1)
+      if c and d - c == b - a then
+        break
+      end
+      c = d
+    end
+    if not c then
+      table.insert(out, plain_text(s:sub(pos)))
+      break
+    end
+    table.insert(out, plain_text(s:sub(pos, a - 1)))
+    table.insert(out, s:sub(b + 1, c - 1))
+    pos = d + 1
+  end
+  return table.concat(out)
 end
 
 ---@param text string heading text (inline markdown)

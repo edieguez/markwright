@@ -24,6 +24,7 @@ local cases = {
       eq(texts("| a\\|b | c |"), { "a\\|b", "c" })
       eq(texts("  |x|  y  |"), { "x", "y" })
       eq(texts("| a | b\\|"), { "a", "b\\|" })
+      eq(texts("| a | b \\\\|"), { "a", "b \\\\" }) -- `\\` is an escaped backslash: the pipe is real
     end,
   },
   {
@@ -484,6 +485,13 @@ local cases = {
     { 3, 2 },
     " mts",
     { "| p      | q   |", "| ------ | --- |", "| 30%    | c   |", "| $95    | b   |", "| $1,200 | a   |" },
+  },
+  {
+    "sort: €, £ and ¥ amounts count as numbers",
+    { "| p | q |", "|---|---|", "| €100 | a |", "| €20 | b |", "| ¥3 | c |" },
+    { 3, 2 },
+    " mts",
+    { "| p    | q   |", "| ---- | --- |", "| ¥3   | c   |", "| €20  | b   |", "| €100 | a   |" },
   },
   {
     "sort: mixed column as text, empty cells last (descending too)",

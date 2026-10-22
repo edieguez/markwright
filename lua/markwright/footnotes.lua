@@ -6,8 +6,6 @@ local doc = require("markwright.doc")
 
 local M = {}
 
-local DEF = "^%s*%[%^[^%]%s]+%]:"
-
 --- Next free numeric footnote id.
 function M.next_id(buf)
   local refs, defs = doc.footnotes(buf)
@@ -37,7 +35,7 @@ function M.add(buf, row, at)
   end
   local def = ref .. ": "
   local new
-  if last == 0 or lines[last]:match(DEF) then
+  if last == 0 or lines[last]:match(ts.FOOTNOTE_DEF) then
     new = { def }
   else
     new = { "", def }
@@ -87,7 +85,7 @@ end
 -- Renumbering ----------------------------------------------------------------
 
 local function is_def_line(line)
-  return line:match("^%s*%[%^[^%]%s]+%]:") ~= nil
+  return line:match(ts.FOOTNOTE_DEF) ~= nil
 end
 
 --- Last row (0-based) of the definition starting at `row`: continuation

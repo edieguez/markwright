@@ -1029,7 +1029,7 @@ Checking an item appends when it was done, in your local time; unchecking remove
 ```
 
 - The stamp goes at the end of the item's first line, and it's part of the same undo step as the check.
-- An item that already has a stamp isn't stamped twice. Adding a checkbox to a plain item (`- task` → `- [ ] task`) doesn't stamp.
+- An item that already has a stamp isn't stamped twice. A format that starts with a date code (`"%Y-%m-%d"`) is the exception: a date at the end of the line could be one you typed, so checking always stamps, and unchecking removes only the stamp it added in this session. Adding a checkbox to a plain item (`- task` → `- [ ] task`) doesn't stamp.
 - Change the format with `lists.done_date`, using [`os.date`](https://www.lua.org/manual/5.1/manual.html#pdf-os.date) codes (`%Y %m %d %H %M %S %F %R %T` …), or set it to `false` to turn stamps off:
 
 ```lua

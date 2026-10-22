@@ -120,6 +120,11 @@ local cases = {
       eq(got.words, 6)
       H.feed("gg0<C-v>j$<F2><Esc>")
       eq(got.words, 6)
+      -- blockwise: the same screen columns on every line, not the same bytes
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, { "äb cd", "ab cd" })
+      vim.api.nvim_win_set_cursor(0, { 1, 2 })
+      H.feed("<C-v>jl<F2><Esc>")
+      eq({ got.words, got.chars }, { 2, 2 }) -- "b" on each line
       eq(require("markwright").stats().selection, nil)
     end,
   },

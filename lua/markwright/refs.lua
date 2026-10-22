@@ -29,42 +29,6 @@ local function child(node, t)
   end
 end
 
--- Definitions ----------------------------------------------------------------
-
----@class markwright.RefDef
----@field row integer
----@field label string as written
----@field dest string as written (may be <…>)
----@field title? string as written, with its quotes
-
---- Reference definitions (footnotes excluded), by normalized label.
----@return table<string, markwright.RefDef>
-function M.definitions(buf)
-  local code = doc.code_rows(buf)
-  local defs = {}
-  for i, line in ipairs(api.nvim_buf_get_lines(buf, 0, -1, false)) do
-    local row = i - 1
-    if not code[row] then
-      local label, rest = line:match("^ ? ? ?%[([^%]^][^%]]*)%]:%s*(.*)$")
-      if label and rest ~= "" then
-        local dest, title
-        if rest:sub(1, 1) == "<" then
-          dest, title = rest:match("^(<[^>]*>)%s*(.*)$")
-        else
-          dest, title = rest:match("^(%S+)%s*(.*)$")
-        end
-        if dest then
-          local key = doc.normalize_label(label)
-          if not defs[key] then
-            defs[key] = { row = row, label = label, dest = dest, title = title ~= "" and title or nil }
-          end
-        end
-      end
-    end
-  end
-  return defs
-end
-
 -- Links ----------------------------------------------------------------------
 
 ---@class markwright.RefLink
@@ -83,7 +47,7 @@ end
 --- and collapsed links only count when their label has a definition.
 ---@return markwright.RefLink[]
 function M.collect(buf, srow, erow, defs)
-  defs = defs or M.definitions(buf)
+  defs = defs or doc.definitions(buf)
   local p = ts.parse(buf, srow, erow)
   local out = {}
   if not p then
@@ -165,11 +129,11 @@ end
 --- the link text; a URL that already has a definition reuses its label.
 ---@return integer converted
 function M.to_reference(buf, links)
-  local defs = M.definitions(buf)
+  local defs = doc.definitions(buf)
   local by_url, taken = {}, {}
   for key, d in pairs(defs) do
     taken[key] = d
-    by_url[bare(d.dest) .. "\0" .. (d.title or "")] = d.label
+    by_url[d.dest .. "\0" .. (d.title or "")] = d.label
   end
   local new_defs = {}
   local function label_for(l)
@@ -230,7 +194,7 @@ end
 --- reference uses any more are removed.
 ---@return integer converted
 function M.to_inline(buf, links)
-  local defs = M.definitions(buf)
+  local defs = doc.definitions(buf)
   local todo, labels = {}, {}
   for _, l in ipairs(links) do
     if l.kind == "ref" then
@@ -247,7 +211,7 @@ function M.to_inline(buf, links)
   util.undo_break(buf)
   for k = #todo, 1, -1 do
     local l, d = todo[k].l, todo[k].d
-    local s = ("%s[%s](%s%s)"):format(l.image and "!" or "", l.text, d.dest, d.title and (" " .. d.title) or "")
+    local s = ("%s[%s](%s%s)"):format(l.image and "!" or "", l.text, d.raw, d.title and (" " .. d.title) or "")
     api.nvim_buf_set_text(buf, l.sr, l.sc, l.er, l.ec, vim.split(s, "\n"))
   end
   -- drop the definitions nothing refers to any more
@@ -259,7 +223,7 @@ function M.to_inline(buf, links)
     end
   end
   local rows = {}
-  for key, d in pairs(M.definitions(buf)) do
+  for key, d in pairs(doc.definitions(buf)) do
     if labels[key] and not still[key] then
       table.insert(rows, d.row)
     end

@@ -29,12 +29,17 @@ local NAMED = {
   trade = "™",
 }
 
+--- The character, or nil (the entity stays) past the last Unicode code point.
+local function char(n)
+  return n <= 0x10FFFF and vim.fn.nr2char(n) or nil
+end
+
 function M.decode_entities(s)
   s = s:gsub("&#[xX](%x+);", function(h)
-    return vim.fn.nr2char(tonumber(h, 16))
+    return char(tonumber(h, 16))
   end)
   s = s:gsub("&#(%d+);", function(d)
-    return vim.fn.nr2char(tonumber(d))
+    return char(tonumber(d))
   end)
   s = s:gsub("&(%a+);", function(name)
     return NAMED[name]
@@ -88,6 +93,7 @@ function M.fetch(url, cb)
   local cmd = {
     "curl",
     "-sL",
+    "-g", -- `[...]` and `{...}` in a URL are literal, not curl's globbing
     "--compressed",
     "--max-time",
     tostring(math.max(1, math.ceil(timeout / 1000))),

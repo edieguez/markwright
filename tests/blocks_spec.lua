@@ -85,6 +85,12 @@ local cases = {
   },
   { "wrap cancelled", { "a" }, { 1, 0 }, "V mf", { "a" }, setup = A(nil) },
   {
+    "fence length counts fences inside a blockquote",
+    fn = function()
+      H.eq(require("markwright.fence").fence_for({ "> ```lua", "> x", "> ```" }), "````")
+    end,
+  },
+  {
     ":Markwright fence with range",
     { "a", "b" },
     { 1, 0 },

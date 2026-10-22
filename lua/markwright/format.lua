@@ -21,9 +21,7 @@ M.formats = {
   highlight = {}, -- not in the grammar: text scan
 }
 
-local function get_line(buf, row)
-  return api.nvim_buf_get_lines(buf, row, row + 1, false)[1] or ""
-end
+local get_line = util.get_line
 
 local function marker_for(fmt)
   return config.options.format[fmt].marker
@@ -83,23 +81,53 @@ local function remove_node(buf, tr, node, spec)
   end
 end
 
---- `==x==` pairs on a line as 0-based {start, end_exclusive}.
-local function highlight_spans(line)
+--- `==x==` pairs on a line as 0-based {start, end_exclusive}. Skips code
+--- spans and a comparison like `a == b` (spaces on both sides).
+function M.highlight_spans(line)
+  local scan = require("markwright.doc").strip_code_spans(line)
   local spans, open, i = {}, nil, 1
   while true do
-    local s = line:find("==", i, true)
+    local s = scan:find("==", i, true)
     if not s then
       break
     end
-    if open then
-      table.insert(spans, { open - 1, s + 1 })
-      open = nil
-    else
-      open = s
+    -- `a == b` is a comparison, not a marker
+    local spaced = scan:sub(s - 1, s - 1):match("%s") and scan:sub(s + 2, s + 2):match("%s")
+    if not spaced then
+      if open then
+        table.insert(spans, { open - 1, s + 1 })
+        open = nil
+      else
+        open = s
+      end
     end
     i = s + 2
   end
   return spans
+end
+local highlight_spans = M.highlight_spans
+
+--- Display columns of the character at byte `col`: start, end (exclusive).
+function M.display_span(line, col)
+  local s = vim.fn.strdisplaywidth(line:sub(1, col))
+  local n = math.max(util.char_len(line, col), 1)
+  return s, s + math.max(vim.fn.strdisplaywidth(line:sub(col + 1, col + n), s), 1)
+end
+
+--- Byte range [a, b) of the characters of `line` that cover display columns
+--- [vs, ve), for a blockwise selection.
+function M.display_cols(line, vs, ve)
+  local a, i, v = nil, 0, 0
+  while i < #line and v < ve do
+    local n = math.max(util.char_len(line, i), 1)
+    local w = vim.fn.strdisplaywidth(line:sub(i + 1, i + n), v)
+    if not a and v + w > vs then
+      a = i
+    end
+    i, v = i + n, v + w
+  end
+  a = a or i
+  return a, i
 end
 
 --- Text-based removal: highlight always, other formats only without a parser.
@@ -201,14 +229,19 @@ end
 local function segments(buf, mtype, srow, scol, erow, ecol)
   local segs = {}
   local trim = config.options.format.trim_whitespace
+  local vs, ve -- blockwise: the same display columns on every line
+  if mtype == "block" then
+    local s1, e1 = M.display_span(get_line(buf, srow), scol)
+    local s2, e2 = M.display_span(get_line(buf, erow), ecol)
+    vs, ve = math.min(s1, s2), math.max(e1, e2)
+  end
   for row = srow, erow do
     local line = get_line(buf, row)
     local a, b
     if mtype == "line" then
       a, b = 0, #line
     elseif mtype == "block" then
-      local lo, hi = math.min(scol, ecol), math.max(scol, ecol)
-      a, b = lo, hi + math.max(util.char_len(line, hi), 1)
+      a, b = M.display_cols(line, vs, ve)
     else
       a = (row == srow) and scol or 0
       b = (row == erow) and (ecol + math.max(util.char_len(line, ecol), 1)) or #line

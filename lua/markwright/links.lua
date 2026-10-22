@@ -23,9 +23,7 @@ local function opts()
   return config.options.links
 end
 
-local function get_line(buf, row)
-  return api.nvim_buf_get_lines(buf, row, row + 1, false)[1] or ""
-end
+local get_line = util.get_line
 
 local function trim(s)
   return (s:gsub("^%s+", ""):gsub("%s+$", ""))

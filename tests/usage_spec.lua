@@ -206,13 +206,16 @@ local cases = {
     end,
   },
   {
-    "a broken file starts over instead of failing",
+    "a broken file starts over instead of failing, and is kept aside",
     fn = function()
       vim.fn.mkdir(vim.fs.dirname(usage.path()), "p")
       vim.fn.writefile({ "{not json" }, usage.path())
       usage.record("toc", "key")
       eq(usage.flush(), true)
       eq(count("toc"), 1)
+      eq(vim.fn.readfile(usage.path() .. ".bad"), { "{not json" })
+      eq(vim.fn.filereadable(("%s.%d.tmp"):format(usage.path(), vim.uv.os_getpid())), 0)
+      os.remove(usage.path() .. ".bad")
     end,
   },
   {

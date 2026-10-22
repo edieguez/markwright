@@ -59,6 +59,7 @@ local cases = {
     { 4, 0 },
   },
   { "move is one undo step", { "1. a", "2. b" }, { 1, 0 }, { " mlJ", "u" }, { "1. a", "2. b" } },
+  { "move keeps lazy numbering", { "1. a", "1. b", "1. c" }, { 1, 0 }, " mlJ", { "1. b", "1. a", "1. c" } },
   { "move in a blockquote", { "> - a", "> - b" }, { 1, 3 }, " mlJ", { "> - b", "> - a" } },
   {
     "progress cookies follow",

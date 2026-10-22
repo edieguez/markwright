@@ -117,7 +117,7 @@ function M.clean(line, in_table)
   end
   s = s:gsub("^%[[ xX%-]%]%s+", "")
   s = s:gsub("^%s*#+%s+", ""):gsub("%s+#+%s*$", "")
-  s = s:gsub("^%s*%[%^[^%]]+%]:%s*", "") -- footnote definition label
+  s = s:gsub(ts.FOOTNOTE_DEF, "") -- footnote definition label
   s = s:gsub("^%s*%[!%a+%]%s*", "") -- callout marker
   -- HTML
   s = s:gsub("<!%-%-.-%-%->", " "):gsub("<!%-%-.*$", " ")
@@ -230,7 +230,7 @@ end
 ---@param range? { [1]: integer, [2]: integer, [3]: integer?, [4]: integer?, block: boolean? }
 ---  0-based rows {srow, erow}; with columns {srow, scol, erow, ecol} (byte
 ---  columns, ecol exclusive) the first and last lines are cut; with
----  `block = true` every line is cut to the same columns.
+---  `block = true` the columns are display columns and every line is cut to them.
 ---@return { words: integer, chars: integer, reading_minutes: integer, selection: boolean? }
 function M.count(buf, range)
   buf = (buf == nil or buf == 0) and api.nvim_get_current_buf() or buf
@@ -249,8 +249,11 @@ function M.count(buf, range)
       w, c = w + (d.words[r] or 0), c + (d.chars[r] or 0)
     elseif d.kind[r] ~= "skip" then
       local line = api.nvim_buf_get_lines(buf, r, r + 1, false)[1] or ""
-      local from = (range.block or r == srow) and scol or 0
-      local to = (range.block or r == erow) and ecol or #line
+      local from = (r == srow) and scol or 0
+      local to = (r == erow) and ecol or #line
+      if range.block then
+        from, to = require("markwright.format").display_cols(line, scol, ecol)
+      end
       local lw, lc = M.count_text(M.clean(line:sub(from + 1, to), d.kind[r] == "table"))
       w, c = w + lw, c + lc
     end
@@ -273,15 +276,22 @@ function M.visual_range()
   if m == "V" then
     return { srow, erow }
   end
-  local scol, ecol = a[3] - 1, b[3]
   if m == "\22" then
-    scol, ecol = math.min(a[3], b[3]) - 1, math.max(a[3], b[3])
+    -- the same display columns on every line (bytes differ with wide characters)
+    local format = require("markwright.format")
+    local function span(pos)
+      return format.display_span(api.nvim_buf_get_lines(0, pos[2] - 1, pos[2], false)[1] or "", pos[3] - 1)
+    end
+    local s1, e1 = span(a)
+    local s2, e2 = span(b)
+    return { srow, math.min(s1, s2), erow, math.max(e1, e2), block = true }
   end
+  local scol, ecol = a[3] - 1, b[3]
   -- include the whole last character
   local last = api.nvim_buf_get_lines(0, erow, erow + 1, false)[1] or ""
   local len = #(last:sub(ecol):match("^" .. CHAR) or "")
   ecol = ecol + math.max(len - 1, 0)
-  return { srow, scol, erow, ecol, block = m == "\22" }
+  return { srow, scol, erow, ecol }
 end
 
 --- Counts for the current buffer, or its visual selection when one is active.

@@ -18,7 +18,8 @@ end
 
 local function clean_heading(text)
   text = text:gsub("%s+#+%s*$", ""):gsub("^#+%s*$", "") -- closing hashes
-  return (text:gsub("%s+", " "):gsub("^ ", ""):gsub(" $", ""))
+  -- only line breaks (setext headings): GitHub keeps doubled spaces (`a--b`)
+  return vim.trim((text:gsub("%s*\n%s*", " ")))
 end
 
 local function collect_headings(root, source)
@@ -133,20 +134,34 @@ function M.strip_code_spans(line)
   )
 end
 
---- Link reference definitions `[label]: dest` (footnotes excluded).
----@return table<string, {row: integer, dest: string, col: integer}>
+--- Link reference definitions `[label]: dest "title"` (footnotes excluded),
+--- by normalized label. `dest` is bare, `raw` as written (may be `<…>`),
+--- `col` where `raw` starts (0-based), `title` as written with its quotes.
+---@return table<string, {row: integer, col: integer, dest: string, raw: string, label: string, title: string?}>
 function M.definitions(buf, code)
   code = code or M.code_rows(buf)
   local defs = {}
   for i, line in ipairs(api.nvim_buf_get_lines(buf, 0, -1, false)) do
     local row = i - 1
     if not code[row] then
-      local indent, label, raw = line:match("^(%s?%s?%s?)%[([^%]^][^%]]*)%]:%s*(%S+)")
-      if label then
-        local key = M.normalize_label(label)
-        if not defs[key] then
-          local col = line:find(raw, #indent + #label + 3, true) or 1
-          defs[key] = { row = row, dest = (raw:gsub("^<(.*)>$", "%1")), col = col - 1 }
+      local label, at, rest = line:match("^ ? ? ?%[([^%]^][^%]]*)%]:%s*()(.*)$")
+      if label and rest ~= "" then
+        local raw, title
+        if rest:sub(1, 1) == "<" then
+          raw, title = rest:match("^(<[^>]*>)%s*(.*)$")
+        else
+          raw, title = rest:match("^(%S+)%s*(.*)$")
+        end
+        local key = raw and M.normalize_label(label)
+        if key and not defs[key] then
+          defs[key] = {
+            row = row,
+            col = at - 1,
+            dest = (raw:gsub("^<(.*)>$", "%1")),
+            raw = raw,
+            label = label,
+            title = title ~= "" and title or nil,
+          }
         end
       end
     end
@@ -169,7 +184,9 @@ function M.footnotes(buf, code)
     local row = i - 1
     if not code[row] then
       local scan = M.strip_code_spans(line)
-      local def_indent, def_id = scan:match("^(%s*)%[%^([^%]%s]+)%]:")
+      local def_prefix = scan:match(ts.FOOTNOTE_DEF)
+      local def_indent = def_prefix and def_prefix:match("^[%s>]*")
+      local def_id = def_prefix and def_prefix:match("%[%^([^%]%s]+)%]")
       if def_id and not defs[def_id] then
         defs[def_id] = { row = row, col = #def_indent }
       end

@@ -56,6 +56,13 @@ local cases = {
   { "ciu", LINK, { 1, 6 }, "ciuhttps://y.io<Esc>", { "see [the docs](https://y.io) ok" } },
   { "URL in angle brackets", { "[t](<a b.md>)" }, { 1, 1 }, "diu", { "[t](<>)" } },
   {
+    "URL of a definition in angle brackets",
+    { "[t][r]", "", "[r]: <https://e.com>" },
+    { 1, 1 },
+    "diu",
+    { "[t][r]", "", "[r]: <>" },
+  },
+  {
     "URL of a reference link's definition",
     { "[t][r]", "", "[r]: http://x" },
     { 1, 1 },
@@ -73,6 +80,7 @@ local cases = {
   { "dic in inline code", { "a `co de` b" }, { 1, 4 }, "dic", { "a `` b" } },
   { "dac in inline code", { "a `co de` b" }, { 1, 4 }, "dac", { "a  b" } },
   { "dic skips padding", { "`` `x ``" }, { 1, 4 }, "dic", { "``  ``" } },
+  { "dic on a code span over two lines", { "a `foo", "bar` b" }, { 1, 4 }, "dic", { "a `` b" } },
   {
     "dif in a fenced block",
     { "a", "```lua", "x = 1", "y = 2", "```", "b" },
@@ -91,6 +99,13 @@ local cases = {
   { "cif replaces block content", { "```", "old", "```" }, { 2, 0 }, "cifnew<Esc>", { "```", "new", "```" } },
   { "empty block: nothing", { "```", "```" }, { 1, 0 }, "dif", { "```", "```" } },
   {
+    "dif in a blockquote keeps the closing fence",
+    { "> ```", "> code", "> ```" },
+    { 2, 2 },
+    "dif",
+    { "> ```", "> ```" },
+  },
+  {
     "indented code block",
     { "text", "", "    code", "    more", "", "end" },
     { 3, 4 },
@@ -106,6 +121,13 @@ local cases = {
   { "di# on a parent includes subsections", SECTIONS, { 3, 0 }, "di#", { "# A", "" } },
   { "ci#", SECTIONS, { 6, 0 }, "ci#new<Esc>", { "# A", "", "text a", "", "## B", "new", "", "## C", "c1" } },
   { "setext heading", { "Title", "=====", "body", "more" }, { 3, 0 }, "di#", { "Title", "=====" } },
+  {
+    "setext heading over two lines",
+    { "Foo", "bar", "===", "", "text" },
+    { 5, 0 },
+    "di#",
+    { "Foo", "bar", "===", "" },
+  },
   { "headings in code don't count", { "# A", "```", "# not", "```", "x" }, { 5, 0 }, "di#", { "# A" } },
 
   -- table cells
@@ -135,6 +157,7 @@ local cases = {
   { "innermost first", { "***bi***" }, { 1, 4 }, "di*", { "******" } },
   { "count reaches the outer span", { "***bi***" }, { 1, 4 }, "c2i*X<Esc>", { "*X*" } },
   { "strikethrough", { "~~del~~" }, { 1, 3 }, "di*", { "~~~~" } },
+  { "single-tilde strikethrough", { "a ~x~ b" }, { 1, 3 }, "ci*Y<Esc>", { "a ~Y~ b" } },
   { "highlight", { "a ==hl== b" }, { 1, 4 }, "di*", { "a ==== b" } },
   { "italic inside a link", { "[x *em* y](u)" }, { 1, 5 }, "di*", { "[x ** y](u)" } },
   { "searches forward on the line", { "x **y** z" }, { 1, 0 }, "di*", { "x **** z" } },

@@ -133,7 +133,8 @@ function M.on_save(buf)
     local key, value = line:match("^([%w_%-]+):%s*(.-)%s*$")
     if key and fields[key] then
       local q = value:match("^([\"'])") or ""
-      local new = ("%s: %s%s%s"):format(key, q, date, q)
+      local comment = value:match("%s+#.*$") or "" -- a YAML comment stays
+      local new = ("%s: %s%s%s%s"):format(key, q, date, q, comment)
       if new ~= line then
         pcall(vim.cmd, "undojoin")
         api.nvim_buf_set_lines(buf, row, row + 1, false, { new })

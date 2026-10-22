@@ -238,12 +238,13 @@ local cases = {
         return vim.system({ "curl", "-s", "-o", "/dev/null", base .. "/" }):wait().code == 0
       end, 50)
       local ok, err = pcall(function()
-        H.buf({ base .. "/ ok", base .. "/missing.html gone", "http://127.0.0.1:9/ refused" })
+        -- `[x]` is part of the URL, not curl globbing
+        H.buf({ base .. "/ ok", base .. "/?a[x]=1 ok", base .. "/missing.html gone", "http://127.0.0.1:9/ refused" })
         local s = run_sync()
         vim.wait(15000, function()
           return s ~= nil
         end, 20)
-        eq(s, { total = 3, broken = 2, restricted = 0 })
+        eq(s, { total = 4, broken = 2, restricted = 0 })
         local msgs = vim.tbl_map(function(d)
           return d.message
         end, vim.diagnostic.get(0, { namespace = uc.ns }))

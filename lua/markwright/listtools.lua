@@ -7,9 +7,7 @@ local lists = require("markwright.lists")
 
 local M = {}
 
-local function get_line(buf, row)
-  return api.nvim_buf_get_lines(buf, row, row + 1, false)[1] or ""
-end
+local get_line = util.get_line
 
 local function blank(line)
   return line:sub(util.bq_len(line) + 1):match("^%s*$") ~= nil
@@ -51,17 +49,8 @@ local function rows_of(buf, node)
 end
 
 local function siblings(node)
-  local out = {}
   local list = node:parent()
-  if not list then
-    return out
-  end
-  for c in list:iter_children() do
-    if c:type() == "list_item" then
-      table.insert(out, c)
-    end
-  end
-  return out
+  return list and lists.list_items(list) or {}
 end
 
 --- The items of the list under the cursor as blocks of lines, with the gaps
@@ -86,31 +75,27 @@ end
 --- Shift the non-blank lines of a block (except the first) by `delta` columns,
 --- after any blockquote prefix, so children stay under their (re-marked) parent.
 local function shift(lines, delta)
-  if delta == 0 then
-    return
-  end
   for i = 2, #lines do
-    local l = lines[i]
-    if not blank(l) then
-      local q = util.bq_len(l)
-      local pre, rest = l:sub(1, q), l:sub(q + 1)
-      if delta > 0 then
-        lines[i] = pre .. string.rep(" ", delta) .. rest
-      else
-        local sp = #rest:match("^ *")
-        lines[i] = pre .. rest:sub(math.min(sp, -delta) + 1)
-      end
+    if delta ~= 0 and not blank(lines[i]) then
+      lines[i] = lists.reindent(lines[i], delta)
     end
   end
 end
 
-M._shift = shift
-
 --- Write `order` (block indices) back over the list's rows; gaps stay in place.
---- Ordered items are renumbered from the list's original first number.
+--- Ordered items are renumbered from the list's original first number,
+--- unless every item has the same number (lazy numbering: `1.` `1.` `1.`).
 local function write_back(buf, blocks, gaps, order)
   local first = lists.parse(blocks[1].lines[1])
   local start = first and first.num
+  local lazy = #blocks > 1
+  for _, b in ipairs(blocks) do
+    local it = lists.parse(b.lines[1])
+    lazy = lazy and it ~= nil and it.num == start
+  end
+  if lazy then
+    start = nil
+  end
   local out = {}
   for k, b in ipairs(order) do
     local lines = vim.deepcopy(blocks[b].lines)
@@ -119,9 +104,7 @@ local function write_back(buf, blocks, gaps, order)
       local marker = tostring(start + k - 1) .. it.delim
       local delta = #marker - #it.marker
       lines[1] = it.bq .. it.indent .. marker .. lines[1]:sub(it.marker_col + #it.marker + 1)
-      if delta ~= 0 then
-        M._shift(lines, delta)
-      end
+      shift(lines, delta)
     end
     vim.list_extend(out, lines)
     if gaps[k] then
@@ -254,21 +237,6 @@ function M.sort(mode)
 end
 
 -- Lines <-> list ------------------------------------------------------------------
-
---- Rows of the paragraph (non-blank lines) around `row`.
-local function paragraph(buf, row)
-  if blank(get_line(buf, row)) then
-    return nil
-  end
-  local sr, er, last = row, row, api.nvim_buf_line_count(buf) - 1
-  while sr > 0 and not blank(get_line(buf, sr - 1)) do
-    sr = sr - 1
-  end
-  while er < last and not blank(get_line(buf, er + 1)) do
-    er = er + 1
-  end
-  return sr, er
-end
 
 local function skip(buf, row, line)
   return blank(line)
@@ -541,7 +509,7 @@ function M.convert(style, all)
     sr = rows_of(buf, sibs[1])
     _, er = rows_of(buf, sibs[#sibs])
   else
-    sr, er = paragraph(buf, row)
+    sr, er = require("markwright.fence").paragraph(buf, row)
     if not sr then
       return
     end

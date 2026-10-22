@@ -513,7 +513,8 @@ function M.rename()
     end
     local target = dir .. "/" .. new
     -- (a case-only change on a case-insensitive disk "exists" as the same file)
-    if vim.uv.fs_stat(target) and target:lower() ~= abs:lower() then
+    local st, cur = vim.uv.fs_stat(target), vim.uv.fs_stat(abs)
+    if st and not (st.ino == cur.ino and st.dev == cur.dev) then
       return util.warn(new .. " already exists")
     end
     local ok, err = vim.uv.fs_rename(abs, target)

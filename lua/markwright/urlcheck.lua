@@ -129,7 +129,8 @@ end
 
 local function curl_cmd(url, method)
   local secs = tostring(math.max(1, math.ceil(opts().timeout_ms / 1000)))
-  local cmd = { "curl", "-sS", "-o", "/dev/null", "-L", "--max-redirs", "10", "--max-time", secs }
+  -- -g: `[...]` and `{...}` in a URL are literal, not curl's globbing
+  local cmd = { "curl", "-sS", "-g", "-o", "/dev/null", "-L", "--max-redirs", "10", "--max-time", secs }
   vim.list_extend(cmd, { "-A", require("markwright.title").user_agent, "-w", "%{http_code}" })
   if method == "HEAD" then
     table.insert(cmd, "-I")

@@ -385,7 +385,8 @@ local cases = {
       }, bin .. "/osascript")
       vim.fn.setfperm(bin .. "/osascript", "rwxr-xr-x")
       local path_env = vim.env.PATH
-      vim.env.PATH = bin .. ":" .. path_env
+      -- only system folders besides ours: a real pngpaste (Homebrew) would win
+      vim.env.PATH = bin .. ":/usr/bin:/bin"
       vim.env.FAKE_INFO, vim.env.FAKE_FURL = SHOT, "/Users/me/My Pic.png"
       local got = {}
       local out = other .. "/with space.png"
@@ -518,6 +519,27 @@ local cases = {
       eq(vim.fn.readfile(dir .. "/assets/a.png"), { "1" })
       eq(vim.fn.readfile(dir .. "/assets/b.png"), { "2" })
       eq(lines(), { "![](assets/a.png)" })
+    end,
+  },
+  {
+    "rename: a case-only change never overwrites another file",
+    fn = function()
+      vim.fn.mkdir(dir .. "/assets", "p")
+      vim.fn.writefile({ "1" }, dir .. "/assets/c.png")
+      vim.fn.writefile({ "2" }, dir .. "/assets/C.png")
+      local sensitive = vim.fn.readfile(dir .. "/assets/c.png")[1] == "1"
+      doc({ "![](assets/c.png)" }, { 1, 0 })
+      H.queue = { "C" }
+      H.feed(" mP")
+      if sensitive then
+        -- two files: C.png already exists, nothing changes
+        eq(vim.fn.readfile(dir .. "/assets/c.png"), { "1" })
+        eq(vim.fn.readfile(dir .. "/assets/C.png"), { "2" })
+        eq(lines(), { "![](assets/c.png)" })
+      else
+        -- one file on a case-insensitive disk: it's renamed
+        eq(lines(), { "![](assets/C.png)" })
+      end
     end,
   },
   {

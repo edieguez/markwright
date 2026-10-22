@@ -190,6 +190,21 @@ local cases = {
     end,
   },
   {
+    "heading key inside code says so",
+    fn = function()
+      H.buf({ "```", "x", "```" }, { 2, 0 })
+      local got
+      local notify = vim.notify
+      vim.notify = function(msg)
+        got = msg
+      end
+      H.feed(" m=")
+      vim.notify = notify
+      eq(got, "markwright: headings skipped inside code")
+      eq(api.nvim_buf_get_lines(0, 0, -1, false), { "```", "x", "```" })
+    end,
+  },
+  {
     ":Markwright section",
     fn = function()
       H.buf({ "# A", "", "# B", "## C" }, { 1, 0 })

@@ -27,7 +27,7 @@ local function jump(row, col)
   api.nvim_win_set_cursor(0, { row + 1, col or 0 })
 end
 
-local function url_decode(s)
+function M.url_decode(s)
   return (s:gsub("%%(%x%x)", function(h)
     return string.char(tonumber(h, 16))
   end))
@@ -35,7 +35,7 @@ end
 
 --- Jump to the heading whose slug matches `anchor` in `buf`.
 function M.jump_anchor(buf, anchor)
-  anchor = vim.fn.tolower(url_decode(anchor))
+  anchor = vim.fn.tolower(M.url_decode(anchor))
   for _, h in ipairs(doc.headings(buf)) do
     if h.slug == anchor then
       jump(h.row, 0)
@@ -56,7 +56,7 @@ end
 
 --- Resolve a local link target to an absolute path.
 function M.resolve_path(buf, path)
-  path = url_decode(path)
+  path = M.url_decode(path)
   if path:sub(1, 1) == "~" then
     path = vim.fn.expand(path)
   elseif path:sub(1, 1) ~= "/" then

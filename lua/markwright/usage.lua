@@ -520,6 +520,8 @@ function M.load()
   fd:close()
   local ok, data = pcall(vim.json.decode, text)
   if not ok or type(data) ~= "table" or type(data.features) ~= "table" then
+    -- unreadable: keep it aside, or the next write would replace it with nothing
+    os.rename(M.path(), M.path() .. ".bad")
     return empty()
   end
   data.since = data.since or M.today()
@@ -560,13 +562,18 @@ local function write(data)
   if data.legacy then
     data.legacy = dict(data.legacy)
   end
-  local tmp = path .. ".tmp"
+  -- one temporary file per process: two Neovims writing at once never mix
+  local tmp = ("%s.%d.tmp"):format(path, vim.uv.os_getpid())
   local fd = io.open(tmp, "w")
   if not fd then
     return false
   end
-  fd:write(vim.json.encode(data))
-  fd:close()
+  local ok = fd:write(vim.json.encode(data))
+  ok = fd:close() and ok
+  if not ok then
+    os.remove(tmp)
+    return false
+  end
   return os.rename(tmp, path) ~= nil
 end
 

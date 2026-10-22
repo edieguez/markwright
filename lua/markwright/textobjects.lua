@@ -175,7 +175,13 @@ function M.url(buf, row, col)
     local key = ts.node_text(label, buf):gsub("^%[", ""):gsub("%]$", "")
     local def = doc.definitions(buf)[doc.normalize_label(key)]
     if def then
-      return { sr = def.row, sc = def.col, er = def.row, ec = def.col + #def.dest }
+      -- read the columns from the line: the destination may be written `<…>`
+      local line = get_line(buf, def.row)
+      if line:sub(def.col + 1, def.col + 1) == "<" then
+        local close = line:find(">", def.col + 2, true)
+        return { sr = def.row, sc = def.col + 1, er = def.row, ec = close and close - 1 or #line }
+      end
+      return { sr = def.row, sc = def.col, er = def.row, ec = def.col + #def.dest:gsub("^<(.*)>$", "%1") }
     end
   end
 end
@@ -199,6 +205,9 @@ function M.code(buf, row, col, inner)
     local line = get_line(buf, r.sr)
     local ticks = #line:sub(r.sc + 1):match("^`+")
     local s, e = r.sc + ticks, r.ec - ticks
+    if r.er ~= r.sr then
+      return { sr = r.sr, sc = s, er = r.er, ec = e } -- a span over two lines
+    end
     local text = line:sub(s + 1, e)
     if #text >= 2 and text:sub(1, 1) == " " and text:sub(-1) == " " and text:find("%S") then
       s, e = s + 1, e - 1 -- padding added for backticks inside
@@ -228,8 +237,8 @@ function M.fence(buf, row, col, inner)
     return { sr = sr, sc = 0, er = er, ec = 0, linewise = true }
   end
   -- fenced: the lines between the fences
-  local last = get_line(buf, er)
-  local closed = last:match("^%s*```") or last:match("^%s*~~~")
+  local last = get_line(buf, er):gsub("^[%s>]*", "") -- also inside a blockquote
+  local closed = last:match("^```") or last:match("^~~~")
   local cer = closed and er - 1 or er
   if cer < sr + 1 then
     return { sr = sr + 1, sc = 0, er = sr, ec = 0, linewise = true, empty = true }
@@ -240,12 +249,15 @@ end
 -- Heading sections ---------------------------------------------------------------
 
 local function heading_end_row(buf, h)
-  -- setext headings take two lines
+  -- setext headings end at their underline, which may be several lines down
+  local p = ts.parse(buf, h.row)
   local line = get_line(buf, h.row)
-  if not line:match("^%s*#") and get_line(buf, h.row + 1):match("^%s*[=-]+%s*$") then
-    return h.row + 1
+  local node = p and ts.ancestor(ts.block_node(p, h.row, #line:match("^%s*")), { setext_heading = true })
+  if not node then
+    return h.row
   end
-  return h.row
+  local _, _, er, ec = node:range()
+  return ec == 0 and er - 1 or er
 end
 
 function M.section(buf, row, _, inner, count)
@@ -395,24 +407,11 @@ local function emphasis_candidates(buf, p, row, col)
     node = node:parent()
   end
   -- ==highlight== is not in the grammar: scan the line
-  local line = get_line(buf, row)
-  local open
-  local i = 1
-  while true do
-    local s = line:find("==", i, true)
-    if not s then
-      break
+  for _, sp in ipairs(require("markwright.format").highlight_spans(get_line(buf, row))) do
+    local r = { sr = row, sc = sp[1], er = row, ec = sp[2] }
+    if contains(r, row, col) then
+      table.insert(out, { range = r, marker = 2 })
     end
-    if open then
-      local r = { sr = row, sc = open - 1, er = row, ec = s + 1 }
-      if contains(r, row, col) then
-        table.insert(out, { range = r, marker = 2 })
-      end
-      open = nil
-    else
-      open = s
-    end
-    i = s + 2
   end
   table.sort(out, function(a, b)
     return size(a.range) < size(b.range)
@@ -442,7 +441,13 @@ function M.emphasis(buf, row, col, inner, count)
   end
   local r = vim.deepcopy(c.range)
   if inner then
-    r.sc, r.ec = r.sc + c.marker, r.ec - c.marker
+    -- the delimiter as written: `~x~` is strikethrough too
+    local line = get_line(buf, r.sr)
+    local ch, n = line:sub(r.sc + 1, r.sc + 1), 0
+    while n < c.marker and line:sub(r.sc + n + 1, r.sc + n + 1) == ch do
+      n = n + 1
+    end
+    r.sc, r.ec = r.sc + n, r.ec - n
   end
   return r
 end
@@ -564,21 +569,10 @@ end
 
 ANCHORS.emphasis = function(buf, p, from, to, out)
   inline_anchors(p, EMPH, from, to, out)
+  local format = require("markwright.format")
   for r = from, to do
-    local line = get_line(buf, r)
-    local open, i = nil, 1
-    while true do
-      local st = line:find("==", i, true)
-      if not st then
-        break
-      end
-      if open then
-        table.insert(out, { r, open - 1 })
-        open = nil
-      else
-        open = st
-      end
-      i = st + 2
+    for _, sp in ipairs(format.highlight_spans(get_line(buf, r))) do
+      table.insert(out, { r, sp[1] })
     end
   end
 end

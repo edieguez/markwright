@@ -10,9 +10,7 @@ local function opts()
   return config.options.lists
 end
 
-local function get_line(buf, row)
-  return api.nvim_buf_get_lines(buf, row, row + 1, false)[1] or ""
-end
+local get_line = util.get_line
 
 local function is_hr(line)
   local s = line:gsub("%s", "")
@@ -22,6 +20,7 @@ end
 ---@class markwright.ListItem
 ---@field bq string blockquote prefix
 ---@field indent string
+---@field width integer display width of `indent` (tabs expanded)
 ---@field marker string "-", "*", "+", "1.", "2)" ...
 ---@field num? integer
 ---@field delim? string "." or ")"
@@ -40,16 +39,16 @@ function M.parse(line)
   end
   local bqn = util.bq_len(line)
   local bq, rest = line:sub(1, bqn), line:sub(bqn + 1)
-  local indent, marker, space, text = rest:match("^( *)([-*+])(%s+)(.*)$")
+  local indent, marker, space, text = rest:match("^([ \t]*)([-*+])(%s+)(.*)$")
   local num, delim
   if not marker then
-    indent, marker = rest:match("^( *)([-*+])$")
+    indent, marker = rest:match("^([ \t]*)([-*+])$")
     space, text = "", ""
   end
   if not marker then
-    indent, num, delim, space, text = rest:match("^( *)(%d+)([.)])(%s+)(.*)$")
+    indent, num, delim, space, text = rest:match("^([ \t]*)(%d+)([.)])(%s+)(.*)$")
     if not num then
-      indent, num, delim = rest:match("^( *)(%d+)([.)])$")
+      indent, num, delim = rest:match("^([ \t]*)(%d+)([.)])$")
       space, text = "", ""
     end
     if not num or #num > 9 then
@@ -71,6 +70,7 @@ function M.parse(line)
     check = text:match("^%[([ xX])%]$")
     cspace, after = "", ""
   end
+  item.width = vim.fn.strdisplaywidth(indent)
   item.marker_col = #bq + #indent
   item.content_col = item.marker_col + #marker + #space
   item.text_col = item.content_col
@@ -92,6 +92,24 @@ function M.item_at(buf, row)
     return item
   end
 end
+
+local function indent_width(line)
+  local bq = util.bq_len(line)
+  return vim.fn.strdisplaywidth(line:sub(bq + 1):match("^[ \t]*"))
+end
+
+--- Shift a line's indentation (after any blockquote prefix) by `delta`
+--- display columns. Like util.shift_line, but tab indents stay tabs.
+local function reindent(line, delta)
+  local bq = util.bq_len(line)
+  local ws = line:sub(bq + 1):match("^[ \t]*")
+  if not ws:find("\t") then
+    return util.shift_line(line, delta)
+  end
+  local w, tw = math.max(0, vim.fn.strdisplaywidth(ws) + delta), vim.bo.tabstop
+  return line:sub(1, bq) .. ("\t"):rep(math.floor(w / tw)) .. (" "):rep(w % tw) .. line:sub(bq + #ws + 1)
+end
+M.reindent = reindent
 
 -- Renumbering ---------------------------------------------------------------
 
@@ -123,6 +141,7 @@ local function list_items(list)
   end
   return out
 end
+M.list_items = list_items
 
 --- Numbers of the ordered list items that are siblings of `row` (or nil).
 local function sibling_numbers(buf, row)
@@ -263,8 +282,8 @@ local function remember(buf, lo, hi)
   walk(tree:root())
 end
 
---- Find the first ordered item with a wrong number under `node`.
-local function first_wrong(buf, node)
+--- Every ordered item with a wrong number under `node`, as { item, expected }.
+local function wrong_numbers(buf, node, out)
   if node:type() == "list" then
     local items = list_items(node)
     local nums = {}
@@ -277,25 +296,25 @@ local function first_wrong(buf, node)
         for i, it in ipairs(items) do
           local expected = start + i - 1
           if nums[i] and nums[i] ~= expected then
-            return it, expected
+            table.insert(out, { it, expected })
           end
         end
       end
     end
   end
   for c in node:iter_children() do
-    local it, expected = first_wrong(buf, c)
-    if it then
-      return it, expected
-    end
+    wrong_numbers(buf, c, out)
   end
+  return out
 end
 
 --- Renumber the ordered lists around `row`. Returns true if anything changed.
 ---@param o? { join?: boolean }
 function M.renumber(buf, row, o)
   local changed = false
-  for _ = 1, 500 do
+  -- one pass fixes every number; another runs only if a resized marker
+  -- shifted a nested list into a different shape
+  for _ = 1, 10 do
     local p = ts.parser(buf)
     if not p then
       return changed
@@ -313,33 +332,38 @@ function M.renumber(buf, row, o)
     if not top then
       return changed
     end
-    local item, expected = first_wrong(buf, top)
-    if not item then
+    local fixes = wrong_numbers(buf, top, {})
+    if #fixes == 0 then
       return changed
     end
-    local _, m = item_number(buf, item)
-    local mr, mc = m:range()
-    local mtext = get_line(buf, mr)
-    local s, e = mtext:find("%d+", mc + 1)
-    local new = tostring(expected)
-    local delta = #new - (e - s + 1)
-    if not changed then
-      if o and o.join then
-        pcall(vim.cmd, "undojoin")
-      end
+    if not changed and o and o.join then
+      pcall(vim.cmd, "undojoin")
     end
     changed = true
-    api.nvim_buf_set_text(buf, mr, s - 1, mr, e, { new })
-    if delta ~= 0 then
-      -- keep the item's other lines aligned with its content column
-      local sr, _, er, ec = item:range()
-      if ec == 0 then
-        er = er - 1
-      end
-      for r = sr + 1, er do
-        local l = get_line(buf, r)
-        if not l:match("^%s*$") then
-          api.nvim_buf_set_lines(buf, r, r + 1, false, { util.shift_line(l, delta) })
+    -- bottom up: an edit never moves the rows or columns of the items above it
+    table.sort(fixes, function(a, b)
+      return a[1]:range() > b[1]:range()
+    end)
+    for _, f in ipairs(fixes) do
+      local item, expected = f[1], f[2]
+      local _, m = item_number(buf, item)
+      local mr, mc = m:range()
+      local mtext = get_line(buf, mr)
+      local s, e = mtext:find("%d+", mc + 1)
+      local new = tostring(expected)
+      local delta = #new - (e - s + 1)
+      api.nvim_buf_set_text(buf, mr, s - 1, mr, e, { new })
+      if delta ~= 0 then
+        -- keep the item's other lines aligned with its content column
+        local sr, _, er, ec = item:range()
+        if ec == 0 then
+          er = er - 1
+        end
+        for r = sr + 1, er do
+          local l = get_line(buf, r)
+          if not l:match("^%s*$") then
+            api.nvim_buf_set_lines(buf, r, r + 1, false, { reindent(l, delta) })
+          end
         end
       end
     end
@@ -421,18 +445,25 @@ end
 
 -- Nesting -----------------------------------------------------------------------
 
-local function indent_width(line)
-  local bq = util.bq_len(line)
-  return #line:sub(bq + 1):match("^ *")
-end
-
---- Last row of the item's subtree (its continuation lines and children).
+--- Last row of the item's subtree (its continuation lines and children,
+--- also after blank lines), trailing blank lines excluded.
 local function subtree_end(buf, row, item)
+  local p = ts.parse(buf, row)
+  local node = p and ts.ancestor(ts.block_node(p, row, item.marker_col), { list_item = true })
+  if node and node:range() == row then
+    local _, _, er, ec = node:range()
+    if ec == 0 then
+      er = er - 1
+    end
+    while er > row and get_line(buf, er):sub(util.bq_len(get_line(buf, er)) + 1):match("^%s*$") do
+      er = er - 1
+    end
+    return er
+  end
   local last = row
-  local n = api.nvim_buf_line_count(buf)
-  for r = row + 1, n - 1 do
+  for r = row + 1, api.nvim_buf_line_count(buf) - 1 do
     local l = get_line(buf, r)
-    if l:match("^%s*$") or indent_width(l) <= #item.indent then
+    if l:match("^%s*$") or indent_width(l) <= item.width then
       break
     end
     last = r
@@ -450,7 +481,7 @@ function M.indent(dir)
   if not item then
     return
   end
-  local cur = #item.indent
+  local cur = item.width
   local target
   if dir > 0 then
     -- child of the previous sibling: align with its content
@@ -462,7 +493,7 @@ function M.indent(dir)
       local prev = M.parse(l)
       local w = indent_width(l)
       if prev and w == cur then
-        target = #prev.indent + #prev.marker + #prev.space
+        target = prev.width + #prev.marker + #prev.space
         break
       end
       if w < cur then
@@ -481,8 +512,8 @@ function M.indent(dir)
         break
       end
       local parent = M.parse(l)
-      if parent and #parent.indent < cur then
-        target = #parent.indent
+      if parent and parent.width < cur then
+        target = parent.width
         break
       end
     end
@@ -495,7 +526,7 @@ function M.indent(dir)
   local lines = api.nvim_buf_get_lines(buf, row, last + 1, false)
   for i, l in ipairs(lines) do
     if not l:match("^%s*$") then
-      lines[i] = util.shift_line(l, delta)
+      lines[i] = reindent(l, delta)
     end
   end
   api.nvim_buf_set_lines(buf, row, last + 1, false, lines)
@@ -515,7 +546,7 @@ function M.indent(dir)
         local w = indent_width(l)
         if w <= target then
           local prev = M.parse(l)
-          first = not (prev and prev.num and #prev.indent == target)
+          first = not (prev and prev.num and prev.width == target)
           break
         end
       end
@@ -590,6 +621,17 @@ function M.strip_stamp(line, fmt)
   end
 end
 
+-- A format that starts with a date (`%Y-%m-%d`) writes stamps that look like
+-- dates people type ("pay rent by 2026-11-01"), so for those only a stamp
+-- added in this session (tracked by an extmark) is ever removed, and checking
+-- always adds one. Formats that start with a literal (the default `✅ `) are
+-- recognized by their text.
+local stamp_ns = api.nvim_create_namespace("markwright_stamps")
+
+local function ambiguous(fmt)
+  return fmt:match("^[%%%d%s]") ~= nil and not fmt:match("^%%%%")
+end
+
 --- Add or remove the completion stamp after the checkbox changed on `row`.
 local function stamp(buf, row, checked)
   local fmt = opts().done_date
@@ -597,14 +639,37 @@ local function stamp(buf, row, checked)
     return
   end
   local line = get_line(buf, row)
-  local stripped = M.strip_stamp(line, fmt)
-  if checked then
-    if stripped then
-      return -- already stamped
+  if not ambiguous(fmt) then
+    local stripped = M.strip_stamp(line, fmt)
+    if checked then
+      if stripped then
+        return -- already stamped
+      end
+      local base = line:gsub("%s+$", "")
+      api.nvim_buf_set_text(buf, row, #base, row, #line, { " " .. os.date(fmt, M.clock()) })
+    elseif stripped then
+      api.nvim_buf_set_text(buf, row, #stripped, row, #line, { "" })
     end
-    local base = line:gsub("%s+$", "")
-    api.nvim_buf_set_text(buf, row, #base, row, #line, { " " .. os.date(fmt, M.clock()) })
-  elseif stripped then
+    return
+  end
+  local base = line:gsub("%s+$", "")
+  if checked then
+    local text = " " .. os.date(fmt, M.clock())
+    api.nvim_buf_set_text(buf, row, #base, row, #line, { text })
+    api.nvim_buf_set_extmark(buf, stamp_ns, row, #base, { end_col = #base + #text, invalidate = true })
+    return
+  end
+  for _, mk in ipairs(api.nvim_buf_get_extmarks(buf, stamp_ns, { row, 0 }, { row, -1 }, { details = true })) do
+    local d = mk[4]
+    api.nvim_buf_del_extmark(buf, stamp_ns, mk[1])
+    if not d.invalid and d.end_row == row and d.end_col == #base then
+      api.nvim_buf_set_text(buf, row, mk[3], row, #line, { "" })
+      return
+    end
+  end
+  -- a default-format stamp from before `done_date` changed
+  local stripped = M.strip_stamp(line)
+  if stripped then
     api.nvim_buf_set_text(buf, row, #stripped, row, #line, { "" })
   end
 end

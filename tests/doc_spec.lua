@@ -45,6 +45,20 @@ local cases = {
     with({ "# Title" }, with(TOC, { unpack(DOC, 3) })),
   },
   {
+    "TOC anchors keep code span content",
+    { "", "## `__init__`", "## `__init__`" },
+    { 1, 0 },
+    " mO",
+    {
+      "<!-- toc -->",
+      "- [`__init__`](#__init__)",
+      "- [`__init__`](#__init__-1)",
+      "<!-- tocstop -->",
+      "## `__init__`",
+      "## `__init__`",
+    },
+  },
+  {
     "insert below text adds a blank line",
     { "intro", "## X" },
     { 1, 0 },
@@ -143,6 +157,34 @@ local cases = {
         { 1, 0 },
         dir .. "/doc.md"
       )
+      eq(messages(buf), {})
+    end,
+  },
+  {
+    "anchors match GitHub: code spans kept, doubled spaces",
+    fn = function()
+      local buf = H.buf({
+        "[a](#__init__) [b](#the-details-element) [c](#trim--me)",
+        "# `__init__`",
+        "# The `<details>` element",
+        "# Trim  me",
+      }, { 1, 0 }, dir .. "/doc.md")
+      eq(messages(buf), {})
+    end,
+  },
+  {
+    "<…> definition with a space, footnotes in a blockquote",
+    fn = function()
+      local buf = H.buf({
+        "[x] and [y]",
+        "",
+        "[x]: <exists.md>",
+        "[y]: <https://example.com/a b>",
+        "",
+        "> text[^1]",
+        ">",
+        "> [^1]: def",
+      }, { 1, 0 }, dir .. "/doc.md")
       eq(messages(buf), {})
     end,
   },

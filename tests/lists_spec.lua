@@ -95,6 +95,15 @@ local cases = {
     { "1. a", "2. b", "3. c" },
   },
   { "tab keeps cursor on text", { "- a", "- bc" }, { 2, 3 }, "i<Tab>X<Esc>", { "- a", "  - bXc" } },
+  {
+    "tab takes the item's later paragraph along",
+    { "- a", "- b", "", "  b para" },
+    { 2, 3 },
+    "a<Tab><Esc>",
+    { "- a", "  - b", "", "    b para" },
+  },
+  { "tab-indented item: <CR> toggles", { "- a", "\t- [ ] b" }, { 2, 0 }, "<CR>", { "- a", "\t- [x] b" .. STAMP } },
+  { "tab-indented item: S-Tab outdents", { "- a", "\t- b" }, { 2, 0 }, "i<S-Tab><Esc>", { "- a", "- b" } },
   { "tab on plain text is native", { "x" }, { 1, 0 }, "A<Tab><Esc>", { "x   " } },
   {
     "tab in a table still moves cells",
@@ -170,6 +179,22 @@ local cases = {
     setup = done_date("done:%d/%m/%Y"),
   },
   { "done_date = false: no stamp", { "- [ ] task" }, { 1, 0 }, "<CR>", { "- [x] task" }, setup = done_date(false) },
+  {
+    "a date-first format never removes a typed date",
+    { "- [ ] pay rent by 2026-11-01" },
+    { 1, 0 },
+    { "<CR>", "<CR>" },
+    { "- [ ] pay rent by 2026-11-01" },
+    setup = done_date("%Y-%m-%d"),
+  },
+  {
+    "a date-first format stamps after a typed date",
+    { "- [ ] pay rent by 2026-11-01" },
+    { 1, 0 },
+    "<CR>",
+    { "- [x] pay rent by 2026-11-01 " .. os.date("%Y-%m-%d", T0) },
+    setup = done_date("%Y-%m-%d"),
+  },
   -- progress cookies (lists.progress)
   {
     "checking a child fills the parent's [/]",
@@ -435,6 +460,24 @@ local cases = {
     { "8. a", "9. x", "10. b", "    more", "11. c" },
   },
   { "p of a list item renumbers", { "1. a", "2. b" }, { 1, 0 }, "yyjp", { "1. a", "2. b", "3. a" } },
+  {
+    "long list: deleting the first item renumbers every item",
+    fn = function()
+      local lines = {}
+      for i = 1, 1200 do
+        lines[i] = i .. ". x"
+      end
+      H.buf(lines)
+      H.feed("dd")
+      local got = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+      eq(#got, 1199)
+      for i, l in ipairs(got) do
+        if l ~= i .. ". x" then
+          eq(l, i .. ". x")
+        end
+      end
+    end,
+  },
 
   -- headings
   { "add # to plain line", { "Title" }, { 1, 0 }, " m=", { "# Title" } },

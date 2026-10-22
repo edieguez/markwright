@@ -90,7 +90,8 @@ function Proxy:equal(other)
   return getmetatable(other) == Proxy and self._n:equal(other._n)
 end
 
-M.FOOTNOTE_DEF = "^(%s*%[%^[^%]%s]+%]:%s*)"
+-- `[^id]: ` at the start of a line, also inside a blockquote (`> [^1]: `)
+M.FOOTNOTE_DEF = "^([%s>]*%[%^[^%]%s]+%]:%s*)"
 
 --- Inline node at (row, col) inside the text of a footnote definition that
 --- the grammar read as a reference definition, or nil.

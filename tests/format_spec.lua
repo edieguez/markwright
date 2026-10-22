@@ -33,6 +33,9 @@ local cases = {
   { "code off removes padding", { "`` `x ``" }, { 1, 4 }, " mc", { "`x" } },
   { "highlight on", { "word" }, { 1, 0 }, " mhiw", { "==word==" } },
   { "highlight off", { "a ==two words== b" }, { 1, 9 }, " mh", { "a two words b" } },
+  { "highlight off after a comparison", { "if a == b then ==hi==" }, { 1, 17 }, " mh", { "if a == b then hi" } },
+  { "highlight ignores == in code", { "`a==b` ==hi==" }, { 1, 9 }, " mh", { "`a==b` hi" } },
+  { "blockwise keeps accented letters whole", { "äbc", "abc" }, { 1, 2 }, "<C-v>j mb", { "ä**b**c", "a**b**c" } },
 
   -- visual
   { "visual trims trailing space", { "one two three" }, { 1, 4 }, "vlll mb", { "one **two** three" } },
